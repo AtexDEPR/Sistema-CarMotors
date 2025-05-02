@@ -1,14 +1,14 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.carmotorsproject.campaigns.model;
 
 /**
- *
- * @author ADMiN
+ * Interface for objects that have an identifier
  */
-public class Identifiable {
+public interface Identifiable {
     
+    /**
+     * Get the object's unique identifier
+     * 
+     * @return Unique identifier
+     */
+    String getId();
 }
