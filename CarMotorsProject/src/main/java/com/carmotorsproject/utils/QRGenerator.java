@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.carmotorsproject.utils;
 
 import com.google.zxing.BarcodeFormat;
@@ -12,68 +8,91 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Utility class for generating QR codes
+ * Generates QR codes for invoices using the ZXing library.
  */
 public class QRGenerator {
     private static final Logger LOGGER = Logger.getLogger(QRGenerator.class.getName());
 
     /**
-     * Generate a QR code image
+     * Generates a QR code as a BufferedImage.
      *
-     * @param text Text to encode in the QR code
-     * @param width Width of the QR code
-     * @param height Height of the QR code
-     * @param filePath Output file path
-     * @return true if QR code was generated successfully, false otherwise
+     * @param data The data to encode in the QR code
+     * @param width The width of the QR code image
+     * @param height The height of the QR code image
+     * @return A BufferedImage containing the QR code
+     * @throws RuntimeException If there is an error generating the QR code
      */
-    public static boolean generateQRCode(String text, int width, int height, String filePath) {
+    public BufferedImage generateQRCode(String data, int width, int height) {
+        LOGGER.log(Level.INFO, "Generating QR code with data length: {0}", data.length());
+
         try {
+            // Set QR code parameters
             Map<EncodeHintType, Object> hints = new HashMap<>();
-            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H);
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // High error correction
+            hints.put(EncodeHintType.MARGIN, 2); // Margin (quiet zone)
             hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-            hints.put(EncodeHintType.MARGIN, 1);
 
+            // Create QR code writer
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
-            BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
+            BitMatrix bitMatrix = qrCodeWriter.encode(data, BarcodeFormat.QR_CODE, width, height, hints);
 
-            Path path = FileSystems.getDefault().getPath(filePath);
-            MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+            // Convert to BufferedImage
+            BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(bitMatrix);
 
-            LOGGER.log(Level.INFO, "QR code generated successfully: {0}", filePath);
-            return true;
-
-        } catch (WriterException | IOException e) {
+            LOGGER.info("QR code generated successfully");
+            return qrImage;
+        } catch (WriterException e) {
             LOGGER.log(Level.SEVERE, "Error generating QR code", e);
-            return false;
+            throw new RuntimeException("Error generating QR code", e);
         }
     }
 
     /**
-     * Generate a QR code for an invoice
+     * Generates a QR code with DIAN-specific data for electronic invoices.
      *
-     * @param invoiceNumber Invoice number
-     * @param customerName Customer name
-     * @param total Total amount
-     * @param date Invoice date
-     * @param filePath Output file path
-     * @return true if QR code was generated successfully, false otherwise
+     * @param invoiceNumber The invoice number
+     * @param cufe The CUFE (Código Único de Facturación Electrónica)
+     * @param nit The company's tax ID (NIT)
+     * @param issueDate The invoice issue date
+     * @param total The invoice total
+     * @param width The width of the QR code image
+     * @param height The height of the QR code image
+     * @return A BufferedImage containing the QR code with DIAN-specific data
+     * @throws RuntimeException If there is an error generating the QR code
      */
-    public static boolean generateInvoiceQRCode(String invoiceNumber, String customerName,
-                                                double total, String date, String filePath) {
-        // Create a string with invoice information
-        String qrContent = String.format("INVOICE:%s\nCUSTOMER:%s\nTOTAL:$%.2f\nDATE:%s",
-                invoiceNumber, customerName, total, date);
+    public BufferedImage generateInvoiceQRCode(String invoiceNumber, String cufe, String nit,
+                                               String issueDate, double total, int width, int height) {
+        // Format the data according to DIAN requirements
+        String qrData = "NumFac:" + invoiceNumber + "|" +
+                "CUFE:" + cufe + "|" +
+                "NitFac:" + nit + "|" +
+                "FecFac:" + issueDate + "|" +
+                "ValFac:" + String.format("%.2f", total);
 
-        // Generate QR code with this information
-        return generateQRCode(qrContent, 200, 200, filePath);
+        LOGGER.log(Level.INFO, "Generating invoice QR code for invoice: {0}", invoiceNumber);
+        return generateQRCode(qrData, width, height);
+    }
+
+    /**
+     * Converts a BufferedImage to a byte array.
+     *
+     * @param image The BufferedImage to convert
+     * @return A byte array containing the image data
+     * @throws IOException If an I/O error occurs
+     */
+    public static byte[] bufferedImageToByteArray(BufferedImage image) throws IOException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(image, "png", baos);
+        return baos.toByteArray();
     }
 }

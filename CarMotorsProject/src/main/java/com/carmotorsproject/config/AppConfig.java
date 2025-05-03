@@ -1,157 +1,207 @@
 package com.carmotorsproject.config;
 
-import org.apache.commons.configuration2.Configuration;
-import org.apache.commons.configuration2.builder.fluent.Configurations;
-import org.apache.commons.configuration2.ex.ConfigurationException;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Class for managing application configuration
+ * Stores application-wide configurations such as database credentials and email settings.
+ * Provides static methods to retrieve configuration values.
  */
 public class AppConfig {
     private static final Logger LOGGER = Logger.getLogger(AppConfig.class.getName());
-    private static final String CONFIG_FILE = "config.properties";
 
-    private static AppConfig instance;
-    private Configuration config;
+    // Database configuration
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/carmotors";
+    private static final String DB_USER = "root";
+    private static final String DB_PASSWORD = "password";
 
-    // Default Clever Cloud database configuration
-    private static final String DEFAULT_DB_URL = "jdbc:mysql://btxzpsqiipyryzhogsuu-mysql.services.clever-cloud.com:3306/btxzpsqiipyryzhogsuu";
-    private static final String DEFAULT_DB_USERNAME = "ufalxvcetxjje2vb";
-    private static final String DEFAULT_DB_PASSWORD = "5lIvFtFo0HtkbXY8ScG7";
+    // Email configuration
+    private static final String EMAIL_HOST = "smtp.gmail.com";
+    private static final int EMAIL_PORT = 587;
+    private static final String EMAIL_USERNAME = "workshop@carmotors.com";
+    private static final String EMAIL_PASSWORD = "your_app_password"; // Use app password for Gmail
+    private static final boolean EMAIL_AUTH = true;
+    private static final boolean EMAIL_TLS = true;
 
-    private AppConfig() {
-        loadConfiguration();
+    // Workshop details
+    private static final String WORKSHOP_NAME = "Car Motors Workshop";
+    private static final String WORKSHOP_ADDRESS = "Calle 123 #45-67, Bogotá, Colombia";
+    private static final String WORKSHOP_PHONE = "+57 1 234 5678";
+    private static final String WORKSHOP_EMAIL = "info@carmotors.com";
+    private static final String WORKSHOP_TAX_ID = "NIT: 901.234.567-8";
+
+    // Application settings
+    private static final String APP_VERSION = "1.0.0";
+    private static final String LOG_DIRECTORY = "logs";
+    private static final int SESSION_TIMEOUT_MINUTES = 30;
+
+    /**
+     * Gets the database URL.
+     *
+     * @return The database URL
+     */
+    public static String getDbUrl() {
+        LOGGER.fine("Retrieving database URL");
+        return DB_URL;
     }
 
     /**
-     * Get the singleton instance of AppConfig
-     * @return AppConfig instance
+     * Gets the database username.
+     *
+     * @return The database username
      */
-    public static synchronized AppConfig getInstance() {
-        if (instance == null) {
-            instance = new AppConfig();
-        }
-        return instance;
+    public static String getDbUser() {
+        LOGGER.fine("Retrieving database username");
+        return DB_USER;
     }
 
     /**
-     * Load configuration from file
+     * Gets the database password.
+     *
+     * @return The database password
      */
-    private void loadConfiguration() {
-        Configurations configs = new Configurations();
-        try {
-            File configFile = new File(CONFIG_FILE);
-            if (configFile.exists()) {
-                config = configs.properties(configFile);
-                LOGGER.log(Level.INFO, "Configuration loaded from {0}", CONFIG_FILE);
-            } else {
-                LOGGER.log(Level.WARNING, "Configuration file {0} not found. Using default values.", CONFIG_FILE);
-                // Create a default configuration
-                createDefaultConfig();
-            }
-        } catch (ConfigurationException e) {
-            LOGGER.log(Level.SEVERE, "Error loading configuration", e);
-        }
+    public static String getDbPassword() {
+        LOGGER.fine("Retrieving database password");
+        return DB_PASSWORD;
     }
 
     /**
-     * Create default configuration if config file doesn't exist
+     * Gets the email server host.
+     *
+     * @return The email server host
      */
-    private void createDefaultConfig() {
-        // Create a default configuration file with Clever Cloud database settings
-        try {
-            Properties props = new Properties();
-            props.setProperty("database.url", DEFAULT_DB_URL);
-            props.setProperty("database.username", DEFAULT_DB_USERNAME);
-            props.setProperty("database.password", DEFAULT_DB_PASSWORD);
-
-            // Add other default properties
-            props.setProperty("app.name", "Car Motors Project");
-            props.setProperty("app.version", "1.0");
-            props.setProperty("app.log.level", "INFO");
-
-            // Save properties to file
-            File configFile = new File(CONFIG_FILE);
-            try (FileOutputStream out = new FileOutputStream(configFile)) {
-                props.store(out, "Car Motors Project Default Configuration");
-                LOGGER.log(Level.INFO, "Created default configuration file: {0}", CONFIG_FILE);
-            }
-
-            // Reload configuration
-            loadConfiguration();
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Could not create default configuration file", e);
-            LOGGER.log(Level.INFO, "Using default configuration values");
-        }
+    public static String getEmailHost() {
+        LOGGER.fine("Retrieving email host");
+        return EMAIL_HOST;
     }
 
     /**
-     * Get a string configuration value
-     * @param key Configuration key
-     * @param defaultValue Default value if key not found
-     * @return Configuration value
+     * Gets the email server port.
+     *
+     * @return The email server port
      */
-    public String getString(String key, String defaultValue) {
-        if (config == null) {
-            return defaultValue;
-        }
-        return config.getString(key, defaultValue);
+    public static int getEmailPort() {
+        LOGGER.fine("Retrieving email port");
+        return EMAIL_PORT;
     }
 
     /**
-     * Get an integer configuration value
-     * @param key Configuration key
-     * @param defaultValue Default value if key not found
-     * @return Configuration value
+     * Gets the email username.
+     *
+     * @return The email username
      */
-    public int getInt(String key, int defaultValue) {
-        if (config == null) {
-            return defaultValue;
-        }
-        return config.getInt(key, defaultValue);
+    public static String getEmailUsername() {
+        LOGGER.fine("Retrieving email username");
+        return EMAIL_USERNAME;
     }
 
     /**
-     * Get a boolean configuration value
-     * @param key Configuration key
-     * @param defaultValue Default value if key not found
-     * @return Configuration value
+     * Gets the email password.
+     *
+     * @return The email password
      */
-    public boolean getBoolean(String key, boolean defaultValue) {
-        if (config == null) {
-            return defaultValue;
-        }
-        return config.getBoolean(key, defaultValue);
+    public static String getEmailPassword() {
+        LOGGER.fine("Retrieving email password");
+        return EMAIL_PASSWORD;
     }
 
     /**
-     * Get database connection URL
-     * @return Database URL
+     * Checks if email authentication is required.
+     *
+     * @return True if email authentication is required, false otherwise
      */
-    public String getDatabaseUrl() {
-        return getString("database.url", DEFAULT_DB_URL);
+    public static boolean isEmailAuthRequired() {
+        LOGGER.fine("Retrieving email auth setting");
+        return EMAIL_AUTH;
     }
 
     /**
-     * Get database username
-     * @return Database username
+     * Checks if email TLS is enabled.
+     *
+     * @return True if email TLS is enabled, false otherwise
      */
-    public String getDatabaseUsername() {
-        return getString("database.username", DEFAULT_DB_USERNAME);
+    public static boolean isEmailTlsEnabled() {
+        LOGGER.fine("Retrieving email TLS setting");
+        return EMAIL_TLS;
     }
 
     /**
-     * Get database password
-     * @return Database password
+     * Gets the workshop name.
+     *
+     * @return The workshop name
      */
-    public String getDatabasePassword() {
-        return getString("database.password", DEFAULT_DB_PASSWORD);
+    public static String getWorkshopName() {
+        LOGGER.fine("Retrieving workshop name");
+        return WORKSHOP_NAME;
+    }
+
+    /**
+     * Gets the workshop address.
+     *
+     * @return The workshop address
+     */
+    public static String getWorkshopAddress() {
+        LOGGER.fine("Retrieving workshop address");
+        return WORKSHOP_ADDRESS;
+    }
+
+    /**
+     * Gets the workshop phone number.
+     *
+     * @return The workshop phone number
+     */
+    public static String getWorkshopPhone() {
+        LOGGER.fine("Retrieving workshop phone");
+        return WORKSHOP_PHONE;
+    }
+
+    /**
+     * Gets the workshop email.
+     *
+     * @return The workshop email
+     */
+    public static String getWorkshopEmail() {
+        LOGGER.fine("Retrieving workshop email");
+        return WORKSHOP_EMAIL;
+    }
+
+    /**
+     * Gets the workshop tax ID (NIT).
+     *
+     * @return The workshop tax ID
+     */
+    public static String getWorkshopTaxId() {
+        LOGGER.fine("Retrieving workshop tax ID");
+        return WORKSHOP_TAX_ID;
+    }
+
+    /**
+     * Gets the application version.
+     *
+     * @return The application version
+     */
+    public static String getAppVersion() {
+        LOGGER.fine("Retrieving application version");
+        return APP_VERSION;
+    }
+
+    /**
+     * Gets the log directory.
+     *
+     * @return The log directory
+     */
+    public static String getLogDirectory() {
+        LOGGER.fine("Retrieving log directory");
+        return LOG_DIRECTORY;
+    }
+
+    /**
+     * Gets the session timeout in minutes.
+     *
+     * @return The session timeout in minutes
+     */
+    public static int getSessionTimeoutMinutes() {
+        LOGGER.fine("Retrieving session timeout");
+        return SESSION_TIMEOUT_MINUTES;
     }
 }

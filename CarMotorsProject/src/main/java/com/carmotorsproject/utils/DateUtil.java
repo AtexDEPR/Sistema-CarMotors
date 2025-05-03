@@ -1,136 +1,220 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.carmotorsproject.utils;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Utility class for date operations
+ * Provides utility methods for date handling and formatting.
  */
 public class DateUtil {
     private static final Logger LOGGER = Logger.getLogger(DateUtil.class.getName());
 
-    private static final String DATE_FORMAT = "yyyy-MM-dd";
-    private static final String DATETIME_FORMAT = "yyyy-MM-dd HH:mm:ss";
+    // Common date formats
+    public static final String DATE_FORMAT = "dd/MM/yyyy";
+    public static final String DATE_TIME_FORMAT = "dd/MM/yyyy HH:mm:ss";
+    public static final String ISO_DATE_FORMAT = "yyyy-MM-dd";
+    public static final String ISO_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
 
     /**
-     * Get current date as string in format yyyy-MM-dd
+     * Formats a Date object to a string using the specified pattern.
      *
-     * @return Current date as string
+     * @param date The date to format
+     * @param pattern The pattern to use for formatting
+     * @return The formatted date string, or null if the date is null
      */
-    public static String getCurrentDate() {
-        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
-        return sdf.format(new Date());
+    public static String formatDate(Date date, String pattern) {
+        if (date == null) {
+            return null;
+        }
+
+        SimpleDateFormat formatter = new SimpleDateFormat(pattern);
+        return formatter.format(date);
     }
 
     /**
-     * Get current date and time as string in format yyyy-MM-dd HH:mm:ss
+     * Formats a Date object using the default date format (dd/MM/yyyy).
      *
-     * @return Current date and time as string
-     */
-    public static String getCurrentDateTime() {
-        SimpleDateFormat sdf = new SimpleDateFormat(DATETIME_FORMAT);
-        return sdf.format(new Date());
-    }
-
-    /**
-     * Format date object to string in format yyyy-MM-dd
-     *
-     * @param date Date to format
-     * @return Formatted date string
+     * @param date The date to format
+     * @return The formatted date string, or null if the date is null
      */
     public static String formatDate(Date date) {
-        if (date == null) {
-            return "";
-        }
-        SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
-        return sdf.format(date);
+        return formatDate(date, DATE_FORMAT);
     }
 
     /**
-     * Format date object to string in format yyyy-MM-dd HH:mm:ss
+     * Parses a date string to a Date object using the specified pattern.
      *
-     * @param date Date to format
-     * @return Formatted date and time string
+     * @param dateStr The date string to parse
+     * @param pattern The pattern to use for parsing
+     * @return The parsed Date object, or null if parsing fails
      */
-    public static String formatDateTime(Date date) {
-        if (date == null) {
-            return "";
+    public static Date parseDate(String dateStr, String pattern) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
         }
-        SimpleDateFormat sdf = new SimpleDateFormat(DATETIME_FORMAT);
-        return sdf.format(date);
+
+        try {
+            SimpleDateFormat formatter = new SimpleDateFormat(pattern);
+            formatter.setLenient(false); // Strict parsing
+            return formatter.parse(dateStr);
+        } catch (ParseException e) {
+            LOGGER.log(Level.WARNING, "Error parsing date: {0} with pattern: {1}", new Object[]{dateStr, pattern});
+            return null;
+        }
     }
 
     /**
-     * Parse string to date object from format yyyy-MM-dd
+     * Parses a date string using the default date format (dd/MM/yyyy).
      *
-     * @param dateStr Date string to parse
-     * @return Date object
+     * @param dateStr The date string to parse
+     * @return The parsed Date object, or null if parsing fails
      */
     public static Date parseDate(String dateStr) {
-        if (dateStr == null || dateStr.isEmpty()) {
-            return null;
-        }
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat(DATE_FORMAT);
-            return sdf.parse(dateStr);
-        } catch (ParseException e) {
-            LOGGER.log(Level.WARNING, "Error parsing date: {0}", dateStr);
-            return null;
-        }
+        return parseDate(dateStr, DATE_FORMAT);
     }
 
     /**
-     * Parse string to date object from format yyyy-MM-dd HH:mm:ss
+     * Calculates the number of days between two dates.
      *
-     * @param dateTimeStr Date and time string to parse
-     * @return Date object
-     */
-    public static Date parseDateTime(String dateTimeStr) {
-        if (dateTimeStr == null || dateTimeStr.isEmpty()) {
-            return null;
-        }
-        try {
-            SimpleDateFormat sdf = new SimpleDateFormat(DATETIME_FORMAT);
-            return sdf.parse(dateTimeStr);
-        } catch (ParseException e) {
-            LOGGER.log(Level.WARNING, "Error parsing date and time: {0}", dateTimeStr);
-            return null;
-        }
-    }
-
-    /**
-     * Calculate days between two dates
-     *
-     * @param startDate Start date
-     * @param endDate End date
-     * @return Number of days between dates
+     * @param startDate The start date
+     * @param endDate The end date
+     * @return The number of days between the dates, or -1 if either date is null
      */
     public static long daysBetween(Date startDate, Date endDate) {
         if (startDate == null || endDate == null) {
-            return 0;
+            return -1;
         }
-        long diff = endDate.getTime() - startDate.getTime();
-        return diff / (24 * 60 * 60 * 1000);
+
+        LocalDate start = startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate end = endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+
+        return ChronoUnit.DAYS.between(start, end);
     }
 
     /**
-     * Add days to a date
+     * Adds a specified number of days to a date.
      *
-     * @param date Base date
-     * @param days Number of days to add
-     * @return New date
+     * @param date The date to add days to
+     * @param days The number of days to add
+     * @return The new date with days added, or null if the input date is null
      */
     public static Date addDays(Date date, int days) {
         if (date == null) {
             return null;
         }
-        return new Date(date.getTime() + (long) days * 24 * 60 * 60 * 1000);
+
+        LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate newDate = localDate.plusDays(days);
+
+        return Date.from(newDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * Checks if a date is before the current date.
+     *
+     * @param date The date to check
+     * @return True if the date is before the current date, false otherwise
+     */
+    public static boolean isBeforeToday(Date date) {
+        if (date == null) {
+            return false;
+        }
+
+        LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate today = LocalDate.now();
+
+        return localDate.isBefore(today);
+    }
+
+    /**
+     * Gets the current date.
+     *
+     * @return The current date
+     */
+    public static Date getCurrentDate() {
+        return Date.from(LocalDate.now().atStartOfDay(ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * Gets the current date and time.
+     *
+     * @return The current date and time
+     */
+    public static Date getCurrentDateTime() {
+        return Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * Formats a LocalDate to a string using the specified pattern.
+     *
+     * @param localDate The LocalDate to format
+     * @param pattern The pattern to use for formatting
+     * @return The formatted date string, or null if the localDate is null
+     */
+    public static String formatLocalDate(LocalDate localDate, String pattern) {
+        if (localDate == null) {
+            return null;
+        }
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+        return localDate.format(formatter);
+    }
+
+    /**
+     * Parses a date string to a LocalDate using the specified pattern.
+     *
+     * @param dateStr The date string to parse
+     * @param pattern The pattern to use for parsing
+     * @return The parsed LocalDate, or null if parsing fails
+     */
+    public static LocalDate parseLocalDate(String dateStr, String pattern) {
+        if (dateStr == null || dateStr.trim().isEmpty()) {
+            return null;
+        }
+
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern(pattern);
+            return LocalDate.parse(dateStr, formatter);
+        } catch (DateTimeParseException e) {
+            LOGGER.log(Level.WARNING, "Error parsing LocalDate: {0} with pattern: {1}", new Object[]{dateStr, pattern});
+            return null;
+        }
+    }
+
+    /**
+     * Converts a Date to a LocalDate.
+     *
+     * @param date The Date to convert
+     * @return The converted LocalDate, or null if the date is null
+     */
+    public static LocalDate toLocalDate(Date date) {
+        if (date == null) {
+            return null;
+        }
+
+        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+    }
+
+    /**
+     * Converts a LocalDate to a Date.
+     *
+     * @param localDate The LocalDate to convert
+     * @return The converted Date, or null if the localDate is null
+     */
+    public static Date fromLocalDate(LocalDate localDate) {
+        if (localDate == null) {
+            return null;
+        }
+
+        return Date.from(localDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
     }
 }

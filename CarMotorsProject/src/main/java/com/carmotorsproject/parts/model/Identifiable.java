@@ -5,9 +5,15 @@
 package com.carmotorsproject.parts.model;
 
 /**
- *
- * @author camper
+ * Interface for models with a unique ID.
+ * Ensures all model classes (e.g., Part, Customer) have a unique identifier.
  */
-public class Identifiable {
-    
+public interface Identifiable {
+
+    /**
+     * Gets the unique identifier of the model.
+     *
+     * @return The unique identifier
+     */
+    int getId();
 }

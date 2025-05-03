@@ -1,9 +1,8 @@
 package com.carmotorsproject.campaigns.controller;
 
+import com.carmotorsproject.campaigns.model.CampaignAppointment;
 import com.carmotorsproject.campaigns.model.Campaign;
-import com.carmotorsproject.campaigns.service.CampaignService;
 import com.carmotorsproject.campaigns.views.CampaignView;
-import com.carmotorsproject.utils.ValidationUtil;
 
 import java.util.Date;
 import java.util.List;

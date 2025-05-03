@@ -1,8 +1,6 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package com.carmotorsproject.utils;
+
+import com.carmotorsproject.config.AppConfig;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -17,115 +15,87 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Utility class for sending emails
+ * Sends emails with invoice PDFs as attachments using javax.mail.
  */
 public class EmailService {
     private static final Logger LOGGER = Logger.getLogger(EmailService.class.getName());
 
-    private String host;
-    private int port;
-    private boolean auth;
-    private boolean tls;
-    private String username;
-    private String password;
-
     /**
-     * Constructor with email server configuration
+     * Sends an email with an invoice PDF attachment.
      *
-     * @param host SMTP host
-     * @param port SMTP port
-     * @param auth Whether authentication is required
-     * @param tls Whether TLS is enabled
-     * @param username SMTP username
-     * @param password SMTP password
+     * @param recipient The email recipient
+     * @param subject The email subject
+     * @param body The email body
+     * @param pdfPath The path to the PDF file to attach
+     * @return True if the email was sent successfully, false otherwise
      */
-    public EmailService(String host, int port, boolean auth, boolean tls,
-                        String username, String password) {
-        this.host = host;
-        this.port = port;
-        this.auth = auth;
-        this.tls = tls;
-        this.username = username;
-        this.password = password;
-    }
+    public boolean sendInvoiceEmail(String recipient, String subject, String body, String pdfPath) {
+        LOGGER.log(Level.INFO, "Sending invoice email to: {0}", recipient);
 
-    /**
-     * Send an email
-     *
-     * @param to Recipient email address
-     * @param subject Email subject
-     * @param body Email body
-     * @return true if email was sent successfully, false otherwise
-     */
-    public boolean sendEmail(String to, String subject, String body) {
-        return sendEmail(to, subject, body, null);
-    }
+        // Get email configuration from AppConfig
+        String host = AppConfig.getEmailHost();
+        int port = AppConfig.getEmailPort();
+        final String username = AppConfig.getEmailUsername();
+        final String password = AppConfig.getEmailPassword();
+        boolean authRequired = AppConfig.isEmailAuthRequired();
+        boolean tlsEnabled = AppConfig.isEmailTlsEnabled();
 
-    /**
-     * Send an email with attachment
-     *
-     * @param to Recipient email address
-     * @param subject Email subject
-     * @param body Email body
-     * @param attachmentPath Path to attachment file
-     * @return true if email was sent successfully, false otherwise
-     */
-    public boolean sendEmail(String to, String subject, String body, String attachmentPath) {
+        // Set mail properties
         Properties props = new Properties();
         props.put("mail.smtp.host", host);
         props.put("mail.smtp.port", port);
-        props.put("mail.smtp.auth", auth);
-        props.put("mail.smtp.starttls.enable", tls);
 
-        // Create session with authenticator if required
-        Session session;
-        if (auth) {
-            session = Session.getInstance(props, new Authenticator() {
-                @Override
-                protected PasswordAuthentication getPasswordAuthentication() {
-                    return new PasswordAuthentication(username, password);
-                }
-            });
-        } else {
-            session = Session.getInstance(props);
+        if (authRequired) {
+            props.put("mail.smtp.auth", "true");
+        }
+
+        if (tlsEnabled) {
+            props.put("mail.smtp.starttls.enable", "true");
         }
 
         try {
+            // Create session with authenticator if required
+            Session session;
+            if (authRequired) {
+                session = Session.getInstance(props, new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+            } else {
+                session = Session.getInstance(props);
+            }
+
             // Create message
             Message message = new MimeMessage(session);
             message.setFrom(new InternetAddress(username));
-            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(to));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
             message.setSubject(subject);
 
-            // Create message parts
-            if (attachmentPath != null && !attachmentPath.isEmpty()) {
-                // Create multipart message for attachment
-                Multipart multipart = new MimeMultipart();
+            // Create multipart message
+            Multipart multipart = new MimeMultipart();
 
-                // Text part
-                MimeBodyPart textPart = new MimeBodyPart();
-                textPart.setText(body);
-                multipart.addBodyPart(textPart);
+            // Text part
+            BodyPart textPart = new MimeBodyPart();
+            textPart.setText(body);
+            multipart.addBodyPart(textPart);
 
-                // Attachment part
-                MimeBodyPart attachmentPart = new MimeBodyPart();
-                DataSource source = new FileDataSource(attachmentPath);
-                attachmentPart.setDataHandler(new DataHandler(source));
-                attachmentPart.setFileName(source.getName());
-                multipart.addBodyPart(attachmentPart);
+            // Attachment part
+            BodyPart attachmentPart = new MimeBodyPart();
+            DataSource source = new FileDataSource(pdfPath);
+            attachmentPart.setDataHandler(new DataHandler(source));
+            attachmentPart.setFileName("factura.pdf");
+            multipart.addBodyPart(attachmentPart);
 
-                // Set content
-                message.setContent(multipart);
-            } else {
-                // Simple text message
-                message.setText(body);
-            }
+            // Set content
+            message.setContent(multipart);
 
             // Send message
             Transport.send(message);
-            LOGGER.log(Level.INFO, "Email sent successfully to {0}", to);
-            return true;
 
+            LOGGER.log(Level.INFO, "Email sent successfully to: {0}", recipient);
+            return true;
         } catch (MessagingException e) {
             LOGGER.log(Level.SEVERE, "Error sending email", e);
             return false;
@@ -133,22 +103,82 @@ public class EmailService {
     }
 
     /**
-     * Send an invoice by email
+     * Sends a notification email without attachments.
      *
-     * @param to Recipient email address
-     * @param customerName Customer name
-     * @param invoiceNumber Invoice number
-     * @param invoicePath Path to invoice PDF file
-     * @return true if email was sent successfully, false otherwise
+     * @param recipient The email recipient
+     * @param subject The email subject
+     * @param body The email body
+     * @return True if the email was sent successfully, false otherwise
      */
-    public boolean sendInvoiceEmail(String to, String customerName,
-                                    String invoiceNumber, String invoicePath) {
-        String subject = "Invoice #" + invoiceNumber;
-        String body = "Dear " + customerName + ",\n\n"
-                + "Please find attached your invoice #" + invoiceNumber + ".\n\n"
-                + "Thank you for your business.\n\n"
-                + "Best regards,\nCar Motors Team";
+    public boolean sendNotificationEmail(String recipient, String subject, String body) {
+        LOGGER.log(Level.INFO, "Sending notification email to: {0}", recipient);
 
-        return sendEmail(to, subject, body, invoicePath);
+        // Get email configuration from AppConfig
+        String host = AppConfig.getEmailHost();
+        int port = AppConfig.getEmailPort();
+        final String username = AppConfig.getEmailUsername();
+        final String password = AppConfig.getEmailPassword();
+        boolean authRequired = AppConfig.isEmailAuthRequired();
+        boolean tlsEnabled = AppConfig.isEmailTlsEnabled();
+
+        // Set mail properties
+        Properties props = new Properties();
+        props.put("mail.smtp.host", host);
+        props.put("mail.smtp.port", port);
+
+        if (authRequired) {
+            props.put("mail.smtp.auth", "true");
+        }
+
+        if (tlsEnabled) {
+            props.put("mail.smtp.starttls.enable", "true");
+        }
+
+        try {
+            // Create session with authenticator if required
+            Session session;
+            if (authRequired) {
+                session = Session.getInstance(props, new Authenticator() {
+                    @Override
+                    protected PasswordAuthentication getPasswordAuthentication() {
+                        return new PasswordAuthentication(username, password);
+                    }
+                });
+            } else {
+                session = Session.getInstance(props);
+            }
+
+            // Create message
+            Message message = new MimeMessage(session);
+            message.setFrom(new InternetAddress(username));
+            message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(recipient));
+            message.setSubject(subject);
+            message.setText(body);
+
+            // Send message
+            Transport.send(message);
+
+            LOGGER.log(Level.INFO, "Notification email sent successfully to: {0}", recipient);
+            return true;
+        } catch (MessagingException e) {
+            LOGGER.log(Level.SEVERE, "Error sending notification email", e);
+            return false;
+        }
+    }
+
+    /**
+     * Tests the email configuration by sending a test email.
+     *
+     * @param testRecipient The recipient for the test email
+     * @return True if the test email was sent successfully, false otherwise
+     */
+    public boolean testEmailConfiguration(String testRecipient) {
+        LOGGER.info("Testing email configuration");
+
+        String subject = "Test Email from Car Motors Workshop";
+        String body = "This is a test email from the Car Motors Workshop application.\n\n" +
+                "If you received this email, the email configuration is working correctly.";
+
+        return sendNotificationEmail(testRecipient, subject, body);
     }
 }
