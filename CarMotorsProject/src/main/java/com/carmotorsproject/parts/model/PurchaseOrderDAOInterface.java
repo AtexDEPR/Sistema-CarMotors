@@ -4,16 +4,10 @@
  */
 package com.carmotorsproject.parts.model;
 
-import java.util.List;
-
 /**
  *
  * @author camper
  */
-public interface  PurchaseOrderDAOInterface {
-    void save(PurchaseOrder order);
-    PurchaseOrder findById(int id);
-    List<PurchaseOrder> findAll();
-    void update(PurchaseOrder order);
-    void delete(int id);
+public class PurchaseOrderDAOInterface {
+    
 }

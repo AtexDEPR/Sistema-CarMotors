@@ -5,17 +5,131 @@
  */
 package com.carmotorsproject.campaigns.views;
 
+import com.carmotorsproject.campaigns.controller.InspectionController;
+import com.carmotorsproject.campaigns.model.Inspection;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author ADMiN
  */
 public class InspectionView extends javax.swing.JFrame {
 
+    private static final Logger LOGGER = Logger.getLogger(InspectionView.class.getName());
+    private InspectionController controller;
+    private DefaultTableModel inspectionTableModel;
+
     /**
      * Creates new form InspectionView
      */
     public InspectionView() {
         initComponents();
+        setupTable();
+    }
+
+    /**
+     * Sets up the inspection table
+     */
+    private void setupTable() {
+        // This would be implemented with actual table setup code
+        // For now, we'll just create a basic model
+        String[] columnNames = {"ID", "Vehicle", "Date", "Technician", "Result", "Notes"};
+        inspectionTableModel = new DefaultTableModel(columnNames, 0);
+        // Assuming there's a JTable component named tblInspections
+        // tblInspections.setModel(inspectionTableModel);
+    }
+
+    /**
+     * Sets the controller for this view
+     *
+     * @param controller The inspection controller
+     */
+    public void setController(InspectionController controller) {
+        this.controller = controller;
+        LOGGER.log(Level.INFO, "Controller set for InspectionView");
+    }
+
+    /**
+     * Updates the inspection table with the provided list of inspections
+     *
+     * @param inspections List of inspections to display
+     */
+    public void updateInspectionTable(List<Inspection> inspections) {
+        // Clear existing data
+        inspectionTableModel.setRowCount(0);
+
+        // Add new data
+        for (Inspection inspection : inspections) {
+            Object[] row = {
+                    inspection.getInspectionId(),
+                    inspection.getVehicleId(), // Would typically show vehicle info
+                    inspection.getInspectionDate(),
+                    inspection.getTechnicianId(), // Would typically show technician name
+                    inspection.getResult(),
+                    inspection.getNotes()
+            };
+            inspectionTableModel.addRow(row);
+        }
+
+        LOGGER.log(Level.INFO, "Updated inspection table with {0} inspections", inspections.size());
+    }
+
+    /**
+     * Shows an error message
+     *
+     * @param message The error message to display
+     */
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+        LOGGER.log(Level.WARNING, "Error shown: {0}", message);
+    }
+
+    /**
+     * Shows validation errors
+     *
+     * @param errors Map of field names to error messages
+     */
+    public void showValidationErrors(Map<String, String> errors) {
+        StringBuilder errorMessage = new StringBuilder("Please correct the following errors:\n");
+
+        for (Map.Entry<String, String> entry : errors.entrySet()) {
+            errorMessage.append("- ").append(entry.getValue()).append("\n");
+        }
+
+        JOptionPane.showMessageDialog(this, errorMessage.toString(), "Validation Errors", JOptionPane.WARNING_MESSAGE);
+        LOGGER.log(Level.WARNING, "Validation errors shown: {0}", errors.size());
+    }
+
+    /**
+     * Shows a success message
+     *
+     * @param message The success message to display
+     */
+    public void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+        LOGGER.log(Level.INFO, "Success message shown: {0}", message);
+    }
+
+    /**
+     * Populates the inspection form with the provided inspection data
+     *
+     * @param inspection The inspection data to display
+     */
+    public void populateInspectionForm(Inspection inspection) {
+        // This would populate form fields with inspection data
+        // For example:
+        // txtInspectionId.setText(String.valueOf(inspection.getInspectionId()));
+        // txtVehicleId.setText(String.valueOf(inspection.getVehicleId()));
+        // dateChooser.setDate(inspection.getInspectionDate());
+        // etc.
+
+        LOGGER.log(Level.INFO, "Populated form with inspection ID: {0}", inspection.getInspectionId());
     }
 
     /**
@@ -32,12 +146,12 @@ public class InspectionView extends javax.swing.JFrame {
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 400, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 300, Short.MAX_VALUE)
         );
 
         pack();
@@ -50,7 +164,7 @@ public class InspectionView extends javax.swing.JFrame {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {

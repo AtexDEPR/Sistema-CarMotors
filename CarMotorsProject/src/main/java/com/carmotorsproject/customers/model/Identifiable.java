@@ -6,9 +6,15 @@
 package com.carmotorsproject.customers.model;
 
 /**
- *
- * @author ADMiN
+ * Interface for customer-related models that have an ID.
+ * Defines a method to get the ID of the model.
  */
-public class Identifiable {
-    
+public interface Identifiable {
+
+    /**
+     * Gets the ID of the model.
+     *
+     * @return The ID of the model
+     */
+    int getId();
 }

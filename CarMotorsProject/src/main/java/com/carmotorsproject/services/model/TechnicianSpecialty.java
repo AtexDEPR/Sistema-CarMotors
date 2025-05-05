@@ -5,9 +5,44 @@
 package com.carmotorsproject.services.model;
 
 /**
- *
- * @author camper
+ * Enum representing the different specialties a technician can have.
+ * Corresponds to the 'specialty' column in the 'technicians' table.
  */
-public class TechnicianSpecialty {
-    
+public enum TechnicianSpecialty {
+    /**
+     * Mechanical specialist (e.g., engine, transmission)
+     */
+    MECHANICAL,
+
+    /**
+     * Electrical specialist (e.g., electronics, wiring)
+     */
+    ELECTRICAL,
+
+    /**
+     * Body specialist (e.g., panels, painting)
+     */
+    BODY,
+
+    /**
+     * General technician (multiple areas of expertise)
+     */
+    GENERAL;
+
+    /**
+     * Converts a string to the corresponding TechnicianSpecialty enum value.
+     * Case-insensitive.
+     *
+     * @param specialtyStr The string representation of the technician specialty
+     * @return The corresponding TechnicianSpecialty enum value
+     * @throws IllegalArgumentException If the string does not match any TechnicianSpecialty
+     */
+    public static TechnicianSpecialty fromString(String specialtyStr) {
+        for (TechnicianSpecialty specialty : TechnicianSpecialty.values()) {
+            if (specialty.name().equalsIgnoreCase(specialtyStr)) {
+                return specialty;
+            }
+        }
+        throw new IllegalArgumentException("Unknown technician specialty: " + specialtyStr);
+    }
 }

@@ -4,174 +4,586 @@
  */
 package com.carmotorsproject.parts.model;
 
-
-import config.DatabaseConnection;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
-
+import com.carmotorsproject.config.DatabaseConnection;
+import com.carmotorsproject.parts.model.Part;
+import com.carmotorsproject.parts.model.Supplier;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class PartDAO implements PartDAOInterface {
-    private Connection db;
+/**
+ * Data Access Object for Part entities.
+ * Handles database operations for parts.
+ */
+public class PartDAO {
+    private static final Logger LOGGER = Logger.getLogger(PartDAO.class.getName());
+    private final DatabaseConnection dbConnection;
+    private final SupplierDAO supplierDAO;
 
+    /**
+     * Constructor.
+     */
     public PartDAO() {
-        this.db = DatabaseConnection.getConnection();
+        this.dbConnection = DatabaseConnection.getInstance();
+        this.supplierDAO = new SupplierDAO();
     }
 
-    @Override
-    public void save(Part part) {
-        String sql = "INSERT INTO parts (name, type, compatible_make_model, supplier_id, quantity_in_stock, minimum_stock, entry_date, estimated_lifespan, status, batch_id, creation_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement pstmt = db.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            pstmt.setString(1, part.getName());
-            pstmt.setString(2, part.getType());
-            pstmt.setString(3, part.getCompatibleMakeModel());
-            pstmt.setObject(4, part.getSupplierId()); // Puede ser null
-            pstmt.setInt(5, part.getQuantityInStock());
-            pstmt.setInt(6, part.getMinimumStock());
-            pstmt.setDate(7, part.getEntryDate() != null ? new java.sql.Date(part.getEntryDate().getTime()) : null);
-            pstmt.setDate(8, part.getEstimatedLifespan() != null ? new java.sql.Date(part.getEstimatedLifespan().getTime()) : null);
-            pstmt.setString(9, part.getStatus());
-            pstmt.setString(10, part.getBatchId());
-            pstmt.setTimestamp(11, part.getCreationDate() != null ? new java.sql.Timestamp(part.getCreationDate().getTime()) : new java.sql.Timestamp(System.currentTimeMillis()));
-            pstmt.executeUpdate();
+    /**
+     * Saves a new part to the database.
+     * This method is a wrapper for insert to maintain compatibility with PartController.
+     *
+     * @param part The part to save
+     * @return The saved part with its generated ID
+     * @throws SQLException If a database access error occurs
+     */
+    public Part save(Part part) throws SQLException {
+        return insert(part);
+    }
 
-            ResultSet rs = pstmt.getGeneratedKeys();
-            if (rs.next()) {
-                part.setPartId(rs.getInt(1));
+    /**
+     * Inserts a new part into the database.
+     *
+     * @param part The part to insert
+     * @return The inserted part with its generated ID, or null if the insertion failed
+     */
+    public Part insert(Part part) {
+        LOGGER.log(Level.INFO, "Inserting part: {0}", part.getName());
+
+        String sql = "INSERT INTO parts (name, description, reference, type, price, quantity_in_stock, " +
+                "minimum_stock, location, status, supplier_id, created_at, updated_at) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet generatedKeys = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
+            statement.setString(1, part.getName());
+            statement.setString(2, part.getDescription());
+            statement.setString(3, part.getReference());
+            statement.setString(4, part.getType());
+            statement.setDouble(5, part.getPrice());
+            statement.setInt(6, part.getQuantityInStock());
+            statement.setInt(7, part.getMinimumStock());
+            statement.setString(8, part.getLocation());
+            statement.setString(9, part.getStatus());
+
+            if (part.getSupplier() != null) {
+                statement.setInt(10, part.getSupplier().getId());
+            } else {
+                statement.setNull(10, java.sql.Types.INTEGER);
             }
-        } catch (Exception e) {
-            System.err.println("Error saving part: " + e.getMessage());
+
+            statement.setTimestamp(11, new Timestamp(part.getCreatedAt().getTime()));
+            statement.setTimestamp(12, new Timestamp(part.getUpdatedAt().getTime()));
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows == 0) {
+                LOGGER.log(Level.WARNING, "Failed to insert part: {0}", part.getName());
+                return null;
+            }
+
+            generatedKeys = statement.getGeneratedKeys();
+
+            if (generatedKeys.next()) {
+                part.setId(generatedKeys.getInt(1));
+                LOGGER.log(Level.INFO, "Part inserted successfully with ID: {0}", part.getId());
+                return part;
+            } else {
+                LOGGER.log(Level.WARNING, "Failed to get generated ID for part: {0}", part.getName());
+                return null;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error inserting part", e);
+            return null;
+        } finally {
+            closeResources(connection, statement, generatedKeys);
         }
     }
 
-    @Override
-    public List<Part> findAll() {
-        List<Part> parts = new ArrayList<>();
-        String sql = "SELECT * FROM parts";
-        try (PreparedStatement pstmt = db.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                parts.add(new Part(
-                    rs.getInt("part_id"),
-                    rs.getString("name"),
-                    rs.getString("type"),
-                    rs.getString("compatible_make_model"),
-                    rs.getObject("supplier_id") != null ? rs.getInt("supplier_id") : null,
-                    rs.getInt("quantity_in_stock"),
-                    rs.getInt("minimum_stock"),
-                    rs.getDate("entry_date"),
-                    rs.getDate("estimated_lifespan"),
-                    rs.getString("status"),
-                    rs.getString("batch_id"),
-                    rs.getTimestamp("creation_date"),
-                    rs.getTimestamp("last_update_date")
-                ));
+    /**
+     * Updates an existing part in the database.
+     * Modified to return the updated Part object instead of boolean.
+     *
+     * @param part The part to update
+     * @return The updated part, or null if the update failed
+     * @throws SQLException If a database access error occurs
+     */
+    public Part update(Part part) throws SQLException {
+        LOGGER.log(Level.INFO, "Updating part with ID: {0}", part.getId());
+
+        String sql = "UPDATE parts SET name = ?, description = ?, reference = ?, type = ?, " +
+                "price = ?, quantity_in_stock = ?, minimum_stock = ?, location = ?, " +
+                "status = ?, supplier_id = ?, updated_at = ? WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setString(1, part.getName());
+            statement.setString(2, part.getDescription());
+            statement.setString(3, part.getReference());
+            statement.setString(4, part.getType());
+            statement.setDouble(5, part.getPrice());
+            statement.setInt(6, part.getQuantityInStock());
+            statement.setInt(7, part.getMinimumStock());
+            statement.setString(8, part.getLocation());
+            statement.setString(9, part.getStatus());
+
+            if (part.getSupplier() != null) {
+                statement.setInt(10, part.getSupplier().getId());
+            } else {
+                statement.setNull(10, java.sql.Types.INTEGER);
             }
-        } catch (Exception e) {
-            System.err.println("Error fetching parts: " + e.getMessage());
+
+            statement.setTimestamp(11, new Timestamp(part.getUpdatedAt().getTime()));
+            statement.setInt(12, part.getId());
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows > 0) {
+                LOGGER.log(Level.INFO, "Part updated successfully with ID: {0}", part.getId());
+                return part; // Return the updated part
+            } else {
+                LOGGER.log(Level.WARNING, "No part found with ID: {0}", part.getId());
+                return null;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating part", e);
+            throw e; // Rethrow to be consistent with method signature
+        } finally {
+            closeResources(connection, statement, null);
         }
-        return parts;
     }
 
-    @Override
+    /**
+     * Deletes a part from the database.
+     *
+     * @param id The ID of the part to delete
+     * @return True if the deletion was successful, false otherwise
+     */
+    public boolean delete(int id) {
+        LOGGER.log(Level.INFO, "Deleting part with ID: {0}", id);
+
+        String sql = "DELETE FROM parts WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, id);
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows > 0) {
+                LOGGER.log(Level.INFO, "Part deleted successfully with ID: {0}", id);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "No part found with ID: {0}", id);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error deleting part", e);
+            return false;
+        } finally {
+            closeResources(connection, statement, null);
+        }
+    }
+
+    /**
+     * Finds a part by its ID.
+     *
+     * @param id The ID of the part to find
+     * @return The found part, or null if no part was found
+     */
     public Part findById(int id) {
-        String sql = "SELECT * FROM parts WHERE part_id = ?";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            pstmt.setInt(1, id);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return new Part(
-                    rs.getInt("part_id"),
-                    rs.getString("name"),
-                    rs.getString("type"),
-                    rs.getString("compatible_make_model"),
-                    rs.getObject("supplier_id") != null ? rs.getInt("supplier_id") : null,
-                    rs.getInt("quantity_in_stock"),
-                    rs.getInt("minimum_stock"),
-                    rs.getDate("entry_date"),
-                    rs.getDate("estimated_lifespan"),
-                    rs.getString("status"),
-                    rs.getString("batch_id"),
-                    rs.getTimestamp("creation_date"),
-                    rs.getTimestamp("last_update_date")
-                );
+        LOGGER.log(Level.INFO, "Finding part with ID: {0}", id);
+
+        String sql = "SELECT * FROM parts WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, id);
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                LOGGER.log(Level.INFO, "Part found with ID: {0}", id);
+                return part;
+            } else {
+                LOGGER.log(Level.WARNING, "No part found with ID: {0}", id);
+                return null;
             }
-        } catch (Exception e) {
-            System.err.println("Error finding part: " + e.getMessage());
-        }
-        return null;
-    }
-
-    @Override
-    public void update(Part part) {
-        String sql = "UPDATE parts SET name = ?, type = ?, compatible_make_model = ?, supplier_id = ?, quantity_in_stock = ?, minimum_stock = ?, entry_date = ?, estimated_lifespan = ?, status = ?, batch_id = ? WHERE part_id = ?";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            pstmt.setString(1, part.getName());
-            pstmt.setString(2, part.getType());
-            pstmt.setString(3, part.getCompatibleMakeModel());
-            pstmt.setObject(4, part.getSupplierId());
-            pstmt.setInt(5, part.getQuantityInStock());
-            pstmt.setInt(6, part.getMinimumStock());
-            pstmt.setDate(7, part.getEntryDate() != null ? new java.sql.Date(part.getEntryDate().getTime()) : null);
-            pstmt.setDate(8, part.getEstimatedLifespan() != null ? new java.sql.Date(part.getEstimatedLifespan().getTime()) : null);
-            pstmt.setString(9, part.getStatus());
-            pstmt.setString(10, part.getBatchId());
-            pstmt.setInt(11, part.getPartId());
-            pstmt.executeUpdate();
-        } catch (Exception e) {
-            System.err.println("Error updating part: " + e.getMessage());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding part by ID", e);
+            return null;
+        } finally {
+            closeResources(connection, statement, resultSet);
         }
     }
 
-    @Override
-    public void delete(int id) {
-        String sql = "DELETE FROM parts WHERE part_id = ?";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            pstmt.setInt(1, id);
-            pstmt.executeUpdate();
-        } catch (Exception e) {
-            System.err.println("Error deleting part: " + e.getMessage());
+    /**
+     * Finds parts by name (partial match).
+     *
+     * @param name The name to search for
+     * @return A list of parts matching the name
+     * @throws SQLException If a database access error occurs
+     */
+    public List<Part> findByName(String name) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding parts with name containing: {0}", name);
+
+        String sql = "SELECT * FROM parts WHERE name LIKE ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setString(1, "%" + name + "%");
+
+            resultSet = statement.executeQuery();
+
+            List<Part> parts = new ArrayList<>();
+
+            while (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                parts.add(part);
+            }
+
+            LOGGER.log(Level.INFO, "Found {0} parts with name containing: {1}", new Object[]{parts.size(), name});
+            return parts;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding parts by name", e);
+            throw e; // Rethrow to be consistent with method signature
+        } finally {
+            closeResources(connection, statement, resultSet);
         }
     }
 
-    @Override
-    public void updateStock(int partId, int quantity) {
-        String sql = "UPDATE parts SET quantity_in_stock = quantity_in_stock + ? WHERE part_id = ?";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            pstmt.setInt(1, quantity);
-            pstmt.setInt(2, partId);
-            pstmt.executeUpdate();
-        } catch (Exception e) {
-            System.err.println("Error updating stock: " + e.getMessage());
+    /**
+     * Finds a part by its reference code.
+     *
+     * @param reference The reference code of the part to find
+     * @return The found part, or null if no part was found
+     */
+    public Part findByReference(String reference) {
+        LOGGER.log(Level.INFO, "Finding part with reference: {0}", reference);
+
+        String sql = "SELECT * FROM parts WHERE reference = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setString(1, reference);
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                LOGGER.log(Level.INFO, "Part found with reference: {0}", reference);
+                return part;
+            } else {
+                LOGGER.log(Level.WARNING, "No part found with reference: {0}", reference);
+                return null;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding part by reference", e);
+            return null;
+        } finally {
+            closeResources(connection, statement, resultSet);
         }
     }
 
-    @Override
-    public void recordPartUsage(int serviceId, int partId, int quantityUsed, double unitPrice) {
-        String sql = "INSERT INTO parts_in_service (service_id, part_id, quantity_used, unit_price) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            pstmt.setInt(1, serviceId);
-            pstmt.setInt(2, partId);
-            pstmt.setInt(3, quantityUsed);
-            pstmt.setDouble(4, unitPrice);
-            pstmt.executeUpdate();
-            updateStock(partId, -quantityUsed); // Reducir el stock
-        } catch (Exception e) {
-            throw new RuntimeException("Error recording part usage: " + e.getMessage());
+    /**
+     * Finds all parts.
+     *
+     * @return A list of all parts
+     */
+    public List<Part> findAll() {
+        LOGGER.info("Finding all parts");
+
+        String sql = "SELECT * FROM parts";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            resultSet = statement.executeQuery();
+
+            List<Part> parts = new ArrayList<>();
+
+            while (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                parts.add(part);
+            }
+
+            LOGGER.log(Level.INFO, "Found {0} parts", parts.size());
+            return parts;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding all parts", e);
+            return new ArrayList<>();
+        } finally {
+            closeResources(connection, statement, resultSet);
         }
     }
 
-    @Override
-    public boolean checkExpiration(int id) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    /**
+     * Finds parts by supplier ID.
+     *
+     * @param supplierId The ID of the supplier
+     * @return A list of parts supplied by the specified supplier
+     */
+    public List<Part> findBySupplier(int supplierId) {
+        LOGGER.log(Level.INFO, "Finding parts by supplier ID: {0}", supplierId);
+
+        String sql = "SELECT * FROM parts WHERE supplier_id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, supplierId);
+
+            resultSet = statement.executeQuery();
+
+            List<Part> parts = new ArrayList<>();
+
+            while (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                parts.add(part);
+            }
+
+            LOGGER.log(Level.INFO, "Found {0} parts for supplier ID: {1}", new Object[]{parts.size(), supplierId});
+            return parts;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding parts by supplier", e);
+            return new ArrayList<>();
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Finds parts by type.
+     * Modified to accept both String and PartType enum.
+     *
+     * @param type The type of parts to find (String)
+     * @return A list of parts of the specified type
+     */
+    public List<Part> findByType(String type) {
+        LOGGER.log(Level.INFO, "Finding parts by type: {0}", type);
+
+        String sql = "SELECT * FROM parts WHERE type = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setString(1, type);
+
+            resultSet = statement.executeQuery();
+
+            List<Part> parts = new ArrayList<>();
+
+            while (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                parts.add(part);
+            }
+
+            LOGGER.log(Level.INFO, "Found {0} parts of type: {1}", new Object[]{parts.size(), type});
+            return parts;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding parts by type", e);
+            return new ArrayList<>();
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Finds parts by type using PartType enum.
+     *
+     * @param type The type of parts to find (PartType enum)
+     * @return A list of parts of the specified type
+     */
+    public List<Part> findByType(PartType type) {
+        return findByType(type.toString());
+    }
+
+    /**
+     * Finds parts that are below their minimum stock level.
+     *
+     * @return A list of parts that are below their minimum stock level
+     */
+    public List<Part> findBelowMinimumStock() {
+        LOGGER.info("Finding parts below minimum stock");
+
+        String sql = "SELECT * FROM parts WHERE quantity_in_stock < minimum_stock";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            resultSet = statement.executeQuery();
+
+            List<Part> parts = new ArrayList<>();
+
+            while (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                parts.add(part);
+            }
+
+            LOGGER.log(Level.INFO, "Found {0} parts below minimum stock", parts.size());
+            return parts;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding parts below minimum stock", e);
+            return new ArrayList<>();
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Updates the stock quantity of a part.
+     *
+     * @param partId The ID of the part
+     * @param quantity The new stock quantity
+     * @return true if the update was successful, false otherwise
+     */
+    public boolean updateStock(int partId, int quantity) {
+        LOGGER.log(Level.INFO, "Updating stock for part ID: {0} to {1}", new Object[]{partId, quantity});
+
+        String sql = "UPDATE parts SET quantity_in_stock = ?, updated_at = ? WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, quantity);
+            statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            statement.setInt(3, partId);
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows > 0) {
+                LOGGER.log(Level.INFO, "Stock updated successfully for part ID: {0}", partId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "No part found with ID: {0}", partId);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating stock", e);
+            return false;
+        } finally {
+            closeResources(connection, statement, null);
+        }
+    }
+
+    /**
+     * Maps a ResultSet to a Part object.
+     *
+     * @param resultSet The ResultSet to map
+     * @return The mapped Part object
+     * @throws SQLException If an error occurs while accessing the ResultSet
+     */
+    private Part mapResultSetToPart(ResultSet resultSet) throws SQLException {
+        Part part = new Part();
+
+        part.setId(resultSet.getInt("id"));
+        part.setName(resultSet.getString("name"));
+        part.setDescription(resultSet.getString("description"));
+        part.setReference(resultSet.getString("reference"));
+        part.setType(resultSet.getString("type"));
+        part.setPrice(resultSet.getDouble("price"));
+        part.setQuantityInStock(resultSet.getInt("quantity_in_stock"));
+        part.setMinimumStock(resultSet.getInt("minimum_stock"));
+        part.setLocation(resultSet.getString("location"));
+        part.setStatus(resultSet.getString("status"));
+        part.setCreatedAt(resultSet.getTimestamp("created_at"));
+        part.setUpdatedAt(resultSet.getTimestamp("updated_at"));
+
+        int supplierId = resultSet.getInt("supplier_id");
+        if (!resultSet.wasNull()) {
+            Supplier supplier = supplierDAO.findById(supplierId);
+            part.setSupplier(supplier);
+        }
+
+        return part;
+    }
+
+    /**
+     * Closes database resources.
+     *
+     * @param connection The connection to close
+     * @param statement The statement to close
+     * @param resultSet The result set to close
+     */
+    private void closeResources(Connection connection, PreparedStatement statement, ResultSet resultSet) {
+        try {
+            if (resultSet != null) {
+                resultSet.close();
+            }
+            if (statement != null) {
+                statement.close();
+            }
+            if (connection != null) {
+                dbConnection.closeConnection(connection);
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Error closing database resources", e);
+        }
     }
 }
