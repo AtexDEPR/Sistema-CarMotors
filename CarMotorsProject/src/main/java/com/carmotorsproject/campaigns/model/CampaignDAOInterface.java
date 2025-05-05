@@ -1,104 +1,101 @@
 package com.carmotorsproject.campaigns.model;
 
+
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Interface for Campaign Data Access Object
+ * Interface for campaign data access operations.
  */
 public interface CampaignDAOInterface {
-    
+
     /**
-     * Save a new campaign
-     * 
-     * @param campaign Campaign to save
-     * @return true if successful
+     * Saves a new campaign.
+     *
+     * @param campaign The campaign to save
+     * @return The saved campaign with its ID
+     * @throws SQLException If a database error occurs
      */
-    boolean save(Campaign campaign);
-    
+    Campaign save(Campaign campaign) throws SQLException;
+
     /**
-     * Update an existing campaign
-     * 
-     * @param campaign Campaign to update
-     * @return true if successful
+     * Updates an existing campaign.
+     *
+     * @param campaign The campaign to update
+     * @return The updated campaign
+     * @throws SQLException If a database error occurs
      */
-    boolean update(Campaign campaign);
-    
+    Campaign update(Campaign campaign) throws SQLException;
+
     /**
-     * Delete a campaign
-     * 
-     * @param campaignId Campaign ID
-     * @return true if successful
+     * Deletes a campaign by ID.
+     *
+     * @param id The ID of the campaign to delete
+     * @return true if the campaign was deleted, false otherwise
+     * @throws SQLException If a database error occurs
      */
-    boolean delete(String campaignId);
-    
+    boolean delete(int id) throws SQLException;
+
     /**
-     * Get a campaign by ID
-     * 
-     * @param campaignId Campaign ID
-     * @return Campaign object or null if not found
+     * Finds a campaign by ID.
+     *
+     * @param id The ID of the campaign to find
+     * @return The campaign, or null if not found
+     * @throws SQLException If a database error occurs
      */
-    Campaign getById(String campaignId);
-    
+    Campaign findById(int id) throws SQLException;
+
     /**
-     * Get all campaigns
-     * 
-     * @return List of all campaigns
+     * Finds all campaigns.
+     *
+     * @return A list of all campaigns
+     * @throws SQLException If a database error occurs
      */
-    List<Campaign> getAll();
-    
+    List<Campaign> findAll() throws SQLException;
+
     /**
-     * Search campaigns by name or description
-     * 
-     * @param searchTerm Search term
-     * @return List of matching campaigns
+     * Finds campaigns by name.
+     *
+     * @param name The name to search for
+     * @return A list of campaigns matching the name
+     * @throws SQLException If a database error occurs
      */
-    List<Campaign> search(String searchTerm);
-    
+    List<Campaign> findByName(String name) throws SQLException;
+
     /**
-     * Get campaigns by type
-     * 
-     * @param type Campaign type
-     * @return List of campaigns of the specified type
+     * Finds campaigns by date range.
+     *
+     * @param startDate The start date
+     * @param endDate The end date
+     * @return A list of campaigns within the date range
+     * @throws SQLException If a database error occurs
      */
-    List<Campaign> getByType(String type);
-    
+    List<Campaign> findByDateRange(Date startDate, Date endDate) throws SQLException;
+
     /**
-     * Get campaigns by status
-     * 
-     * @param active Active status
-     * @return List of campaigns with the specified status
+     * Finds active campaigns.
+     *
+     * @return A list of active campaigns
+     * @throws SQLException If a database error occurs
      */
-    List<Campaign> getByStatus(boolean active);
-    
+    List<Campaign> findActive() throws SQLException;
+
     /**
-     * Get campaigns by date range
-     * 
-     * @param startDate Start date
-     * @param endDate End date
-     * @return List of campaigns within the date range
+     * Finds campaigns by target vehicle type.
+     *
+     * @param vehicleType The target vehicle type
+     * @return A list of campaigns targeting the vehicle type
+     * @throws SQLException If a database error occurs
      */
-    List<Campaign> getByDateRange(Date startDate, Date endDate);
-    
+    List<Campaign> findByTargetVehicleType(String vehicleType) throws SQLException;
+
     /**
-     * Get all campaign types
-     * 
-     * @return List of campaign types
+     * Finds campaigns by target customer segment.
+     *
+     * @param customerSegment The target customer segment
+     * @return A list of campaigns targeting the customer segment
+     * @throws SQLException If a database error occurs
      */
-    List<String> getAllTypes();
-    
-    /**
-     * Get campaign statistics
-     * 
-     * @return Map with campaign statistics
-     */
-    Map<String, Object> getStatistics();
-    
-    /**
-     * Get active campaigns
-     * 
-     * @return List of active campaigns
-     */
-    List<Campaign> getActiveCampaigns();
+    List<Campaign> findByTargetCustomerSegment(int customerSegment) throws SQLException;
 }

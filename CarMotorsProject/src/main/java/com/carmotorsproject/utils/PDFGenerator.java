@@ -1,7 +1,9 @@
 package com.carmotorsproject.utils;
 
 import com.carmotorsproject.config.AppConfig;
-import com.carmotorsproject.invoices.modelo.Invoice;
+import com.carmotorsproject.invoices.model.Invoice;
+import com.carmotorsproject.customers.model.Customer;
+import com.carmotorsproject.services.model.Service;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.geom.PageSize;
 import com.itextpdf.kernel.pdf.PdfDocument;
@@ -19,6 +21,7 @@ import com.itextpdf.io.image.ImageDataFactory;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
@@ -40,14 +43,25 @@ public class PDFGenerator {
      * Generates a PDF invoice and saves it to the specified path.
      *
      * @param invoice The invoice to generate a PDF for
+     * @param customer The customer data
+     * @param service The service data
      * @param outputPath The path where the PDF will be saved
-     * @return True if the PDF was generated successfully, false otherwise
+     * @return The generated PDF file
+     * @throws Exception If an error occurs during PDF generation
      */
-    public boolean generateInvoicePDF(Invoice invoice, String outputPath) {
+    public File generateInvoicePdf(Invoice invoice, Customer customer, Service service, String outputPath) throws Exception {
         LOGGER.log(Level.INFO, "Generating PDF invoice for invoice ID: {0}", invoice.getId());
 
         try {
+            // Set the service in the invoice for easy access in the PDF generation methods
+            invoice.setService(service);
+
             // Create PDF document
+            File directory = new File(outputPath).getParentFile();
+            if (directory != null && !directory.exists()) {
+                directory.mkdirs();
+            }
+
             PdfWriter writer = new PdfWriter(outputPath);
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf, PageSize.A4);
@@ -81,10 +95,10 @@ public class PDFGenerator {
             document.close();
 
             LOGGER.log(Level.INFO, "PDF invoice generated successfully: {0}", outputPath);
-            return true;
+            return new File(outputPath);
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error generating PDF invoice", e);
-            return false;
+            throw e;
         }
     }
 
@@ -170,7 +184,7 @@ public class PDFGenerator {
 
         // Customer name
         customerTable.addCell(new Cell().add(new Paragraph("Nombre:").setBold()).setBorder(null));
-        customerTable.addCell(new Cell().add(new Paragraph(invoice.getService().getVehicle().getCustomer().getName())).setBorder(null));
+        customerTable.addCell(new Cell().add(new Paragraph(invoice.getService().getVehicle().getCustomer().getFullName())).setBorder(null));
 
         // Customer ID
         customerTable.addCell(new Cell().add(new Paragraph("Identificación:").setBold()).setBorder(null));

@@ -1,165 +1,303 @@
 package com.carmotorsproject.campaigns.model;
 
 import java.util.Date;
-import java.util.UUID;
 
 /**
- * Model class representing an appointment related to a marketing campaign
+ * Represents an appointment for a marketing campaign.
+ * Maps to the campaign_appointments table in the database.
  */
 public class CampaignAppointment implements Identifiable {
-    
-    private String id;
-    private String campaignId;
-    private String customerId;
-    private String vehicleId;
+
+    private int campaignAppointmentId;
+    private int campaignId;
+    private int vehicleId;
+    private int customerId;
     private Date appointmentDate;
-    private String status;
+    private CampaignStatus status;
     private String notes;
-    private Date creationDate;
-    private Date completionDate;
+    private String createdBy;
+    private Date createdDate;
+    private String lastModifiedBy;
     private Date lastModifiedDate;
-    
+
     /**
-     * Default constructor
+     * Default constructor.
      */
     public CampaignAppointment() {
-        this.id = UUID.randomUUID().toString();
-        this.creationDate = new Date();
     }
-    
+
     /**
-     * Constructor with parameters
-     * 
-     * @param campaignId Campaign ID
-     * @param customerId Customer ID
-     * @param vehicleId Vehicle ID
-     * @param appointmentDate Appointment date
-     * @param status Appointment status
+     * Constructor with essential fields.
+     *
+     * @param campaignAppointmentId The campaign appointment ID
+     * @param campaignId The campaign ID
+     * @param vehicleId The vehicle ID
+     * @param customerId The customer ID
+     * @param appointmentDate The appointment date
+     * @param status The appointment status
      */
-    public CampaignAppointment(String campaignId, String customerId, String vehicleId, 
-                              Date appointmentDate, String status) {
-        this();
+    public CampaignAppointment(int campaignAppointmentId, int campaignId, int vehicleId, int customerId,
+                               Date appointmentDate, CampaignStatus status) {
+        this.campaignAppointmentId = campaignAppointmentId;
         this.campaignId = campaignId;
-        this.customerId = customerId;
         this.vehicleId = vehicleId;
+        this.customerId = customerId;
         this.appointmentDate = appointmentDate;
         this.status = status;
     }
-    
+
+    /**
+     * Full constructor with all fields.
+     *
+     * @param campaignAppointmentId The campaign appointment ID
+     * @param campaignId The campaign ID
+     * @param vehicleId The vehicle ID
+     * @param customerId The customer ID
+     * @param appointmentDate The appointment date
+     * @param status The appointment status
+     * @param notes Additional notes
+     * @param createdBy The user who created the appointment
+     * @param createdDate The date the appointment was created
+     * @param lastModifiedBy The user who last modified the appointment
+     * @param lastModifiedDate The date the appointment was last modified
+     */
+    public CampaignAppointment(int campaignAppointmentId, int campaignId, int vehicleId, int customerId,
+                               Date appointmentDate, CampaignStatus status, String notes,
+                               String createdBy, Date createdDate, String lastModifiedBy, Date lastModifiedDate) {
+        this.campaignAppointmentId = campaignAppointmentId;
+        this.campaignId = campaignId;
+        this.vehicleId = vehicleId;
+        this.customerId = customerId;
+        this.appointmentDate = appointmentDate;
+        this.status = status;
+        this.notes = notes;
+        this.createdBy = createdBy;
+        this.createdDate = createdDate;
+        this.lastModifiedBy = lastModifiedBy;
+        this.lastModifiedDate = lastModifiedDate;
+    }
+
+    /**
+     * Gets the campaign appointment ID.
+     *
+     * @return The campaign appointment ID
+     */
     @Override
-    public String getId() {
-        return id;
+    public int getId() {
+        return campaignAppointmentId;
     }
-    
-    public void setId(String id) {
-        this.id = id;
+
+    /**
+     * Gets the campaign appointment ID.
+     *
+     * @return The campaign appointment ID
+     */
+    public int getCampaignAppointmentId() {
+        return campaignAppointmentId;
     }
-    
-    public String getCampaignId() {
+
+    /**
+     * Sets the campaign appointment ID.
+     *   {
+     return campaignAppointmentId;
+     }
+
+     /**
+     * Sets the campaign appointment ID.
+     *
+     * @param campaignAppointmentId The campaign appointment ID
+     */
+    public void setCampaignAppointmentId(int campaignAppointmentId) {
+        this.campaignAppointmentId = campaignAppointmentId;
+    }
+
+    /**
+     * Gets the campaign ID.
+     *
+     * @return The campaign ID
+     */
+    public int getCampaignId() {
         return campaignId;
     }
-    
-    public void setCampaignId(String campaignId) {
+
+    /**
+     * Sets the campaign ID.
+     *
+     * @param campaignId The campaign ID
+     */
+    public void setCampaignId(int campaignId) {
         this.campaignId = campaignId;
     }
-    
-    public String getCustomerId() {
-        return customerId;
-    }
-    
-    public void setCustomerId(String customerId) {
-        this.customerId = customerId;
-    }
-    
-    public String getVehicleId() {
+
+    /**
+     * Gets the vehicle ID.
+     *
+     * @return The vehicle ID
+     */
+    public int getVehicleId() {
         return vehicleId;
     }
-    
-    public void setVehicleId(String vehicleId) {
+
+    /**
+     * Sets the vehicle ID.
+     *
+     * @param vehicleId The vehicle ID
+     */
+    public void setVehicleId(int vehicleId) {
         this.vehicleId = vehicleId;
     }
-    
+
+    /**
+     * Gets the customer ID.
+     *
+     * @return The customer ID
+     */
+    public int getCustomerId() {
+        return customerId;
+    }
+
+    /**
+     * Sets the customer ID.
+     *
+     * @param customerId The customer ID
+     */
+    public void setCustomerId(int customerId) {
+        this.customerId = customerId;
+    }
+
+    /**
+     * Gets the appointment date.
+     *
+     * @return The appointment date
+     */
     public Date getAppointmentDate() {
         return appointmentDate;
     }
-    
+
+    /**
+     * Sets the appointment date.
+     *
+     * @param appointmentDate The appointment date
+     */
     public void setAppointmentDate(Date appointmentDate) {
         this.appointmentDate = appointmentDate;
     }
-    
-    public String getStatus() {
+
+    /**
+     * Gets the appointment status.
+     *
+     * @return The appointment status
+     */
+    public CampaignStatus getStatus() {
         return status;
     }
-    
-    public void setStatus(String status) {
+
+    /**
+     * Sets the appointment status.
+     *
+     * @param status The appointment status
+     */
+    public void setStatus(CampaignStatus status) {
         this.status = status;
     }
-    
+
+    /**
+     * Gets the additional notes.
+     *
+     * @return The additional notes
+     */
     public String getNotes() {
         return notes;
     }
-    
+
+    /**
+     * Sets the additional notes.
+     *
+     * @param notes The additional notes
+     */
     public void setNotes(String notes) {
         this.notes = notes;
     }
-    
-    public Date getCreationDate() {
-        return creationDate;
+
+    /**
+     * Gets the user who created the appointment.
+     *
+     * @return The creator
+     */
+    public String getCreatedBy() {
+        return createdBy;
     }
-    
-    public void setCreationDate(Date creationDate) {
-        this.creationDate = creationDate;
+
+    /**
+     * Sets the user who created the appointment.
+     *
+     * @param createdBy The creator
+     */
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
-    
-    public Date getCompletionDate() {
-        return completionDate;
+
+    /**
+     * Gets the date the appointment was created.
+     *
+     * @return The creation date
+     */
+    public Date getCreatedDate() {
+        return createdDate;
     }
-    
-    public void setCompletionDate(Date completionDate) {
-        this.completionDate = completionDate;
+
+    /**
+     * Sets the date the appointment was created.
+     *
+     * @param createdDate The creation date
+     */
+    public void setCreatedDate(Date createdDate) {
+        this.createdDate = createdDate;
     }
-    
+
+    /**
+     * Gets the user who last modified the appointment.
+     *
+     * @return The last modifier
+     */
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
+    }
+
+    /**
+     * Sets the user who last modified the appointment.
+     *
+     * @param lastModifiedBy The last modifier
+     */
+    public void setLastModifiedBy(String lastModifiedBy) {
+        this.lastModifiedBy = lastModifiedBy;
+    }
+
+    /**
+     * Gets the date the appointment was last modified.
+     *
+     * @return The last modification date
+     */
     public Date getLastModifiedDate() {
         return lastModifiedDate;
     }
-    
+
+    /**
+     * Sets the date the appointment was last modified.
+     *
+     * @param lastModifiedDate The last modification date
+     */
     public void setLastModifiedDate(Date lastModifiedDate) {
         this.lastModifiedDate = lastModifiedDate;
     }
-    
+
     /**
-     * Check if the appointment is upcoming
-     * 
-     * @return true if the appointment is in the future
+     * Returns a string representation of the campaign appointment.
+     *
+     * @return A string representation
      */
-    public boolean isUpcoming() {
-        return appointmentDate.after(new Date());
-    }
-    
-    /**
-     * Check if the appointment is overdue
-     * 
-     * @return true if the appointment date has passed and status is not "Completada" or "Cancelada"
-     */
-    public boolean isOverdue() {
-        return appointmentDate.before(new Date()) && 
-               !status.equals("Completada") && 
-               !status.equals("Cancelada");
-    }
-    
-    /**
-     * Calculate days until appointment
-     * 
-     * @return number of days until appointment, negative if appointment has passed
-     */
-    public int getDaysUntilAppointment() {
-        Date now = new Date();
-        long diff = appointmentDate.getTime() - now.getTime();
-        return (int) (diff / (1000 * 60 * 60 * 24));
-    }
-    
     @Override
     public String toString() {
-        return "Cita: " + appointmentDate + " - Estado: " + status;
+        return "Appointment #" + campaignAppointmentId + " (" + status + ")";
     }
 }

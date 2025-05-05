@@ -17,6 +17,8 @@ public class Part implements Identifiable {
     private String reference;
     private String type;
     private double price;
+    private double purchasePrice;
+    private double sellingPrice;
     private int quantityInStock;
     private int minimumStock;
     private String location;
@@ -24,6 +26,7 @@ public class Part implements Identifiable {
     private Date createdAt;
     private Date updatedAt;
     private Supplier supplier;
+    private int supplierId;
 
     /**
      * Default constructor.
@@ -50,6 +53,8 @@ public class Part implements Identifiable {
         this.reference = reference;
         this.type = type;
         this.price = price;
+        this.purchasePrice = price; // Default to same as price
+        this.sellingPrice = price;  // Default to same as price
         this.quantityInStock = quantityInStock;
         this.createdAt = new Date();
         this.updatedAt = new Date();
@@ -80,11 +85,16 @@ public class Part implements Identifiable {
         this.reference = reference;
         this.type = type;
         this.price = price;
+        this.purchasePrice = price; // Default to same as price
+        this.sellingPrice = price;  // Default to same as price
         this.quantityInStock = quantityInStock;
         this.minimumStock = minimumStock;
         this.location = location;
         this.status = status;
         this.supplier = supplier;
+        if (supplier != null) {
+            this.supplierId = supplier.getId();
+        }
         this.createdAt = new Date();
         this.updatedAt = new Date();
     }
@@ -100,12 +110,30 @@ public class Part implements Identifiable {
     }
 
     /**
+     * Gets the part ID (alias for getId).
+     *
+     * @return The part ID
+     */
+    public int getPartId() {
+        return id;
+    }
+
+    /**
      * Sets the part ID.
      *
      * @param id The part ID
      */
     public void setId(int id) {
         this.id = id;
+    }
+
+    /**
+     * Sets the part ID (alias for setId).
+     *
+     * @param partId The part ID
+     */
+    public void setPartId(int partId) {
+        this.id = partId;
     }
 
     /**
@@ -156,12 +184,31 @@ public class Part implements Identifiable {
     }
 
     /**
+     * Gets the part number (alias for getReference).
+     *
+     * @return The part number
+     */
+    public String getPartNumber() {
+        return reference;
+    }
+
+    /**
      * Sets the part reference code.
      *
      * @param reference The part reference code
      */
     public void setReference(String reference) {
         this.reference = reference;
+        this.updatedAt = new Date();
+    }
+
+    /**
+     * Sets the part number (alias for setReference).
+     *
+     * @param partNumber The part number
+     */
+    public void setPartNumber(String partNumber) {
+        this.reference = partNumber;
         this.updatedAt = new Date();
     }
 
@@ -175,12 +222,65 @@ public class Part implements Identifiable {
     }
 
     /**
+     * Gets the part type as enum.
+     *
+     * @return The part type as enum
+     */
+
+
+    /**
      * Sets the part type.
      *
      * @param type The part type
      */
     public void setType(String type) {
         this.type = type;
+        this.updatedAt = new Date();
+    }
+
+    /**
+     * Sets the part type from enum.
+     *
+     * @param type The part type enum
+     */
+    public void setType(PartType type) {
+        this.type = type.toString();
+        this.updatedAt = new Date();
+    }
+
+    /**
+     * Gets the part status.
+     *
+     * @return The part status
+     */
+    public String getStatus() {
+        return status;
+    }
+
+    /**
+     * Gets the part status as enum.
+     *
+     * @return The part status as enum
+     */
+
+
+    /**
+     * Sets the part status.
+     *
+     * @param status The part status
+     */
+    public void setStatus(String status) {
+        this.status = status;
+        this.updatedAt = new Date();
+    }
+
+    /**
+     * Sets the part status from enum.
+     *
+     * @param status The part status enum
+     */
+    public void setStatus(PartStatus status) {
+        this.status = status.toString();
         this.updatedAt = new Date();
     }
 
@@ -204,11 +304,58 @@ public class Part implements Identifiable {
     }
 
     /**
+     * Gets the purchase price.
+     *
+     * @return The purchase price
+     */
+    public double getPurchasePrice() {
+        return purchasePrice;
+    }
+
+    /**
+     * Sets the purchase price.
+     *
+     * @param purchasePrice The purchase price
+     */
+    public void setPurchasePrice(double purchasePrice) {
+        this.purchasePrice = purchasePrice;
+        this.updatedAt = new Date();
+    }
+
+    /**
+     * Gets the selling price.
+     *
+     * @return The selling price
+     */
+    public double getSellingPrice() {
+        return sellingPrice;
+    }
+
+    /**
+     * Sets the selling price.
+     *
+     * @param sellingPrice The selling price
+     */
+    public void setSellingPrice(double sellingPrice) {
+        this.sellingPrice = sellingPrice;
+        this.updatedAt = new Date();
+    }
+
+    /**
      * Gets the quantity in stock.
      *
      * @return The quantity in stock
      */
     public int getQuantityInStock() {
+        return quantityInStock;
+    }
+
+    /**
+     * Gets the stock quantity (alias for getQuantityInStock).
+     *
+     * @return The stock quantity
+     */
+    public int getStockQuantity() {
         return quantityInStock;
     }
 
@@ -223,11 +370,30 @@ public class Part implements Identifiable {
     }
 
     /**
+     * Sets the stock quantity (alias for setQuantityInStock).
+     *
+     * @param stockQuantity The stock quantity
+     */
+    public void setStockQuantity(int stockQuantity) {
+        this.quantityInStock = stockQuantity;
+        this.updatedAt = new Date();
+    }
+
+    /**
      * Gets the minimum stock level.
      *
      * @return The minimum stock level
      */
     public int getMinimumStock() {
+        return minimumStock;
+    }
+
+    /**
+     * Gets the minimum stock level (alias for getMinimumStock).
+     *
+     * @return The minimum stock level
+     */
+    public int getMinStockLevel() {
         return minimumStock;
     }
 
@@ -238,6 +404,16 @@ public class Part implements Identifiable {
      */
     public void setMinimumStock(int minimumStock) {
         this.minimumStock = minimumStock;
+        this.updatedAt = new Date();
+    }
+
+    /**
+     * Sets the minimum stock level (alias for setMinimumStock).
+     *
+     * @param minStockLevel The minimum stock level
+     */
+    public void setMinStockLevel(int minStockLevel) {
+        this.minimumStock = minStockLevel;
         this.updatedAt = new Date();
     }
 
@@ -257,25 +433,6 @@ public class Part implements Identifiable {
      */
     public void setLocation(String location) {
         this.location = location;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets the part status.
-     *
-     * @return The part status
-     */
-    public String getStatus() {
-        return status;
-    }
-
-    /**
-     * Sets the part status.
-     *
-     * @param status The part status
-     */
-    public void setStatus(String status) {
-        this.status = status;
         this.updatedAt = new Date();
     }
 
@@ -325,12 +482,37 @@ public class Part implements Identifiable {
     }
 
     /**
+     * Gets the supplier ID.
+     *
+     * @return The supplier ID
+     */
+    public int getSupplierId() {
+        if (supplier != null) {
+            return supplier.getId();
+        }
+        return supplierId;
+    }
+
+    /**
      * Sets the part supplier.
      *
      * @param supplier The part supplier
      */
     public void setSupplier(Supplier supplier) {
         this.supplier = supplier;
+        if (supplier != null) {
+            this.supplierId = supplier.getId();
+        }
+        this.updatedAt = new Date();
+    }
+
+    /**
+     * Sets the supplier ID.
+     *
+     * @param supplierId The supplier ID
+     */
+    public void setSupplierId(int supplierId) {
+        this.supplierId = supplierId;
         this.updatedAt = new Date();
     }
 

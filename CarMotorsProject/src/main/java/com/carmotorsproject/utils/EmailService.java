@@ -10,6 +10,7 @@ import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
+import java.io.File;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -180,5 +181,9 @@ public class EmailService {
                 "If you received this email, the email configuration is working correctly.";
 
         return sendNotificationEmail(testRecipient, subject, body);
+    }
+
+    public void sendEmailWithAttachment(String email, String subject, String body, File pdfFile) {
+
     }
 }

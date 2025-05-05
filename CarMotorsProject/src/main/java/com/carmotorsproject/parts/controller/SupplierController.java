@@ -5,187 +5,275 @@
 package com.carmotorsproject.parts.controller;
 
 import com.carmotorsproject.parts.model.SupplierDAO;
+import com.carmotorsproject.parts.model.DAOFactory;
 import com.carmotorsproject.parts.model.Supplier;
+import com.carmotorsproject.parts.views.SupplierView;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Controller for Supplier entities.
- * Handles business logic for suppliers.
+ * Controller class that mediates between SupplierView and SupplierDAO.
+ * Handles user actions from the view and updates the model and view accordingly.
  */
 public class SupplierController {
+
     private static final Logger LOGGER = Logger.getLogger(SupplierController.class.getName());
-    private final SupplierDAO supplierDAO;
+
+    private final SupplierView view;
+    private final SupplierDAO dao;
 
     /**
-     * Constructor.
-     */
-    public SupplierController() {
-        this.supplierDAO = new SupplierDAO();
-    }
-
-    /**
-     * Creates a new supplier.
+     * Constructor that initializes the controller with a view.
      *
-     * @param supplier The supplier to create
-     * @return The created supplier with its generated ID, or null if the creation failed
+     * @param view The supplier view
      */
-    public Supplier createSupplier(Supplier supplier) {
-        LOGGER.log(Level.INFO, "Creating supplier: {0}", supplier.getName());
-        return supplierDAO.insert(supplier);
+    public SupplierController(SupplierView view) {
+        this.view = view;
+        this.dao = DAOFactory.getSupplierDAO();
+        LOGGER.log(Level.INFO, "SupplierController initialized");
     }
 
     /**
-     * Updates an existing supplier.
+     * Loads all suppliers from the database and updates the view.
+     */
+    public void loadAllSuppliers() {
+        try {
+            List<Supplier> suppliers = dao.findAll();
+            view.updateTable(suppliers);
+            LOGGER.log(Level.INFO, "Loaded {0} suppliers", suppliers.size());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error loading suppliers", e);
+            view.showError("Error loading suppliers: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Adds a new supplier to the database.
+     *
+     * @param supplier The supplier to add
+     */
+    public void addSupplier(Supplier supplier) {
+        try {
+            // Validate supplier data
+            if (!validateSupplier(supplier)) {
+                return;
+            }
+
+            // Check for unique taxId
+            if (!isUniqueTaxId(supplier.getTaxId(), 0)) {
+                view.showError("A supplier with this Tax ID already exists.");
+                return;
+            }
+
+            // Save supplier to database
+            Supplier savedSupplier = dao.insert(supplier);
+
+            // Update view
+            view.clearForm();
+            loadAllSuppliers();
+            view.showInfo("Supplier added successfully: " + savedSupplier.getName());
+            LOGGER.log(Level.INFO, "Supplier added: {0}", savedSupplier.getName());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding supplier", e);
+            view.showError("Error adding supplier: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Updates an existing supplier in the database.
      *
      * @param supplier The supplier to update
-     * @return True if the update was successful, false otherwise
      */
-    public boolean updateSupplier(Supplier supplier) {
-        LOGGER.log(Level.INFO, "Updating supplier with ID: {0}", supplier.getId());
-        return supplierDAO.update(supplier);
+    public void updateSupplier(Supplier supplier) {
+        // Check if a supplier is selected
+        if (supplier.getId() == 0) {
+            view.showError("Please select a supplier to update.");
+            return;
+        }
+
+        try {
+            // Validate supplier data
+            if (!validateSupplier(supplier)) {
+                return;
+            }
+
+            // Check for unique taxId (excluding current supplier)
+            if (!isUniqueTaxId(supplier.getTaxId(), supplier.getId())) {
+                view.showError("A supplier with this Tax ID already exists.");
+                return;
+            }
+
+            // Update supplier in database
+            boolean updated = dao.update(supplier);
+
+            if (!updated) {
+                view.showError("Failed to update supplier. Supplier not found.");
+                return;
+            }
+
+            // Update view
+            view.clearForm();
+            loadAllSuppliers();
+            view.showInfo("Supplier updated successfully: " + supplier.getName());
+            LOGGER.log(Level.INFO, "Supplier updated: {0}", supplier.getName());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating supplier", e);
+            view.showError("Error updating supplier: " + e.getMessage());
+        }
     }
 
     /**
-     * Deletes a supplier.
+     * Deletes a supplier from the database.
      *
-     * @param id The ID of the supplier to delete
-     * @return True if the deletion was successful, false otherwise
+     * @param supplierId The ID of the supplier to delete
      */
-    public boolean deleteSupplier(int id) {
-        LOGGER.log(Level.INFO, "Deleting supplier with ID: {0}", id);
-        return supplierDAO.delete(id);
+    public void deleteSupplier(int supplierId) {
+        try {
+            // Check if supplier exists
+            Supplier supplier = dao.findById(supplierId);
+            if (supplier == null) {
+                view.showError("Supplier not found.");
+                return;
+            }
+
+            // Check if supplier has associated records
+            if (hasAssociatedRecords(supplierId)) {
+                view.showError("Cannot delete supplier. It has associated parts or purchase orders.");
+                return;
+            }
+
+            // Delete supplier from database
+            boolean deleted = dao.delete(supplierId);
+
+            if (deleted) {
+                // Update view
+                view.clearForm();
+                loadAllSuppliers();
+                view.showInfo("Supplier deleted successfully.");
+                LOGGER.log(Level.INFO, "Supplier deleted: ID {0}", supplierId);
+            } else {
+                view.showError("Supplier could not be deleted.");
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error deleting supplier", e);
+            view.showError("Error deleting supplier: " + e.getMessage());
+        }
     }
 
     /**
-     * Gets a supplier by its ID.
+     * Searches for suppliers based on search criteria.
      *
-     * @param id The ID of the supplier to get
-     * @return The found supplier, or null if no supplier was found
+     * @param searchText The search text
+     * @param searchType The type of search (Name, Tax ID, Category, Email)
      */
-    public Supplier getSupplierById(int id) {
-        LOGGER.log(Level.INFO, "Getting supplier with ID: {0}", id);
-        return supplierDAO.findById(id);
+    public void searchSuppliers(String searchText, String searchType) {
+        if (searchText.isEmpty()) {
+            view.showError("Please enter search text.");
+            return;
+        }
+
+        try {
+            List<Supplier> results;
+
+            // Default to searching by name if searchType is empty
+            if (searchType == null || searchType.isEmpty()) {
+                searchType = "Name";
+            }
+
+            switch (searchType) {
+                case "Name":
+                    results = dao.findByName(searchText);
+                    break;
+                case "Tax ID":
+                    Supplier supplier = dao.findByTaxId(searchText);
+                    results = supplier != null ? List.of(supplier) : List.of();
+                    break;
+                default:
+                    view.showError("Invalid search type. Searching by name instead.");
+                    results = dao.findByName(searchText);
+                    break;
+            }
+
+            // Update view with search results
+            view.updateTable(results);
+            LOGGER.log(Level.INFO, "Search completed. Found {0} results.", results.size());
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error searching suppliers", e);
+            view.showError("Error searching suppliers: " + e.getMessage());
+        }
     }
 
     /**
-     * Gets all suppliers.
+     * Checks if a tax ID is unique (excluding a specific supplier).
      *
-     * @return A list of all suppliers
+     * @param taxId The tax ID to check
+     * @param excludeSupplierId The ID of the supplier to exclude (0 for new suppliers)
+     * @return true if the tax ID is unique, false otherwise
+     * @throws SQLException If a database access error occurs
      */
-    public List<Supplier> getAllSuppliers() {
-        LOGGER.info("Getting all suppliers");
-        return supplierDAO.findAll();
+    private boolean isUniqueTaxId(String taxId, int excludeSupplierId) throws SQLException {
+        Supplier existingSupplier = dao.findByTaxId(taxId);
+        return existingSupplier == null || existingSupplier.getId() == excludeSupplierId;
     }
 
     /**
-     * Gets suppliers by name.
+     * Checks if a supplier has associated records (parts or purchase orders).
      *
-     * @param name The name to search for
-     * @return A list of suppliers with names containing the search term
+     * @param supplierId The ID of the supplier
+     * @return true if the supplier has associated records, false otherwise
+     * @throws SQLException If a database access error occurs
      */
-    public List<Supplier> getSuppliersByName(String name) {
-        LOGGER.log(Level.INFO, "Getting suppliers by name: {0}", name);
-        return supplierDAO.findByName(name);
+    private boolean hasAssociatedRecords(int supplierId) throws SQLException {
+        // Check for associated parts
+        if (!DAOFactory.getPartDAO().findBySupplier(supplierId).isEmpty()) {
+            return true;
+        }
+
+        // Check for associated purchase orders
+        if (!DAOFactory.getPurchaseOrderDAO().findBySupplier(supplierId).isEmpty()) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
-     * Gets active suppliers.
+     * Validates supplier data.
      *
-     * @return A list of active suppliers
+     * @param supplier The supplier to validate
+     * @return true if the supplier is valid, false otherwise
      */
-    public List<Supplier> getActiveSuppliers() {
-        LOGGER.info("Getting active suppliers");
-        return supplierDAO.findActive();
-    }
-
-    /**
-     * Activates a supplier.
-     *
-     * @param id The ID of the supplier to activate
-     * @return True if the supplier was successfully activated, false otherwise
-     */
-    public boolean activateSupplier(int id) {
-        LOGGER.log(Level.INFO, "Activating supplier with ID: {0}", id);
-
-        Supplier supplier = supplierDAO.findById(id);
-
-        if (supplier == null) {
-            LOGGER.log(Level.WARNING, "Supplier not found with ID: {0}", id);
+    private boolean validateSupplier(Supplier supplier) {
+        // Validate name
+        if (supplier.getName() == null || supplier.getName().trim().isEmpty()) {
+            view.showError("Supplier name is required.");
             return false;
         }
 
-        supplier.setStatus("ACTIVE");
-        return supplierDAO.update(supplier);
-    }
-
-    /**
-     * Deactivates a supplier.
-     *
-     * @param id The ID of the supplier to deactivate
-     * @return True if the supplier was successfully deactivated, false otherwise
-     */
-    public boolean deactivateSupplier(int id) {
-        LOGGER.log(Level.INFO, "Deactivating supplier with ID: {0}", id);
-
-        Supplier supplier = supplierDAO.findById(id);
-
-        if (supplier == null) {
-            LOGGER.log(Level.WARNING, "Supplier not found with ID: {0}", id);
+        // Validate tax ID
+        if (supplier.getTaxId() == null || supplier.getTaxId().trim().isEmpty()) {
+            view.showError("Tax ID is required.");
             return false;
         }
 
-        supplier.setStatus("INACTIVE");
-        return supplierDAO.update(supplier);
-    }
-
-    /**
-     * Updates the contact information of a supplier.
-     *
-     * @param id The ID of the supplier
-     * @param contactName The new contact name
-     * @param phone The new phone number
-     * @param email The new email address
-     * @return True if the contact information was successfully updated, false otherwise
-     */
-    public boolean updateContactInfo(int id, String contactName, String phone, String email) {
-        LOGGER.log(Level.INFO, "Updating contact info for supplier with ID: {0}", id);
-
-        Supplier supplier = supplierDAO.findById(id);
-
-        if (supplier == null) {
-            LOGGER.log(Level.WARNING, "Supplier not found with ID: {0}", id);
+        // Validate email format
+        if (supplier.getEmail() != null && !supplier.getEmail().isEmpty() &&
+                !supplier.getEmail().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            view.showError("Invalid email format.");
             return false;
         }
 
-        supplier.setContactName(contactName);
-        supplier.setPhone(phone);
-        supplier.setEmail(email);
-
-        return supplierDAO.update(supplier);
-    }
-
-    /**
-     * Updates the address of a supplier.
-     *
-     * @param id The ID of the supplier
-     * @param address The new address
-     * @return True if the address was successfully updated, false otherwise
-     */
-    public boolean updateAddress(int id, String address) {
-        LOGGER.log(Level.INFO, "Updating address for supplier with ID: {0}", id);
-
-        Supplier supplier = supplierDAO.findById(id);
-
-        if (supplier == null) {
-            LOGGER.log(Level.WARNING, "Supplier not found with ID: {0}", id);
+        // Validate phone format (optional)
+        if (supplier.getPhone() != null && !supplier.getPhone().isEmpty() &&
+                !supplier.getPhone().matches("^[0-9\\-\\+\\s()]+$")) {
+            view.showError("Invalid phone format.");
             return false;
         }
 
-        supplier.setAddress(address);
-
-        return supplierDAO.update(supplier);
+        return true;
     }
 }

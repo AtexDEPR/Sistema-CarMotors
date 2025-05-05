@@ -1,114 +1,112 @@
 package com.carmotorsproject.campaigns.model;
 
-import com.carmotorsproject.customers.model.Customer;
 
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Interface for CampaignAppointment Data Access Object
+ * Interface for campaign appointment data access operations.
  */
 public interface CampaignAppointmentDAOInterface {
-    
+
     /**
-     * Save a new appointment
-     * 
-     * @param appointment Appointment to save
-     * @return true if successful
+     * Saves a new campaign appointment.
+     *
+     * @param appointment The campaign appointment to save
+     * @return The saved campaign appointment with its ID
+     * @throws SQLException If a database error occurs
      */
-    boolean save(CampaignAppointment appointment);
-    
+    CampaignAppointment save(CampaignAppointment appointment) throws SQLException;
+
     /**
-     * Update an existing appointment
-     * 
-     * @param appointment Appointment to update
-     * @return true if successful
+     * Updates an existing campaign appointment.
+     *
+     * @param appointment The campaign appointment to update
+     * @return The updated campaign appointment
+     * @throws SQLException If a database error occurs
      */
-    boolean update(CampaignAppointment appointment);
-    
+    CampaignAppointment update(CampaignAppointment appointment) throws SQLException;
+
     /**
-     * Delete an appointment
-     * 
-     * @param appointmentId Appointment ID
-     * @return true if successful
+     * Deletes a campaign appointment by ID.
+     *
+     * @param id The ID of the campaign appointment to delete
+     * @return true if the campaign appointment was deleted, false otherwise
+     * @throws SQLException If a database error occurs
      */
-    boolean delete(String appointmentId);
-    
+    boolean delete(int id) throws SQLException;
+
     /**
-     * Get an appointment by ID
-     * 
-     * @param appointmentId Appointment ID
-     * @return CampaignAppointment object or null if not found
+     * Finds a campaign appointment by ID.
+     *
+     * @param id The ID of the campaign appointment to find
+     * @return The campaign appointment, or null if not found
+     * @throws SQLException If a database error occurs
      */
-    CampaignAppointment getById(String appointmentId);
-    
+    CampaignAppointment findById(int id) throws SQLException;
+
     /**
-     * Get all appointments
-     * 
-     * @return List of all appointments
+     * Finds all campaign appointments.
+     *
+     * @return A list of all campaign appointments
+     * @throws SQLException If a database error occurs
      */
-    List<CampaignAppointment> getAll();
-    
+    List<CampaignAppointment> findAll() throws SQLException;
+
     /**
-     * Get appointments by campaign
-     * 
-     * @param campaignId Campaign ID
-     * @return List of appointments for the specified campaign
+     * Finds campaign appointments by campaign ID.
+     *
+     * @param campaignId The campaign ID to search for
+     * @return A list of campaign appointments for the campaign
+     * @throws SQLException If a database error occurs
      */
-    List<CampaignAppointment> getByCampaign(String campaignId);
-    
+    List<CampaignAppointment> findByCampaign(int campaignId) throws SQLException;
+
     /**
-     * Get appointments by customer
-     * 
-     * @param customerId Customer ID
-     * @return List of appointments for the specified customer
+     * Finds campaign appointments by vehicle ID.
+     *
+     * @param vehicleId The vehicle ID to search for
+     * @return A list of campaign appointments for the vehicle
+     * @throws SQLException If a database error occurs
      */
-    List<CampaignAppointment> getByCustomer(String customerId);
-    
+    List<CampaignAppointment> findByVehicle(int vehicleId) throws SQLException;
+
     /**
-     * Get appointments by status
-     * 
-     * @param status Appointment status
-     * @return List of appointments with the specified status
+     * Finds campaign appointments by customer ID.
+     *
+     * @param customerId The customer ID to search for
+     * @return A list of campaign appointments for the customer
+     * @throws SQLException If a database error occurs
      */
-    List<CampaignAppointment> getByStatus(String status);
-    
+    List<CampaignAppointment> findByCustomer(int customerId) throws SQLException;
+
     /**
-     * Get appointments by date range
-     * 
-     * @param startDate Start date
-     * @param endDate End date
-     * @return List of appointments within the date range
+     * Finds campaign appointments by date range.
+     *
+     * @param startDate The start date
+     * @param endDate The end date
+     * @return A list of campaign appointments within the date range
+     * @throws SQLException If a database error occurs
      */
-    List<CampaignAppointment> getByDateRange(Date startDate, Date endDate);
-    
+    List<CampaignAppointment> findByDateRange(Date startDate, Date endDate) throws SQLException;
+
     /**
-     * Get all appointment statuses
-     * 
-     * @return List of appointment statuses
+     * Finds campaign appointments by status.
+     *
+     * @param status The status to search for
+     * @return A list of campaign appointments with the status
+     * @throws SQLException If a database error occurs
      */
-    List<String> getAllStatuses();
-    
+    List<CampaignAppointment> findByStatus(CampaignStatus status) throws SQLException;
+
     /**
-     * Get appointment statistics
-     * 
-     * @return Map with appointment statistics
+     * Updates the status of a campaign appointment.
+     *
+     * @param id The ID of the campaign appointment
+     * @param status The new status
+     * @return true if the status was updated, false otherwise
+     * @throws SQLException If a database error occurs
      */
-    Map<String, Object> getStatistics();
-    
-    /**
-     * Get customers for a campaign
-     * 
-     * @param campaignId Campaign ID
-     * @return List of customers
-     */
-    List<Customer> getCustomersForCampaign(String campaignId);
-    
-    /**
-     * Get appointment usage statistics
-     * 
-     * @return List of statistics data
-     */
-    List<Object[]> getUsageStatistics();
+    boolean updateStatus(int id, CampaignStatus status) throws SQLException;
 }

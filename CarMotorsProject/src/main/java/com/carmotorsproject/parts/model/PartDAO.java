@@ -37,6 +37,18 @@ public class PartDAO {
     }
 
     /**
+     * Saves a new part to the database.
+     * This method is a wrapper for insert to maintain compatibility with PartController.
+     *
+     * @param part The part to save
+     * @return The saved part with its generated ID
+     * @throws SQLException If a database access error occurs
+     */
+    public Part save(Part part) throws SQLException {
+        return insert(part);
+    }
+
+    /**
      * Inserts a new part into the database.
      *
      * @param part The part to insert
@@ -103,11 +115,13 @@ public class PartDAO {
 
     /**
      * Updates an existing part in the database.
+     * Modified to return the updated Part object instead of boolean.
      *
      * @param part The part to update
-     * @return True if the update was successful, false otherwise
+     * @return The updated part, or null if the update failed
+     * @throws SQLException If a database access error occurs
      */
-    public boolean update(Part part) {
+    public Part update(Part part) throws SQLException {
         LOGGER.log(Level.INFO, "Updating part with ID: {0}", part.getId());
 
         String sql = "UPDATE parts SET name = ?, description = ?, reference = ?, type = ?, " +
@@ -144,14 +158,14 @@ public class PartDAO {
 
             if (affectedRows > 0) {
                 LOGGER.log(Level.INFO, "Part updated successfully with ID: {0}", part.getId());
-                return true;
+                return part; // Return the updated part
             } else {
                 LOGGER.log(Level.WARNING, "No part found with ID: {0}", part.getId());
-                return false;
+                return null;
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error updating part", e);
-            return false;
+            throw e; // Rethrow to be consistent with method signature
         } finally {
             closeResources(connection, statement, null);
         }
@@ -228,6 +242,47 @@ public class PartDAO {
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error finding part by ID", e);
             return null;
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Finds parts by name (partial match).
+     *
+     * @param name The name to search for
+     * @return A list of parts matching the name
+     * @throws SQLException If a database access error occurs
+     */
+    public List<Part> findByName(String name) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding parts with name containing: {0}", name);
+
+        String sql = "SELECT * FROM parts WHERE name LIKE ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setString(1, "%" + name + "%");
+
+            resultSet = statement.executeQuery();
+
+            List<Part> parts = new ArrayList<>();
+
+            while (resultSet.next()) {
+                Part part = mapResultSetToPart(resultSet);
+                parts.add(part);
+            }
+
+            LOGGER.log(Level.INFO, "Found {0} parts with name containing: {1}", new Object[]{parts.size(), name});
+            return parts;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding parts by name", e);
+            throw e; // Rethrow to be consistent with method signature
         } finally {
             closeResources(connection, statement, resultSet);
         }
@@ -351,8 +406,9 @@ public class PartDAO {
 
     /**
      * Finds parts by type.
+     * Modified to accept both String and PartType enum.
      *
-     * @param type The type of parts to find
+     * @param type The type of parts to find (String)
      * @return A list of parts of the specified type
      */
     public List<Part> findByType(String type) {
@@ -390,6 +446,16 @@ public class PartDAO {
     }
 
     /**
+     * Finds parts by type using PartType enum.
+     *
+     * @param type The type of parts to find (PartType enum)
+     * @return A list of parts of the specified type
+     */
+    public List<Part> findByType(PartType type) {
+        return findByType(type.toString());
+    }
+
+    /**
      * Finds parts that are below their minimum stock level.
      *
      * @return A list of parts that are below their minimum stock level
@@ -423,6 +489,46 @@ public class PartDAO {
             return new ArrayList<>();
         } finally {
             closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Updates the stock quantity of a part.
+     *
+     * @param partId The ID of the part
+     * @param quantity The new stock quantity
+     * @return true if the update was successful, false otherwise
+     */
+    public boolean updateStock(int partId, int quantity) {
+        LOGGER.log(Level.INFO, "Updating stock for part ID: {0} to {1}", new Object[]{partId, quantity});
+
+        String sql = "UPDATE parts SET quantity_in_stock = ?, updated_at = ? WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, quantity);
+            statement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+            statement.setInt(3, partId);
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows > 0) {
+                LOGGER.log(Level.INFO, "Stock updated successfully for part ID: {0}", partId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "No part found with ID: {0}", partId);
+                return false;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating stock", e);
+            return false;
+        } finally {
+            closeResources(connection, statement, null);
         }
     }
 

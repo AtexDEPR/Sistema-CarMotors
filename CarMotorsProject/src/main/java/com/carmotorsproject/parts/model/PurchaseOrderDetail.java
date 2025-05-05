@@ -10,6 +10,9 @@ package com.carmotorsproject.parts.model;
  */
 public class PurchaseOrderDetail implements Identifiable {
     private int id;
+    private int orderId;
+    private int partId;
+    private String partName;
     private Part part;
     private int quantity;
     private double unitPrice;
@@ -33,6 +36,10 @@ public class PurchaseOrderDetail implements Identifiable {
     public PurchaseOrderDetail(int id, Part part, int quantity, double unitPrice) {
         this.id = id;
         this.part = part;
+        if (part != null) {
+            this.partId = part.getId();
+            this.partName = part.getName();
+        }
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         calculateSubtotal();
@@ -50,9 +57,16 @@ public class PurchaseOrderDetail implements Identifiable {
     public PurchaseOrderDetail(int id, Part part, int quantity, double unitPrice, PurchaseOrder purchaseOrder) {
         this.id = id;
         this.part = part;
+        if (part != null) {
+            this.partId = part.getId();
+            this.partName = part.getName();
+        }
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.purchaseOrder = purchaseOrder;
+        if (purchaseOrder != null) {
+            this.orderId = purchaseOrder.getId();
+        }
         calculateSubtotal();
     }
 
@@ -76,6 +90,78 @@ public class PurchaseOrderDetail implements Identifiable {
     }
 
     /**
+     * Gets the detail ID (alias for getId).
+     *
+     * @return The detail ID
+     */
+    public int getDetailId() {
+        return id;
+    }
+
+    /**
+     * Sets the detail ID (alias for setId).
+     *
+     * @param detailId The detail ID
+     */
+    public void setDetailId(int detailId) {
+        this.id = detailId;
+    }
+
+    /**
+     * Gets the order ID.
+     *
+     * @return The order ID
+     */
+    public int getOrderId() {
+        return orderId;
+    }
+
+    /**
+     * Sets the order ID.
+     *
+     * @param orderId The order ID
+     */
+    public void setOrderId(int orderId) {
+        this.orderId = orderId;
+    }
+
+    /**
+     * Gets the part ID.
+     *
+     * @return The part ID
+     */
+    public int getPartId() {
+        return partId;
+    }
+
+    /**
+     * Sets the part ID.
+     *
+     * @param partId The part ID
+     */
+    public void setPartId(int partId) {
+        this.partId = partId;
+    }
+
+    /**
+     * Gets the part name.
+     *
+     * @return The part name
+     */
+    public String getPartName() {
+        return partName;
+    }
+
+    /**
+     * Sets the part name.
+     *
+     * @param partName The part name
+     */
+    public void setPartName(String partName) {
+        this.partName = partName;
+    }
+
+    /**
      * Gets the part.
      *
      * @return The part
@@ -91,6 +177,10 @@ public class PurchaseOrderDetail implements Identifiable {
      */
     public void setPart(Part part) {
         this.part = part;
+        if (part != null) {
+            this.partId = part.getId();
+            this.partName = part.getName();
+        }
         calculateSubtotal();
     }
 
@@ -157,6 +247,9 @@ public class PurchaseOrderDetail implements Identifiable {
      */
     public void setPurchaseOrder(PurchaseOrder purchaseOrder) {
         this.purchaseOrder = purchaseOrder;
+        if (purchaseOrder != null) {
+            this.orderId = purchaseOrder.getId();
+        }
     }
 
     /**
@@ -173,6 +266,6 @@ public class PurchaseOrderDetail implements Identifiable {
      */
     @Override
     public String toString() {
-        return part.getName() + " x " + quantity;
+        return (partName != null ? partName : "Unknown Part") + " x " + quantity;
     }
 }

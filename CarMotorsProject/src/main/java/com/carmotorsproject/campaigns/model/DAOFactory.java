@@ -1,95 +1,50 @@
 package com.carmotorsproject.campaigns.model;
 
-import com.carmotorsproject.customers.model.CustomerDAO;
-import com.carmotorsproject.services.model.VehicleDAO;
-
 /**
- * Factory for creating DAO instances
+ * Factory for campaign module DAOs.
+ * Uses the singleton pattern to ensure only one instance of each DAO exists.
  */
 public class DAOFactory {
-    
-    private static DAOFactory instance;
-    
-    private CampaignDAOInterface campaignDAO;
-    private CampaignAppointmentDAOInterface campaignAppointmentDAO;
-    private InspectionDAOInterface inspectionDAO;
-    
-    private CustomerDAO customerDAO;
-    private VehicleDAO vehicleDAO;
-    
-    /**
-     * Private constructor to enforce singleton pattern
-     */
+
+    // Singleton instances
+    private static CampaignDAO campaignDAO;
+    private static CampaignAppointmentDAO campaignAppointmentDAO;
+    private static InspectionDAO inspectionDAO;
+
+    // Private constructor to prevent instantiation
     private DAOFactory() {
-        // Initialize DAOs
-        campaignDAO = new CampaignDAO();
     }
-    
+
     /**
-     * Get the singleton instance
-     * 
-     * @return DAOFactory instance
+     * Gets the CampaignDAO instance.
+     *
+     * @return The CampaignDAO instance
      */
-    public static synchronized DAOFactory getInstance() {
-        if (instance == null) {
-            instance = new DAOFactory();
+    public static synchronized CampaignDAO getCampaignDAO() {
+        if (campaignDAO == null) {
+            campaignDAO = new CampaignDAO();
         }
-        return instance;
-    }
-    
-    /**
-     * Set the customer DAO
-     * 
-     * @param customerDAO Customer DAO
-     */
-    public void setCustomerDAO(CustomerDAO customerDAO) {
-        this.customerDAO = customerDAO;
-        
-        // Initialize DAOs that depend on customer DAO
-        if (campaignAppointmentDAO == null) {
-            campaignAppointmentDAO = new CampaignAppointmentDAO(customerDAO);
-        }
-    }
-    
-    /**
-     * Set the vehicle DAO
-     * 
-     * @param vehicleDAO Vehicle DAO
-     */
-    public void setVehicleDAO(VehicleDAO vehicleDAO) {
-        this.vehicleDAO = vehicleDAO;
-    }
-    
-    /**
-     * Get the campaign DAO
-     * 
-     * @return CampaignDAOInterface instance
-     */
-    public CampaignDAOInterface getCampaignDAO() {
         return campaignDAO;
     }
-    
+
     /**
-     * Get the campaign appointment DAO
-     * 
-     * @return CampaignAppointmentDAOInterface instance
+     * Gets the CampaignAppointmentDAO instance.
+     *
+     * @return The CampaignAppointmentDAO instance
      */
-    public CampaignAppointmentDAOInterface getCampaignAppointmentDAO() {
+    public static synchronized CampaignAppointmentDAO getCampaignAppointmentDAO() {
         if (campaignAppointmentDAO == null) {
-            if (customerDAO == null) {
-                throw new IllegalStateException("CustomerDAO must be set before getting CampaignAppointmentDAO");
-            }
-            campaignAppointmentDAO = new CampaignAppointmentDAO(customerDAO);
+            campaignAppointmentDAO = new CampaignAppointmentDAO();
         }
         return campaignAppointmentDAO;
     }
-    
+
     /**
-     * Get the inspection DAO
-     * 
-     * @return InspectionDAOInterface instance
+     * Gets the InspectionDAO instance.
+     *
+     * @return The InspectionDAO instance
      */
-    public InspectionDAOInterface getInspectionDAO() {
+    public static synchronized InspectionDAO getInspectionDAO() {
         if (inspectionDAO == null) {
             inspectionDAO = new InspectionDAO();
         }

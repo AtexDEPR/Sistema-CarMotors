@@ -11,21 +11,36 @@ import com.carmotorsproject.services.views.TechnicianView;
 import com.carmotorsproject.customers.views.CustomerView;
 import com.carmotorsproject.invoices.views.InvoiceView;
 import com.carmotorsproject.campaigns.views.CampaignView;
+import com.carmotorsproject.ui.animation.AnimationManager;
+import com.carmotorsproject.ui.components.ModernButton;
+import com.carmotorsproject.ui.components.ModernCard;
+import com.carmotorsproject.ui.components.ModernHeader;
+import com.carmotorsproject.ui.components.ModernSideMenu;
+import com.carmotorsproject.ui.components.TransparentPanel;
+import com.carmotorsproject.ui.theme.AppTheme;
+import com.carmotorsproject.config.DatabaseConfigDialog;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Main entry point to launch the application.
+ * Clase principal para la aplicación CarMotorsProject.
+ * Esta clase contiene el método main para iniciar la aplicación y la configuración inicial.
  */
-public class App {
+/**
+ * Punto de entrada principal para iniciar la aplicación.
+ */
+public class App implements PropertyChangeListener {
     private static final Logger LOGGER = Logger.getLogger(App.class.getName());
     private static final String APP_TITLE = "Car Motors Workshop - Sistema de Gestión";
     private static final int WINDOW_WIDTH = 1200;
@@ -33,88 +48,168 @@ public class App {
 
     private JFrame mainFrame;
     private JPanel mainPanel;
-    private JPanel menuPanel;
+    private ModernSideMenu sideMenu;
     private JPanel contentPanel;
+    private ModernHeader header;
+    private CardLayout cardLayout;
+    private boolean menuCollapsed = false;
+
+    // Seguimiento de la vista actual
+    private JFrame currentViewFrame;
+    private String currentView = "welcome";
+
+    // Estado de la base de datos
+    private boolean databaseConnected = false;
 
     /**
-     * Main method to start the application.
-     *
-     * @param args Command line arguments (not used)
+     * Constructor de la clase App.
+     * Inicializa la interfaz gráfica de usuario.
      */
-    public static void main(String[] args) {
-        // Set up logging
-        configureLogging();
-
-        // Use SwingUtilities.invokeLater for thread safety
-        SwingUtilities.invokeLater(() -> {
-            try {
-                // Test database connection
-                testDatabaseConnection();
-
-                // Create and show the application
-                App app = new App();
-                app.createAndShowGUI();
-
-                LOGGER.info("Application started successfully");
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error starting application", e);
-                showErrorDialog("Error al iniciar la aplicación", e.getMessage());
-            }
-        });
+    public App() {
+        //initialize();
     }
 
     /**
-     * Configures the application logging.
+     * Inicializa los componentes de la interfaz gráfica.
+     */
+    private void initialize() {
+        /*frame = new JFrame("CarMotorsProject");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setSize(800, 600);
+        frame.setLayout(new BorderLayout());
+
+        // Crear un panel para los botones
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new FlowLayout());
+
+        // Botón para el formulario de clientes
+        JButton clienteButton = new JButton("Clientes");
+        clienteButton.addActionListener(this::abrirFormularioCliente);
+        buttonPanel.add(clienteButton);
+
+        // Botón para el formulario de vehículos
+        JButton vehiculoButton = new JButton("Vehículos");
+        vehiculoButton.addActionListener(this::abrirFormularioVehiculo);
+        buttonPanel.add(vehiculoButton);
+
+        // Botón para el formulario de facturas
+        JButton facturaButton = new JButton("Facturas");
+        facturaButton.addActionListener(this::abrirFormularioFactura);
+        buttonPanel.add(facturaButton);
+
+        // Añadir el panel de botones al centro del frame
+        frame.add(buttonPanel, BorderLayout.CENTER);*/
+    }
+
+    /**
+     * Configura el logging de la aplicación.
      */
     private static void configureLogging() {
-        // In a real implementation, this would configure log handlers, formatters, etc.
-        LOGGER.info("Logging configured");
+        // En una implementación real, esto configuraría manejadores de log, formateadores, etc.
+        LOGGER.info("Logging configurado");
     }
 
     /**
-     * Tests the database connection.
+     * Muestra un diálogo de error con el mensaje especificado.
      *
-     * @throws SQLException If the database connection fails
-     */
-    private static void testDatabaseConnection() throws SQLException {
-        LOGGER.info("Testing database connection");
-
-        DatabaseConnection dbConnection = DatabaseConnection.getInstance();
-        Connection connection = null;
-
-        try {
-            connection = dbConnection.getConnection();
-            LOGGER.info("Database connection test successful");
-        } finally {
-            if (connection != null) {
-                dbConnection.closeConnection(connection);
-            }
-        }
-    }
-
-    /**
-     * Shows an error dialog with the specified title and message.
-     *
-     * @param title The dialog title
-     * @param message The error message
+     * @param title   Título del diálogo.
+     * @param message Mensaje de error a mostrar.
      */
     private static void showErrorDialog(String title, String message) {
         JOptionPane.showMessageDialog(null, message, title, JOptionPane.ERROR_MESSAGE);
     }
 
     /**
-     * Creates and shows the application GUI.
+     * Prueba la conexión a la base de datos.
+     *
+     * @throws SQLException Si la conexión a la base de datos falla
+     */
+    private static boolean testDatabaseConnection() {
+        LOGGER.info("Probando conexión a la base de datos");
+
+        DatabaseConnection dbConnection = DatabaseConnection.getInstance();
+        Connection connection = null;
+        boolean connected = false;
+
+        try {
+            connection = dbConnection.getConnection();
+            LOGGER.info("Prueba de conexión a la base de datos exitosa");
+            connected = true;
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error de conexión a la base de datos: " + e.getMessage(), e);
+
+            // Mostrar diálogo de advertencia pero permitir que la aplicación continúe
+            SwingUtilities.invokeLater(() -> {
+                int option = JOptionPane.showOptionDialog(
+                        null,
+                        "No se pudo conectar a la base de datos.\n\n" +
+                                "Error: " + e.getMessage() + "\n\n" +
+                                "¿Desea configurar la conexión a la base de datos ahora?",
+                        "Error de Conexión a la Base de Datos",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE,
+                        null,
+                        new String[]{"Configurar Ahora", "Continuar en Modo Offline"},
+                        "Configurar Ahora");
+
+                if (option == JOptionPane.YES_OPTION) {
+                    // Mostrar diálogo de configuración de base de datos
+                    DatabaseConfigDialog configDialog = new DatabaseConfigDialog(null);
+                    configDialog.setVisible(true);
+                }
+            });
+        } finally {
+            if (connection != null) {
+                try {
+                    dbConnection.closeConnection(connection);
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error al cerrar la conexión", e);
+                }
+            }
+        }
+
+        return connected;
+    }
+
+    /**
+     * Establece el estado de conexión de la base de datos.
+     *
+     * @param connected true si está conectado, false en caso contrario
+     */
+    public void setDatabaseConnected(boolean connected) {
+        this.databaseConnected = connected;
+
+        // Actualizar la interfaz si ya está creada
+        if (header != null) {
+            updateDatabaseStatus();
+        }
+    }
+
+    /**
+     * Actualiza el indicador de estado de la base de datos en la interfaz.
+     */
+    private void updateDatabaseStatus() {
+        if (databaseConnected) {
+            header.setDatabaseStatus(true, "Conectado a la base de datos");
+        } else {
+            header.setDatabaseStatus(false, "Modo Offline - Sin conexión a la base de datos");
+        }
+    }
+
+    /**
+     * Crea y muestra la interfaz gráfica de usuario.
      */
     private void createAndShowGUI() {
-        LOGGER.info("Creating application GUI");
+        LOGGER.info("Creando GUI de la aplicación");
 
-        // Create main frame
+        // Crear frame principal
         mainFrame = new JFrame(APP_TITLE);
         mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         mainFrame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-        mainFrame.setLocationRelativeTo(null); // Center on screen
+        mainFrame.setLocationRelativeTo(null); // Centrar en pantalla
+        mainFrame.setBackground(AppTheme.PRIMARY_BLACK);
 
-        // Add window close listener
+        // Añadir listener de cierre de ventana
         mainFrame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -122,245 +217,469 @@ public class App {
             }
         });
 
-        // Create main panel with BorderLayout
+        // Crear panel principal con BorderLayout
         mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(AppTheme.PRIMARY_BLACK);
 
-        // Create menu panel
-        createMenuPanel();
+        // Crear header
+        header = new ModernHeader(APP_TITLE);
+        header.addPropertyChangeListener(this);
 
-        // Create content panel
+        // Actualizar estado de la base de datos
+        updateDatabaseStatus();
+
+        // Crear menú lateral
+        createSideMenu();
+
+        // Crear panel de contenido
         createContentPanel();
 
-        // Add panels to main panel
-        mainPanel.add(menuPanel, BorderLayout.WEST);
+        // Añadir paneles al panel principal
+        mainPanel.add(header, BorderLayout.NORTH);
+        mainPanel.add(sideMenu, BorderLayout.WEST);
         mainPanel.add(contentPanel, BorderLayout.CENTER);
 
-        // Add main panel to frame
+        // Añadir panel principal al frame
         mainFrame.add(mainPanel);
 
-        // Show the frame
+        // Mostrar el frame
         mainFrame.setVisible(true);
 
-        // Show welcome panel
+        // Mostrar panel de bienvenida con animación
         showWelcomePanel();
 
-        LOGGER.info("Application GUI created and displayed");
+        LOGGER.info("GUI de la aplicación creada y mostrada");
     }
 
     /**
-     * Creates the menu panel with navigation buttons.
+     * Crea el menú lateral con las secciones y elementos.
      */
-    private void createMenuPanel() {
-        LOGGER.info("Creating menu panel");
+    private void createSideMenu() {
+        LOGGER.info("Creando menú lateral");
 
-        menuPanel = new JPanel();
-        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
-        menuPanel.setBackground(new Color(52, 73, 94)); // Dark blue background
-        menuPanel.setPreferredSize(new Dimension(200, WINDOW_HEIGHT));
-        menuPanel.setBorder(BorderFactory.createEmptyBorder(20, 10, 20, 10));
+        sideMenu = new ModernSideMenu();
+        sideMenu.addPropertyChangeListener(this);
 
-        // Add application title
-        JLabel titleLabel = new JLabel("Car Motors");
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        menuPanel.add(titleLabel);
+        // Sección de inicio
+        ModernSideMenu.MenuSection homeSection = sideMenu.addSection("");
+        homeSection.addItem("Inicio", () -> showWelcomePanel());
 
-        JLabel subtitleLabel = new JLabel("Workshop");
-        subtitleLabel.setForeground(Color.WHITE);
-        subtitleLabel.setFont(new Font("Arial", Font.PLAIN, 16));
-        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        menuPanel.add(subtitleLabel);
+        // Sección de inventario
+        ModernSideMenu.MenuSection inventorySection = sideMenu.addSection("Inventario");
+        inventorySection.addItem("Repuestos", () -> openView(new PartView()));
+        inventorySection.addItem("Proveedores", () -> openView(new SupplierView()));
+        inventorySection.addItem("Órdenes de Compra", () -> openView(new PurchaseOrderView()));
 
-        menuPanel.add(Box.createRigidArea(new Dimension(0, 30)));
+        // Sección de servicios
+        ModernSideMenu.MenuSection servicesSection = sideMenu.addSection("Servicios");
+        servicesSection.addItem("Servicios", () -> openView(new ServiceView()));
+        servicesSection.addItem("Vehículos", () -> openView(new VehicleView()));
+        servicesSection.addItem("Técnicos", () -> openView(new TechnicianView()));
 
-        // Add menu buttons
-        addMenuButton("Inicio", e -> showWelcomePanel());
+        // Sección de clientes
+        ModernSideMenu.MenuSection customersSection = sideMenu.addSection("Clientes");
+        customersSection.addItem("Clientes", () -> openView(new CustomerView()));
 
-        // Parts module
-        addMenuSeparator("Inventario");
-        addMenuButton("Repuestos", e -> openView(new PartView()));
-        addMenuButton("Proveedores", e -> openView(new SupplierView()));
-        addMenuButton("Órdenes de Compra", e -> openView(new PurchaseOrderView()));
+        // Sección de facturación
+        ModernSideMenu.MenuSection billingSection = sideMenu.addSection("Facturación");
+        billingSection.addItem("Facturas", () -> openView(new InvoiceView()));
 
-        // Services module
-        addMenuSeparator("Servicios");
-        addMenuButton("Servicios", e -> openView(new ServiceView()));
-        addMenuButton("Vehículos", e -> openView(new VehicleView()));
-        addMenuButton("Técnicos", e -> openView(new TechnicianView()));
+        // Sección de campañas
+        ModernSideMenu.MenuSection campaignsSection = sideMenu.addSection("Campañas");
+        campaignsSection.addItem("Campañas", () -> openView(new CampaignView()));
 
-        // Customers module
-        addMenuSeparator("Clientes");
-        addMenuButton("Clientes", e -> openView(new CustomerView()));
+        // Sección de configuración
+        ModernSideMenu.MenuSection configSection = sideMenu.addSection("Configuración");
+        configSection.addItem("Base de Datos", () -> showDatabaseConfig());
 
-        // Invoices module
-        addMenuSeparator("Facturación");
-        addMenuButton("Facturas", e -> openView(new InvoiceView()));
-
-        // Campaigns module
-        addMenuSeparator("Campañas");
-        addMenuButton("Campañas", e -> openView(new CampaignView()));
-
-        // Exit button at the bottom
-        menuPanel.add(Box.createVerticalGlue());
-        addMenuButton("Salir", e -> exitApplication());
+        // Construir el menú
+        sideMenu.buildMenu();
     }
 
     /**
-     * Adds a menu button with the specified text and action.
-     *
-     * @param text The button text
-     * @param action The action to perform when the button is clicked
+     * Muestra el diálogo de configuración de la base de datos.
      */
-    private void addMenuButton(String text, java.awt.event.ActionListener action) {
-        JButton button = new JButton(text);
-        button.setAlignmentX(Component.CENTER_ALIGNMENT);
-        button.setMaximumSize(new Dimension(180, 40));
-        button.setFocusPainted(false);
-        button.addActionListener(action);
+    private void showDatabaseConfig() {
+        DatabaseConfigDialog configDialog = new DatabaseConfigDialog(mainFrame);
+        configDialog.setVisible(true);
 
-        // Style the button
-        button.setBackground(new Color(41, 128, 185)); // Blue
-        button.setForeground(Color.WHITE);
-        button.setFont(new Font("Arial", Font.PLAIN, 14));
-        button.setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10));
-
-        menuPanel.add(button);
-        menuPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        // Actualizar estado de conexión después de cerrar el diálogo
+        setDatabaseConnected(DatabaseConnection.getInstance().testConnection());
     }
 
     /**
-     * Adds a separator with a label to the menu panel.
-     *
-     * @param text The separator text
-     */
-    private void addMenuSeparator(String text) {
-        menuPanel.add(Box.createRigidArea(new Dimension(0, 10)));
-
-        JLabel label = new JLabel(text);
-        label.setForeground(Color.WHITE);
-        label.setFont(new Font("Arial", Font.BOLD, 12));
-        label.setAlignmentX(Component.CENTER_ALIGNMENT);
-        menuPanel.add(label);
-
-        menuPanel.add(Box.createRigidArea(new Dimension(0, 5)));
-    }
-
-    /**
-     * Creates the content panel where views will be displayed.
+     * Crea el panel de contenido donde se mostrarán las vistas.
      */
     private void createContentPanel() {
-        LOGGER.info("Creating content panel");
+        LOGGER.info("Creando panel de contenido");
 
-        contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(Color.WHITE);
+        cardLayout = new CardLayout();
+        contentPanel = new JPanel(cardLayout);
+        contentPanel.setBackground(AppTheme.PRIMARY_WHITE);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
     }
 
     /**
-     * Shows the welcome panel in the content panel.
+     * Muestra el panel de bienvenida en el panel de contenido.
      */
     private void showWelcomePanel() {
-        LOGGER.info("Showing welcome panel");
+        LOGGER.info("Mostrando panel de bienvenida");
 
-        // Clear content panel
-        contentPanel.removeAll();
+        // Cerrar cualquier frame de vista abierto
+        closeCurrentViewFrame();
 
-        // Create welcome panel
+        // Actualizar título del encabezado
+        header.setHeaderTitle("Inicio - Dashboard");
+
+        // Si ya existe el panel de bienvenida, simplemente mostrarlo
+        if (contentPanel.getComponentCount() > 0 && currentView.equals("welcome")) {
+            cardLayout.show(contentPanel, "welcome");
+            return;
+        }
+
+        // Crear panel de bienvenida
         JPanel welcomePanel = new JPanel();
-        welcomePanel.setLayout(new BoxLayout(welcomePanel, BoxLayout.Y_AXIS));
-        welcomePanel.setBackground(Color.WHITE);
+        welcomePanel.setLayout(new BorderLayout());
+        welcomePanel.setBackground(AppTheme.PRIMARY_WHITE);
 
-        // Add welcome message
+        // Panel superior con mensaje de bienvenida
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setOpaque(false);
+        topPanel.setBorder(new EmptyBorder(20, 0, 40, 0));
+
         JLabel welcomeLabel = new JLabel("Bienvenido al Sistema de Gestión");
-        welcomeLabel.setFont(new Font("Arial", Font.BOLD, 24));
+        welcomeLabel.setFont(AppTheme.TITLE_FONT);
+        welcomeLabel.setForeground(AppTheme.PRIMARY_BLACK);
         welcomeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        welcomePanel.add(welcomeLabel);
+        topPanel.add(welcomeLabel);
 
-        welcomePanel.add(Box.createRigidArea(new Dimension(0, 20)));
+        topPanel.add(Box.createRigidArea(new Dimension(0, 10)));
 
-        // Add version information
         JLabel versionLabel = new JLabel("Versión " + AppConfig.getAppVersion());
-        versionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        versionLabel.setFont(AppTheme.REGULAR_FONT);
+        versionLabel.setForeground(AppTheme.ACCENT_GRAY);
         versionLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        welcomePanel.add(versionLabel);
+        topPanel.add(versionLabel);
 
-        welcomePanel.add(Box.createRigidArea(new Dimension(0, 40)));
+        // Mostrar estado de la base de datos
+        JLabel dbStatusLabel = new JLabel(databaseConnected ?
+                "Estado: Conectado a la base de datos" :
+                "Estado: Modo Offline - Sin conexión a la base de datos");
+        dbStatusLabel.setFont(AppTheme.REGULAR_FONT);
+        dbStatusLabel.setForeground(databaseConnected ? AppTheme.SUCCESS_COLOR : AppTheme.WARNING_COLOR);
+        dbStatusLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        topPanel.add(Box.createRigidArea(new Dimension(0, 10)));
+        topPanel.add(dbStatusLabel);
 
-        // Add quick access buttons
-        JPanel buttonsPanel = new JPanel(new GridLayout(2, 3, 20, 20));
-        buttonsPanel.setBackground(Color.WHITE);
-        buttonsPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        buttonsPanel.setMaximumSize(new Dimension(600, 200));
+        welcomePanel.add(topPanel, BorderLayout.NORTH);
 
-        addQuickAccessButton(buttonsPanel, "Repuestos", e -> openView(new PartView()));
-        addQuickAccessButton(buttonsPanel, "Servicios", e -> openView(new ServiceView()));
-        addQuickAccessButton(buttonsPanel, "Clientes", e -> openView(new CustomerView()));
-        addQuickAccessButton(buttonsPanel, "Vehículos", e -> openView(new VehicleView()));
-        addQuickAccessButton(buttonsPanel, "Facturas", e -> openView(new InvoiceView()));
-        addQuickAccessButton(buttonsPanel, "Campañas", e -> openView(new CampaignView()));
+        // Panel central con tarjetas de acceso rápido
+        JPanel cardsPanel = new JPanel(new GridLayout(2, 3, 20, 20));
+        cardsPanel.setOpaque(false);
+        cardsPanel.setBorder(new EmptyBorder(0, 20, 0, 20));
 
-        welcomePanel.add(buttonsPanel);
+        // Añadir tarjetas de acceso rápido
+        cardsPanel.add(createModuleCard("Repuestos", "Gestión de inventario de repuestos",
+                "/icons/parts.png", () -> openView(new PartView())));
 
-        // Add to content panel
-        contentPanel.add(welcomePanel, BorderLayout.CENTER);
+        cardsPanel.add(createModuleCard("Servicios", "Registro y seguimiento de servicios",
+                "/icons/services.png", () -> openView(new ServiceView())));
 
-        // Refresh the UI
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        cardsPanel.add(createModuleCard("Clientes", "Administración de clientes",
+                "/icons/customers.png", () -> openView(new CustomerView())));
+
+        cardsPanel.add(createModuleCard("Vehículos", "Registro de vehículos",
+                "/icons/vehicles.png", () -> openView(new VehicleView())));
+
+        cardsPanel.add(createModuleCard("Facturas", "Generación y gestión de facturas",
+                "/icons/invoices.png", () -> openView(new InvoiceView())));
+
+        cardsPanel.add(createModuleCard("Proveedores", "Gestión de proveedores",
+                "/icons/suppliers.png", () -> openView(new SupplierView())));
+
+        welcomePanel.add(cardsPanel, BorderLayout.CENTER);
+
+        // Panel inferior con botones de acción
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
+        actionPanel.setOpaque(false);
+        actionPanel.setBorder(new EmptyBorder(20, 0, 0, 0));
+
+        // Botón de configuración de base de datos
+        ModernButton dbConfigButton = new ModernButton("Configurar Base de Datos");
+        dbConfigButton.setColors(AppTheme.PRIMARY_BLACK, AppTheme.SECONDARY_BLACK,
+                AppTheme.SECONDARY_BLACK.darker(), AppTheme.PRIMARY_WHITE);
+        dbConfigButton.addActionListener(e -> showDatabaseConfig());
+        actionPanel.add(dbConfigButton);
+
+        welcomePanel.add(actionPanel, BorderLayout.SOUTH);
+
+        // Añadir al panel de contenido con CardLayout
+        contentPanel.add(welcomePanel, "welcome");
+        cardLayout.show(contentPanel, "welcome");
+        currentView = "welcome";
+
+        // Aplicar animación de fade-in
+        AnimationManager.fadeIn(welcomePanel, 500);
     }
 
     /**
-     * Adds a quick access button to the specified panel.
+     * Crea una tarjeta de módulo para el panel de bienvenida.
      *
-     * @param panel The panel to add the button to
-     * @param text The button text
-     * @param action The action to perform when the button is clicked
+     * @param title Título de la tarjeta
+     * @param description Descripción de la tarjeta
+     * @param iconPath Ruta al icono
+     * @param action Acción a ejecutar al hacer clic
+     * @return La tarjeta creada
      */
-    private void addQuickAccessButton(JPanel panel, String text, java.awt.event.ActionListener action) {
-        JButton button = new JButton(text);
-        button.setFont(new Font("Arial", Font.BOLD, 14));
-        button.setFocusPainted(false);
-        button.addActionListener(action);
-
-        // Style the button
-        button.setBackground(new Color(52, 152, 219)); // Light blue
-        button.setForeground(Color.WHITE);
-        button.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        panel.add(button);
+    private ModernCard createModuleCard(String title, String description, String iconPath, Runnable action) {
+        return new ModernCard(title, description, iconPath, action);
     }
 
     /**
-     * Opens the specified view in the content panel.
+     * Abre el formulario de clientes.
+     */
+    private void abrirFormularioCliente() {
+        // Implementación futura
+    }
+
+    /**
+     * Abre el formulario de vehículos.
+     */
+    private void abrirFormularioVehiculo() {
+        // Implementación futura
+    }
+
+    /**
+     * Abre el formulario de facturas.
+     */
+    private void abrirFormularioFactura() {
+        // Implementación futura
+    }
+
+    /**
+     * Abre la vista especificada.
+     * Este método maneja tanto vistas JPanel como JFrame.
      *
-     * @param view The view to open
+     * @param view La vista a abrir
      */
-    private void openView(JFrame view) {
-        LOGGER.log(Level.INFO, "Opening view: {0}", view.getClass().getSimpleName());
+    private void openView(Object view) {
+        LOGGER.log(Level.INFO, "Abriendo vista: {0}", view.getClass().getSimpleName());
 
-        // In a real implementation, we would integrate the view into the content panel
-        // For simplicity, we just show the view as a separate window
-        view.setVisible(true);
+        // Cerrar cualquier frame de vista abierto
+        closeCurrentViewFrame();
+
+        // Actualizar título del encabezado
+        header.setHeaderTitle(view.getClass().getSimpleName().replace("View", ""));
+
+        if (view instanceof JPanel) {
+            // Si la vista es un JPanel, añadirla al panel de contenido
+            JPanel viewPanel = (JPanel) view;
+
+            // Crear un panel contenedor con borde
+            JPanel containerPanel = new TransparentPanel(AppTheme.PRIMARY_WHITE, 0.95f);
+            containerPanel.setLayout(new BorderLayout());
+            containerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            containerPanel.add(viewPanel, BorderLayout.CENTER);
+
+            // Añadir al panel de contenido con CardLayout
+            String viewName = view.getClass().getSimpleName();
+            contentPanel.add(containerPanel, viewName);
+
+            // Aplicar animación de transición
+            cardLayout.show(contentPanel, viewName);
+            currentView = viewName;
+
+            // Aplicar animación de fade-in
+            AnimationManager.fadeIn(containerPanel, 300);
+
+            LOGGER.log(Level.INFO, "Vista JPanel añadida al panel de contenido: {0}", viewName);
+        } else if (view instanceof JFrame) {
+            // Si la vista es un JFrame, mostrarla como una ventana separada
+            JFrame viewFrame = (JFrame) view;
+
+            // Establecer la vista para que esté centrada respecto al frame principal
+            viewFrame.setLocationRelativeTo(mainFrame);
+
+            // Mostrar la vista
+            viewFrame.setVisible(true);
+
+            // Guardar referencia a la vista actual
+            currentViewFrame = viewFrame;
+
+            // Añadir un mensaje de marcador de posición en el panel de contenido
+            JPanel placeholderPanel = new TransparentPanel(AppTheme.PRIMARY_WHITE, 0.9f);
+            placeholderPanel.setLayout(new BorderLayout());
+
+            JLabel placeholderLabel = new JLabel("Vista abierta en ventana separada: " + view.getClass().getSimpleName());
+            placeholderLabel.setFont(AppTheme.SUBTITLE_FONT);
+            placeholderLabel.setForeground(AppTheme.PRIMARY_BLACK);
+            placeholderLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+            placeholderPanel.add(placeholderLabel, BorderLayout.CENTER);
+
+            // Añadir al panel de contenido con CardLayout
+            String viewName = "placeholder_" + view.getClass().getSimpleName();
+            contentPanel.add(placeholderPanel, viewName);
+            cardLayout.show(contentPanel, viewName);
+            currentView = viewName;
+
+            // Aplicar animación de fade-in
+            AnimationManager.fadeIn(placeholderPanel, 300);
+
+            LOGGER.log(Level.INFO, "Vista JFrame abierta en ventana separada: {0}", view.getClass().getSimpleName());
+        } else {
+            // Si la vista no es ni JPanel ni JFrame, mostrar un mensaje de error
+            JPanel errorPanel = new TransparentPanel(AppTheme.PRIMARY_WHITE, 0.9f);
+            errorPanel.setLayout(new BorderLayout());
+
+            JLabel errorLabel = new JLabel("Error: Tipo de vista no soportado: " + view.getClass().getSimpleName());
+            errorLabel.setFont(AppTheme.SUBTITLE_FONT);
+            errorLabel.setForeground(AppTheme.ERROR_COLOR);
+            errorLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
+            errorPanel.add(errorLabel, BorderLayout.CENTER);
+
+            // Añadir al panel de contenido con CardLayout
+            String viewName = "error";
+            contentPanel.add(errorPanel, viewName);
+            cardLayout.show(contentPanel, viewName);
+            currentView = viewName;
+
+            // Aplicar animación de fade-in
+            AnimationManager.fadeIn(errorPanel, 300);
+
+            LOGGER.log(Level.SEVERE, "Tipo de vista no soportado: {0}", view.getClass().getSimpleName());
+        }
     }
 
     /**
-     * Exits the application after confirmation.
+     * Cierra el frame de vista actual si hay uno abierto.
+     */
+    private void closeCurrentViewFrame() {
+        if (currentViewFrame != null && currentViewFrame.isVisible()) {
+            LOGGER.log(Level.INFO, "Cerrando frame de vista actual: {0}", currentViewFrame.getClass().getSimpleName());
+            currentViewFrame.dispose();
+            currentViewFrame = null;
+        }
+    }
+
+    /**
+     * Muestra el diálogo de configuración.
+     */
+    private void showConfigDialog() {
+        LOGGER.info("Mostrando diálogo de configuración");
+
+        // Aquí se implementaría el diálogo de configuración
+        JOptionPane.showMessageDialog(mainFrame,
+                "Funcionalidad de configuración en desarrollo",
+                "Configuración",
+                JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Sale de la aplicación después de confirmación.
      */
     private void exitApplication() {
-        LOGGER.info("Exit application requested");
+        LOGGER.info("Solicitud de salida de la aplicación");
+
+        // Crear un panel personalizado para el diálogo de confirmación
+        JPanel confirmPanel = new JPanel(new BorderLayout(10, 10));
+        confirmPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        JLabel confirmLabel = new JLabel("¿Está seguro que desea salir de la aplicación?");
+        confirmLabel.setFont(AppTheme.REGULAR_FONT);
+        confirmPanel.add(confirmLabel, BorderLayout.CENTER);
 
         int result = JOptionPane.showConfirmDialog(
                 mainFrame,
-                "¿Está seguro que desea salir de la aplicación?",
+                confirmPanel,
                 "Confirmar Salida",
-                JOptionPane.YES_NO_OPTION
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
         );
 
         if (result == JOptionPane.YES_OPTION) {
-            LOGGER.info("Application exit confirmed");
+            LOGGER.info("Salida de la aplicación confirmada");
+
+            // Cerrar cualquier frame de vista abierto
+            closeCurrentViewFrame();
+
+            // Detener el reloj del encabezado
+            header.stopClock();
+
+            // Disponer el frame principal
             mainFrame.dispose();
+
+            // Salir de la aplicación
             System.exit(0);
         }
+    }
+
+    /**
+     * Alterna la visibilidad del menú lateral.
+     */
+    private void toggleMenu() {
+        menuCollapsed = !menuCollapsed;
+
+        if (menuCollapsed) {
+            // Ocultar menú con animación
+            AnimationManager.slideOutToRight(sideMenu, 300, false);
+            sideMenu.setVisible(false);
+        } else {
+            // Mostrar menú con animación
+            sideMenu.setVisible(true);
+            AnimationManager.slideInFromLeft(sideMenu, 300);
+        }
+    }
+
+    /**
+     * Maneja los eventos de cambio de propiedad.
+     */
+    @Override
+    public void propertyChange(PropertyChangeEvent evt) {
+        if ("toggleMenu".equals(evt.getPropertyName())) {
+            toggleMenu();
+        } else if ("exitApplication".equals(evt.getPropertyName())) {
+            exitApplication();
+        } else if ("menuItemSelected".equals(evt.getPropertyName())) {
+            if (evt.getNewValue() instanceof ModernSideMenu.MenuItem) {
+                ModernSideMenu.MenuItem item = (ModernSideMenu.MenuItem) evt.getNewValue();
+                if (item.getAction() != null) {
+                    item.getAction().run();
+                }
+            }
+        }
+    }
+
+    /**
+     * Método principal para iniciar la aplicación.
+     *
+     * @param args Argumentos de línea de comandos (no utilizados)
+     */
+    public static void main(String[] args) {
+        // Configurar logging
+        configureLogging();
+
+        // Usar SwingUtilities.invokeLater para seguridad de hilos
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Establecer look and feel moderno
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+
+                // Probar conexión a la base de datos
+                boolean dbConnected = testDatabaseConnection();
+
+                // Crear y mostrar la aplicación
+                App app = new App();
+                app.setDatabaseConnected(dbConnected);
+                app.createAndShowGUI();
+
+                LOGGER.info("Aplicación iniciada correctamente");
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error al iniciar la aplicación", e);
+                showErrorDialog("Error al iniciar la aplicación", e.getMessage());
+            }
+        });
     }
 }

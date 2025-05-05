@@ -5,7 +5,6 @@
 package com.carmotorsproject.parts.model;
 
 import com.carmotorsproject.config.DatabaseConnection;
-import com.carmotorsproject.parts.model.Supplier;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -14,6 +13,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -34,12 +34,26 @@ public class SupplierDAO {
     }
 
     /**
+     * Saves a supplier to the database (handles INSERT operation).
+     * This method is an alias for insert() to maintain interface compatibility.
+     *
+     * @param supplier The supplier to save
+     * @return The saved supplier with its generated ID, or null if the save failed
+     * @throws SQLException If a database access error occurs
+     */
+    public Supplier save(Supplier supplier) throws SQLException {
+        LOGGER.log(Level.INFO, "Saving supplier: {0}", supplier.getName());
+        return insert(supplier);
+    }
+
+    /**
      * Inserts a new supplier into the database.
      *
      * @param supplier The supplier to insert
      * @return The inserted supplier with its generated ID, or null if the insertion failed
+     * @throws SQLException If a database access error occurs
      */
-    public Supplier insert(Supplier supplier) {
+    public Supplier insert(Supplier supplier) throws SQLException {
         LOGGER.log(Level.INFO, "Inserting supplier: {0}", supplier.getName());
 
         String sql = "INSERT INTO suppliers (name, contact_name, phone, email, address, " +
@@ -53,6 +67,14 @@ public class SupplierDAO {
         try {
             connection = dbConnection.getConnection();
             statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
+            // Set current timestamps if not provided
+            if (supplier.getCreatedAt() == null) {
+                supplier.setCreatedAt(new Date());
+            }
+            if (supplier.getUpdatedAt() == null) {
+                supplier.setUpdatedAt(new Date());
+            }
 
             statement.setString(1, supplier.getName());
             statement.setString(2, supplier.getContactName());
@@ -69,7 +91,7 @@ public class SupplierDAO {
 
             if (affectedRows == 0) {
                 LOGGER.log(Level.WARNING, "Failed to insert supplier: {0}", supplier.getName());
-                return null;
+                throw new SQLException("Creating supplier failed, no rows affected.");
             }
 
             generatedKeys = statement.getGeneratedKeys();
@@ -80,11 +102,11 @@ public class SupplierDAO {
                 return supplier;
             } else {
                 LOGGER.log(Level.WARNING, "Failed to get generated ID for supplier: {0}", supplier.getName());
-                return null;
+                throw new SQLException("Creating supplier failed, no ID obtained.");
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error inserting supplier", e);
-            return null;
+            throw e;
         } finally {
             closeResources(connection, statement, generatedKeys);
         }
@@ -95,8 +117,9 @@ public class SupplierDAO {
      *
      * @param supplier The supplier to update
      * @return True if the update was successful, false otherwise
+     * @throws SQLException If a database access error occurs
      */
-    public boolean update(Supplier supplier) {
+    public boolean update(Supplier supplier) throws SQLException {
         LOGGER.log(Level.INFO, "Updating supplier with ID: {0}", supplier.getId());
 
         String sql = "UPDATE suppliers SET name = ?, contact_name = ?, phone = ?, email = ?, " +
@@ -109,6 +132,11 @@ public class SupplierDAO {
         try {
             connection = dbConnection.getConnection();
             statement = connection.prepareStatement(sql);
+
+            // Set current timestamp if not provided
+            if (supplier.getUpdatedAt() == null) {
+                supplier.setUpdatedAt(new Date());
+            }
 
             statement.setString(1, supplier.getName());
             statement.setString(2, supplier.getContactName());
@@ -132,7 +160,7 @@ public class SupplierDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error updating supplier", e);
-            return false;
+            throw e;
         } finally {
             closeResources(connection, statement, null);
         }
@@ -143,8 +171,9 @@ public class SupplierDAO {
      *
      * @param id The ID of the supplier to delete
      * @return True if the deletion was successful, false otherwise
+     * @throws SQLException If a database access error occurs
      */
-    public boolean delete(int id) {
+    public boolean delete(int id) throws SQLException {
         LOGGER.log(Level.INFO, "Deleting supplier with ID: {0}", id);
 
         String sql = "DELETE FROM suppliers WHERE id = ?";
@@ -169,7 +198,7 @@ public class SupplierDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error deleting supplier", e);
-            return false;
+            throw e;
         } finally {
             closeResources(connection, statement, null);
         }
@@ -180,8 +209,9 @@ public class SupplierDAO {
      *
      * @param id The ID of the supplier to find
      * @return The found supplier, or null if no supplier was found
+     * @throws SQLException If a database access error occurs
      */
-    public Supplier findById(int id) {
+    public Supplier findById(int id) throws SQLException {
         LOGGER.log(Level.INFO, "Finding supplier with ID: {0}", id);
 
         String sql = "SELECT * FROM suppliers WHERE id = ?";
@@ -208,7 +238,92 @@ public class SupplierDAO {
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error finding supplier by ID", e);
-            return null;
+            throw e;
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Finds a supplier by its tax ID.
+     *
+     * @param taxId The tax ID of the supplier to find
+     * @return The found supplier, or null if no supplier was found
+     * @throws SQLException If a database access error occurs
+     */
+    public Supplier findByTaxId(String taxId) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding supplier with tax ID: {0}", taxId);
+
+        String sql = "SELECT * FROM suppliers WHERE tax_id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setString(1, taxId);
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                Supplier supplier = mapResultSetToSupplier(resultSet);
+                LOGGER.log(Level.INFO, "Supplier found with tax ID: {0}", taxId);
+                return supplier;
+            } else {
+                LOGGER.log(Level.WARNING, "No supplier found with tax ID: {0}", taxId);
+                return null;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error finding supplier by tax ID", e);
+            throw e;
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Gets the average rating for a supplier from the supplier_evaluation table.
+     *
+     * @param supplierId The ID of the supplier
+     * @return The average rating, or 0 if no evaluations exist
+     * @throws SQLException If a database access error occurs
+     */
+    public double getAverageRating(int supplierId) throws SQLException {
+        LOGGER.log(Level.INFO, "Getting average rating for supplier ID: {0}", supplierId);
+
+        String sql = "SELECT AVG((delivery_rating + quality_rating + price_rating + communication_rating) / 4.0) AS avg_rating " +
+                "FROM supplier_evaluation WHERE supplier_id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, supplierId);
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                double avgRating = resultSet.getDouble("avg_rating");
+                if (resultSet.wasNull()) {
+                    LOGGER.log(Level.INFO, "No evaluations found for supplier ID: {0}, returning 0.0", supplierId);
+                    return 0.0;
+                }
+                LOGGER.log(Level.INFO, "Average rating for supplier ID {0}: {1}", new Object[]{supplierId, avgRating});
+                return avgRating;
+            } else {
+                LOGGER.log(Level.INFO, "No evaluations found for supplier ID: {0}, returning 0.0", supplierId);
+                return 0.0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error getting average rating for supplier", e);
+            throw e;
         } finally {
             closeResources(connection, statement, resultSet);
         }
@@ -218,8 +333,9 @@ public class SupplierDAO {
      * Finds all suppliers.
      *
      * @return A list of all suppliers
+     * @throws SQLException If a database access error occurs
      */
-    public List<Supplier> findAll() {
+    public List<Supplier> findAll() throws SQLException {
         LOGGER.info("Finding all suppliers");
 
         String sql = "SELECT * FROM suppliers";
@@ -245,7 +361,7 @@ public class SupplierDAO {
             return suppliers;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error finding all suppliers", e);
-            return new ArrayList<>();
+            throw e;
         } finally {
             closeResources(connection, statement, resultSet);
         }
@@ -256,8 +372,9 @@ public class SupplierDAO {
      *
      * @param name The name to search for
      * @return A list of suppliers with names containing the search term
+     * @throws SQLException If a database access error occurs
      */
-    public List<Supplier> findByName(String name) {
+    public List<Supplier> findByName(String name) throws SQLException {
         LOGGER.log(Level.INFO, "Finding suppliers by name: {0}", name);
 
         String sql = "SELECT * FROM suppliers WHERE name LIKE ?";
@@ -285,7 +402,7 @@ public class SupplierDAO {
             return suppliers;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error finding suppliers by name", e);
-            return new ArrayList<>();
+            throw e;
         } finally {
             closeResources(connection, statement, resultSet);
         }
@@ -295,8 +412,9 @@ public class SupplierDAO {
      * Finds active suppliers.
      *
      * @return A list of active suppliers
+     * @throws SQLException If a database access error occurs
      */
-    public List<Supplier> findActive() {
+    public List<Supplier> findActive() throws SQLException {
         LOGGER.info("Finding active suppliers");
 
         String sql = "SELECT * FROM suppliers WHERE status = 'ACTIVE'";
@@ -322,7 +440,7 @@ public class SupplierDAO {
             return suppliers;
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error finding active suppliers", e);
-            return new ArrayList<>();
+            throw e;
         } finally {
             closeResources(connection, statement, resultSet);
         }

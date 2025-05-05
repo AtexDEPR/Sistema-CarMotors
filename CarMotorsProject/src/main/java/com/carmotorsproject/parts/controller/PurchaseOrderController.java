@@ -5,272 +5,325 @@
 package com.carmotorsproject.parts.controller;
 
 import com.carmotorsproject.parts.model.PurchaseOrderDAO;
-import com.carmotorsproject.parts.model.Part;
+import com.carmotorsproject.parts.model.PartDAO;
+import com.carmotorsproject.parts.model.SupplierDAO;
+import com.carmotorsproject.parts.model.DAOFactory;
 import com.carmotorsproject.parts.model.PurchaseOrder;
 import com.carmotorsproject.parts.model.PurchaseOrderDetail;
+import com.carmotorsproject.parts.model.Part;
 import com.carmotorsproject.parts.model.Supplier;
+import com.carmotorsproject.parts.views.PurchaseOrderView;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Controller for PurchaseOrder entities.
- * Handles business logic for purchase orders.
+ * Controller class that mediates between PurchaseOrderView and PurchaseOrderDAO.
+ * Handles user actions from the view and updates the model and view accordingly.
  */
 public class PurchaseOrderController {
+
     private static final Logger LOGGER = Logger.getLogger(PurchaseOrderController.class.getName());
-    private final PurchaseOrderDAO purchaseOrderDAO;
-    private final PartController partController;
+
+    private final PurchaseOrderView view;
+    private final PurchaseOrderDAO orderDAO;
+    private final PartDAO partDAO;
+    private final SupplierDAO supplierDAO;
 
     /**
-     * Constructor.
+     * Constructor that initializes the controller with a view.
+     *
+     * @param view The purchase order view
      */
-    public PurchaseOrderController() {
-        this.purchaseOrderDAO = new PurchaseOrderDAO();
-        this.partController = new PartController();
+    public PurchaseOrderController(PurchaseOrderView view) {
+        this.view = view;
+        this.orderDAO = DAOFactory.getPurchaseOrderDAO();
+        this.partDAO = DAOFactory.getPartDAO();
+        this.supplierDAO = DAOFactory.getSupplierDAO();
+        LOGGER.log(Level.INFO, "PurchaseOrderController initialized");
+    }
+
+    /**
+     * Loads all purchase orders from the database and updates the view.
+     */
+    public void loadAllOrders() {
+        List<PurchaseOrder> orders = null;
+        try {
+            orders = orderDAO.findAll();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        view.updateOrdersTable(orders);
+        LOGGER.log(Level.INFO, "Loaded {0} purchase orders", orders.size());
+    }
+
+    /**
+     * Loads a specific purchase order by ID.
+     *
+     * @param orderId The ID of the purchase order to load
+     */
+    public void loadOrder(int orderId) {
+        try {
+            PurchaseOrder order = orderDAO.findById(orderId);
+            if (order != null) {
+                // Load order details
+                List<PurchaseOrderDetail> details = orderDAO.findDetailsByOrderId(orderId);
+                order.setDetails(details);
+
+                // Update view
+                view.loadOrderToForm(order);
+                LOGGER.log(Level.INFO, "Loaded order ID: {0}", orderId);
+            } else {
+                view.showError("Order not found with ID: " + orderId);
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error loading order", e);
+            view.showError("Error loading order: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Loads order details for a specific purchase order.
+     *
+     * @param orderId The ID of the purchase order
+     */
+    public void loadOrderDetails(int orderId) {
+        try {
+            List<PurchaseOrderDetail> details = orderDAO.findDetailsByOrderId(orderId);
+            view.updateDetailTable(details);
+            LOGGER.log(Level.INFO, "Loaded {0} details for order ID {1}", new Object[]{details.size(), orderId});
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error loading order details", e);
+            view.showError("Error loading order details: " + e.getMessage());
+        }
     }
 
     /**
      * Creates a new purchase order.
      *
-     * @param purchaseOrder The purchase order to create
-     * @return The created purchase order with its generated ID, or null if the creation failed
+     * @param order The purchase order to create
      */
-    public PurchaseOrder createPurchaseOrder(PurchaseOrder purchaseOrder) {
-        LOGGER.log(Level.INFO, "Creating purchase order: {0}", purchaseOrder.getOrderNumber());
-        return purchaseOrderDAO.insert(purchaseOrder);
+    public void createOrder(PurchaseOrder order) {
+        try {
+            // Validate supplier
+            if (order.getSupplierId() <= 0) {
+                view.showError("Invalid supplier ID.");
+                return;
+            }
+
+            // Validate dates
+            if (order.getOrderDate() == null) {
+                view.showError("Order date is required.");
+                return;
+            }
+
+            if (order.getExpectedDate() != null && order.getExpectedDate().before(order.getOrderDate())) {
+                view.showError("Expected delivery date cannot be before order date.");
+                return;
+            }
+
+            // Save order to database
+            PurchaseOrder savedOrder = orderDAO.save(order);
+
+            // Update view
+            view.clearForm();
+            loadAllOrders();
+            view.selectOrder(savedOrder.getId());
+            view.showInfo("Purchase order created successfully.");
+            LOGGER.log(Level.INFO, "Purchase order created: ID {0}", savedOrder.getId());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error creating purchase order", e);
+            view.showError("Error creating purchase order: " + e.getMessage());
+        }
     }
 
     /**
      * Updates an existing purchase order.
      *
-     * @param purchaseOrder The purchase order to update
-     * @return True if the update was successful, false otherwise
+     * @param order The purchase order to update
      */
-    public boolean updatePurchaseOrder(PurchaseOrder purchaseOrder) {
-        LOGGER.log(Level.INFO, "Updating purchase order with ID: {0}", purchaseOrder.getId());
-        return purchaseOrderDAO.update(purchaseOrder);
-    }
-
-    /**
-     * Deletes a purchase order.
-     *
-     * @param id The ID of the purchase order to delete
-     * @return True if the deletion was successful, false otherwise
-     */
-    public boolean deletePurchaseOrder(int id) {
-        LOGGER.log(Level.INFO, "Deleting purchase order with ID: {0}", id);
-        return purchaseOrderDAO.delete(id);
-    }
-
-    /**
-     * Gets a purchase order by its ID.
-     *
-     * @param id The ID of the purchase order to get
-     * @return The found purchase order, or null if no purchase order was found
-     */
-    public PurchaseOrder getPurchaseOrderById(int id) {
-        LOGGER.log(Level.INFO, "Getting purchase order with ID: {0}", id);
-        return purchaseOrderDAO.findById(id);
-    }
-
-    /**
-     * Gets a purchase order by its order number.
-     *
-     * @param orderNumber The order number of the purchase order to get
-     * @return The found purchase order, or null if no purchase order was found
-     */
-    public PurchaseOrder getPurchaseOrderByOrderNumber(String orderNumber) {
-        LOGGER.log(Level.INFO, "Getting purchase order with order number: {0}", orderNumber);
-        return purchaseOrderDAO.findByOrderNumber(orderNumber);
-    }
-
-    /**
-     * Gets all purchase orders.
-     *
-     * @return A list of all purchase orders
-     */
-    public List<PurchaseOrder> getAllPurchaseOrders() {
-        LOGGER.info("Getting all purchase orders");
-        return purchaseOrderDAO.findAll();
-    }
-
-    /**
-     * Gets purchase orders by supplier.
-     *
-     * @param supplier The supplier
-     * @return A list of purchase orders for the specified supplier
-     */
-    public List<PurchaseOrder> getPurchaseOrdersBySupplier(Supplier supplier) {
-        LOGGER.log(Level.INFO, "Getting purchase orders by supplier ID: {0}", supplier.getId());
-        return purchaseOrderDAO.findBySupplier(supplier.getId());
-    }
-
-    /**
-     * Gets purchase orders by status.
-     *
-     * @param status The status to search for
-     * @return A list of purchase orders with the specified status
-     */
-    public List<PurchaseOrder> getPurchaseOrdersByStatus(String status) {
-        LOGGER.log(Level.INFO, "Getting purchase orders by status: {0}", status);
-        return purchaseOrderDAO.findByStatus(status);
-    }
-
-    /**
-     * Gets purchase orders by date range.
-     *
-     * @param startDate The start date of the range
-     * @param endDate The end date of the range
-     * @return A list of purchase orders within the specified date range
-     */
-    public List<PurchaseOrder> getPurchaseOrdersByDateRange(Date startDate, Date endDate) {
-        LOGGER.log(Level.INFO, "Getting purchase orders by date range: {0} to {1}", new Object[]{startDate, endDate});
-        return purchaseOrderDAO.findByDateRange(startDate, endDate);
-    }
-
-    /**
-     * Creates a new purchase order item.
-     *
-     * @param purchaseOrder The purchase order
-     * @param part The part
-     * @param quantity The quantity
-     * @param unitPrice The unit price
-     * @return The created purchase order item
-     */
-    public PurchaseOrderDetail createPurchaseOrderItem(PurchaseOrder purchaseOrder, Part part, int quantity, double unitPrice) {
-        LOGGER.log(Level.INFO, "Creating purchase order item for part: {0}", part.getName());
-
-        PurchaseOrderDetail item = new PurchaseOrderDetail();
-        item.setPurchaseOrder(purchaseOrder);
-        item.setPart(part);
-        item.setQuantity(quantity);
-        item.setUnitPrice(unitPrice);
-
-        purchaseOrder.addItem(item);
-
-        return item;
-    }
-
-    /**
-     * Marks a purchase order as received.
-     * Updates the delivery date and status, and adds the received parts to inventory.
-     *
-     * @param id The ID of the purchase order
-     * @param deliveryDate The delivery date
-     * @return True if the purchase order was successfully marked as received, false otherwise
-     */
-    public boolean markPurchaseOrderAsReceived(int id, Date deliveryDate) {
-        LOGGER.log(Level.INFO, "Marking purchase order with ID {0} as received on {1}", new Object[]{id, deliveryDate});
-
-        PurchaseOrder purchaseOrder = purchaseOrderDAO.findById(id);
-
-        if (purchaseOrder == null) {
-            LOGGER.log(Level.WARNING, "Purchase order not found with ID: {0}", id);
-            return false;
-        }
-
-        if (!"PENDING".equals(purchaseOrder.getStatus())) {
-            LOGGER.log(Level.WARNING, "Purchase order with ID {0} is not in PENDING status", id);
-            return false;
-        }
-
-        // Update purchase order status and delivery date
-        purchaseOrder.setDeliveryDate(deliveryDate);
-        purchaseOrder.setStatus("RECEIVED");
-
-        // Add received parts to inventory
-        for (PurchaseOrderDetail item : purchaseOrder.getItems()) {
-            Part part = item.getPart();
-            if (part != null) {
-                partController.addStock(part.getId(), item.getQuantity());
+    public void updateOrder(PurchaseOrder order) {
+        try {
+            // Validate order ID
+            if (order.getId() <= 0) {
+                view.showError("Invalid order ID.");
+                return;
             }
-        }
 
-        return purchaseOrderDAO.update(purchaseOrder);
+            // Validate supplier
+            if (order.getSupplierId() <= 0) {
+                view.showError("Invalid supplier ID.");
+                return;
+            }
+
+            // Validate dates
+            if (order.getOrderDate() == null) {
+                view.showError("Order date is required.");
+                return;
+            }
+
+            if (order.getExpectedDate() != null && order.getExpectedDate().before(order.getOrderDate())) {
+                view.showError("Expected delivery date cannot be before order date.");
+                return;
+            }
+
+            // Update order in database
+            PurchaseOrder updatedOrder = orderDAO.update(order);
+
+            // Update view
+            loadAllOrders();
+            view.selectOrder(updatedOrder.getId());
+            view.showInfo("Purchase order updated successfully.");
+            LOGGER.log(Level.INFO, "Purchase order updated: ID {0}", updatedOrder.getId());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating purchase order", e);
+            view.showError("Error updating purchase order: " + e.getMessage());
+        }
     }
 
     /**
      * Cancels a purchase order.
      *
-     * @param id The ID of the purchase order to cancel
-     * @return True if the purchase order was successfully cancelled, false otherwise
+     * @param orderId The ID of the order to cancel
      */
-    public boolean cancelPurchaseOrder(int id) {
-        LOGGER.log(Level.INFO, "Cancelling purchase order with ID: {0}", id);
-
-        PurchaseOrder purchaseOrder = purchaseOrderDAO.findById(id);
-
-        if (purchaseOrder == null) {
-            LOGGER.log(Level.WARNING, "Purchase order not found with ID: {0}", id);
-            return false;
-        }
-
-        if (!"PENDING".equals(purchaseOrder.getStatus())) {
-            LOGGER.log(Level.WARNING, "Purchase order with ID {0} is not in PENDING status", id);
-            return false;
-        }
-
-        purchaseOrder.setStatus("CANCELLED");
-
-        return purchaseOrderDAO.update(purchaseOrder);
-    }
-
-    /**
-     * Generates a new order number.
-     *
-     * @return A new order number
-     */
-    public String generateOrderNumber() {
-        // Generate a unique order number based on the current timestamp
-        String prefix = "PO";
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        return prefix + timestamp.substring(timestamp.length() - 8);
-    }
-
-    /**
-     * Creates a purchase order for parts that are below their minimum stock level.
-     *
-     * @param supplier The supplier
-     * @return The created purchase order, or null if no parts are below their minimum stock level
-     */
-    public PurchaseOrder createPurchaseOrderForLowStock(Supplier supplier) {
-        LOGGER.log(Level.INFO, "Creating purchase order for low stock parts from supplier: {0}", supplier.getName());
-
-        // Get parts below minimum stock level for the specified supplier
-        List<Part> lowStockParts = partController.getPartsBelowMinimumStock();
-
-        if (lowStockParts.isEmpty()) {
-            LOGGER.info("No parts below minimum stock level");
-            return null;
-        }
-
-        // Create a new purchase order
-        PurchaseOrder purchaseOrder = new PurchaseOrder();
-        purchaseOrder.setOrderNumber(generateOrderNumber());
-        purchaseOrder.setOrderDate(new Date());
-        purchaseOrder.setStatus("PENDING");
-        purchaseOrder.setSupplier(supplier);
-
-        // Add items for each low stock part
-        for (Part part : lowStockParts) {
-            if (part.getSupplier() != null && part.getSupplier().getId() == supplier.getId()) {
-                int quantityToOrder = part.getMinimumStock() - part.getQuantityInStock();
-                if (quantityToOrder > 0) {
-                    createPurchaseOrderItem(purchaseOrder, part, quantityToOrder, part.getPrice());
-                }
+    public void cancelOrder(int orderId) {
+        try {
+            // Validate order ID
+            PurchaseOrder order = orderDAO.findById(orderId);
+            if (order == null) {
+                view.showError("Invalid order ID.");
+                return;
             }
-        }
 
-        // If no items were added, return null
-        if (purchaseOrder.getItems().isEmpty()) {
-            LOGGER.info("No low stock parts found for the specified supplier");
-            return null;
-        }
+            // Check if order can be canceled
+            if ("CANCELADA".equals(order.getStatus()) || "RECIBIDA".equals(order.getStatus())) {
+                view.showError("Cannot cancel an order that is already canceled or received.");
+                return;
+            }
 
-        // Save the purchase order
-        return createPurchaseOrder(purchaseOrder);
+            // Update order status
+            order.setStatus("CANCELADA");
+            PurchaseOrder updatedOrder = orderDAO.update(order);
+
+            // Update view
+            loadAllOrders();
+            view.showInfo("Purchase order canceled successfully.");
+            LOGGER.log(Level.INFO, "Purchase order canceled: ID {0}", orderId);
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error canceling purchase order", e);
+            view.showError("Error canceling purchase order: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Searches for parts by name or reference.
+     *
+     * @param searchTerm The search term
+     */
+    public void searchParts(String searchTerm) {
+        try {
+            List<Part> parts = new ArrayList<>();
+
+            // Try to find by name
+            parts.addAll(partDAO.findByName(searchTerm));
+
+            // Try to find by reference
+            Part partByRef = partDAO.findByReference(searchTerm);
+            if (partByRef != null && !parts.contains(partByRef)) {
+                parts.add(partByRef);
+            }
+
+            view.updatePartCombo(parts);
+            LOGGER.log(Level.INFO, "Found {0} parts matching search term: {1}",
+                    new Object[]{parts.size(), searchTerm});
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error searching parts", e);
+            view.showError("Error searching parts: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes a purchase order from the database.
+     *
+     * @param status Filter by status
+     * @param supplierId Filter by supplier ID
+     */
+    public void filterOrders(String status, Integer supplierId) {
+        try {
+            List<PurchaseOrder> orders;
+
+            if (status == null && supplierId == null) {
+                // No filters, load all
+                orders = orderDAO.findAll();
+            } else if (status != null && supplierId == null) {
+                // Filter by status only
+                orders = orderDAO.findByStatus(status);
+            } else if (status == null && supplierId != null) {
+                // Filter by supplier only
+                orders = orderDAO.findBySupplier(supplierId);
+            } else {
+                // Filter by both
+                orders = orderDAO.findByStatusAndSupplier(status, supplierId);
+            }
+
+            view.updateOrdersTable(orders);
+            LOGGER.log(Level.INFO, "Filtered orders: found {0} results", orders.size());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error filtering orders", e);
+            view.showError("Error filtering orders: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Deletes a purchase order from the database.
+     *
+     * @param status Filter by status
+     * @param supplierId Filter by supplier ID
+     */
+    public void deleteOrder(String status, Integer supplierId) {
+        // This method should actually call filterOrders since it's filtering, not deleting
+        filterOrders(status, supplierId);
+    }
+
+
+    /**
+     * Loads all suppliers for the supplier combo box.
+     */
+    public void loadSuppliers() {
+        try {
+            List<Supplier> suppliers = supplierDAO.findAll();
+            view.updateSupplierCombo(suppliers);
+            LOGGER.log(Level.INFO, "Loaded {0} suppliers", suppliers.size());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error loading suppliers", e);
+            view.showError("Error loading suppliers: " + e.getMessage());
+        }
+    }
+
+
+
+    /**
+     * Loads all parts for the part combo box.
+     */
+    public void loadParts() {
+        List<Part> parts = partDAO.findAll();
+        view.updatePartCombo(parts);
+        LOGGER.log(Level.INFO, "Loaded {0} parts", parts.size());
+    }
+
+    /**
+     * Loads parts for a specific supplier.
+     *
+     * @param supplierId The ID of the supplier
+     */
+    public void loadPartsBySupplier(int supplierId) {
+        List<Part> parts = partDAO.findBySupplier(supplierId);
+        view.updatePartCombo(parts);
+        LOGGER.log(Level.INFO, "Loaded {0} parts for supplier ID {1}",
+                new Object[]{parts.size(), supplierId});
     }
 }

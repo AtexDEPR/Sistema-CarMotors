@@ -5,10 +5,6 @@
 package com.carmotorsproject.parts.model;
 
 import com.carmotorsproject.config.DatabaseConnection;
-import com.carmotorsproject.parts.model.Part;
-import com.carmotorsproject.parts.model.PurchaseOrder;
-import com.carmotorsproject.parts.model.PurchaseOrderDetail;
-import com.carmotorsproject.parts.model.Supplier;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -17,7 +13,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -42,17 +37,17 @@ public class PurchaseOrderDAO {
     }
 
     /**
-     * Inserts a new purchase order into the database.
+     * Saves a new purchase order to the database.
      *
-     * @param purchaseOrder The purchase order to insert
-     * @return The inserted purchase order with its generated ID, or null if the insertion failed
+     * @param order The purchase order to save
+     * @return The saved purchase order with its generated ID
+     * @throws SQLException If a database access error occurs
      */
-    public PurchaseOrder insert(PurchaseOrder purchaseOrder) {
-        LOGGER.log(Level.INFO, "Inserting purchase order: {0}", purchaseOrder.getOrderNumber());
+    public PurchaseOrder save(PurchaseOrder order) throws SQLException {
+        LOGGER.log(Level.INFO, "Saving purchase order for supplier ID: {0}", order.getSupplierId());
 
-        String sql = "INSERT INTO purchase_orders (order_number, order_date, expected_delivery_date, " +
-                "delivery_date, status, total_amount, notes, supplier_id, created_at, updated_at) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO purchase_orders (supplier_id, order_date, expected_date, " +
+                "actual_delivery_date, status, notes, total) VALUES (?, ?, ?, ?, ?, ?, ?)";
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -60,264 +55,108 @@ public class PurchaseOrderDAO {
 
         try {
             connection = dbConnection.getConnection();
-            connection.setAutoCommit(false);
-
             statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
-            statement.setString(1, purchaseOrder.getOrderNumber());
-            statement.setTimestamp(2, new Timestamp(purchaseOrder.getOrderDate().getTime()));
-
-            if (purchaseOrder.getExpectedDeliveryDate() != null) {
-                statement.setTimestamp(3, new Timestamp(purchaseOrder.getExpectedDeliveryDate().getTime()));
-            } else {
-                statement.setNull(3, java.sql.Types.TIMESTAMP);
-            }
-
-            if (purchaseOrder.getDeliveryDate() != null) {
-                statement.setTimestamp(4, new Timestamp(purchaseOrder.getDeliveryDate().getTime()));
-            } else {
-                statement.setNull(4, java.sql.Types.TIMESTAMP);
-            }
-
-            statement.setString(5, purchaseOrder.getStatus());
-            statement.setDouble(6, purchaseOrder.getTotalAmount());
-            statement.setString(7, purchaseOrder.getNotes());
-            statement.setInt(8, purchaseOrder.getSupplier().getId());
-            statement.setTimestamp(9, new Timestamp(purchaseOrder.getCreatedAt().getTime()));
-            statement.setTimestamp(10, new Timestamp(purchaseOrder.getUpdatedAt().getTime()));
+            statement.setInt(1, order.getSupplierId());
+            statement.setTimestamp(2, order.getOrderDate() != null ?
+                    new Timestamp(order.getOrderDate().getTime()) : null);
+            statement.setTimestamp(3, order.getExpectedDate() != null ?
+                    new Timestamp(order.getExpectedDate().getTime()) : null);
+            statement.setTimestamp(4, order.getActualDeliveryDate() != null ?
+                    new Timestamp(order.getActualDeliveryDate().getTime()) : null);
+            statement.setString(5, order.getStatus());
+            statement.setString(6, order.getNotes());
+            statement.setDouble(7, order.getTotal());
 
             int affectedRows = statement.executeUpdate();
 
             if (affectedRows == 0) {
-                connection.rollback();
-                LOGGER.log(Level.WARNING, "Failed to insert purchase order: {0}", purchaseOrder.getOrderNumber());
-                return null;
+                LOGGER.log(Level.WARNING, "Failed to save purchase order");
+                throw new SQLException("Creating purchase order failed, no rows affected.");
             }
 
             generatedKeys = statement.getGeneratedKeys();
 
             if (generatedKeys.next()) {
-                purchaseOrder.setId(generatedKeys.getInt(1));
+                order.setId(generatedKeys.getInt(1));
 
-                // Insert purchase order items
-                for (PurchaseOrderDetail item : purchaseOrder.getItems()) {
-                    item.setPurchaseOrder(purchaseOrder);
-                    if (!insertPurchaseOrderItem(connection, item)) {
-                        connection.rollback();
-                        LOGGER.log(Level.WARNING, "Failed to insert purchase order item for order: {0}", purchaseOrder.getOrderNumber());
-                        return null;
+                // Save order details if any
+                if (order.getDetails() != null && !order.getDetails().isEmpty()) {
+                    for (PurchaseOrderDetail detail : order.getDetails()) {
+                        detail.setOrderId(order.getId());
+                        addDetail(detail);
                     }
                 }
 
-                connection.commit();
-                LOGGER.log(Level.INFO, "Purchase order inserted successfully with ID: {0}", purchaseOrder.getId());
-                return purchaseOrder;
+                LOGGER.log(Level.INFO, "Purchase order saved successfully with ID: {0}", order.getId());
+                return order;
             } else {
-                connection.rollback();
-                LOGGER.log(Level.WARNING, "Failed to get generated ID for purchase order: {0}", purchaseOrder.getOrderNumber());
-                return null;
+                LOGGER.log(Level.WARNING, "Failed to get generated ID for purchase order");
+                throw new SQLException("Creating purchase order failed, no ID obtained.");
             }
-        } catch (SQLException e) {
-            try {
-                if (connection != null) {
-                    connection.rollback();
-                }
-            } catch (SQLException ex) {
-                LOGGER.log(Level.SEVERE, "Error rolling back transaction", ex);
-            }
-            LOGGER.log(Level.SEVERE, "Error inserting purchase order", e);
-            return null;
         } finally {
-            try {
-                if (connection != null) {
-                    connection.setAutoCommit(true);
-                }
-            } catch (SQLException e) {
-                LOGGER.log(Level.WARNING, "Error resetting auto-commit", e);
-            }
             closeResources(connection, statement, generatedKeys);
-        }
-    }
-
-    /**
-     * Inserts a purchase order item into the database.
-     *
-     * @param connection The database connection
-     * @param item The purchase order item to insert
-     * @return True if the insertion was successful, false otherwise
-     * @throws SQLException If an error occurs while accessing the database
-     */
-    private boolean insertPurchaseOrderItem(Connection connection, PurchaseOrderDetail item) throws SQLException {
-        String sql = "INSERT INTO purchase_order_items (purchase_order_id, part_id, quantity, unit_price, subtotal) " +
-                "VALUES (?, ?, ?, ?, ?)";
-
-        PreparedStatement statement = null;
-        ResultSet generatedKeys = null;
-
-        try {
-            statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
-            statement.setInt(1, item.getPurchaseOrder().getId());
-            statement.setInt(2, item.getPart().getId());
-            statement.setInt(3, item.getQuantity());
-            statement.setDouble(4, item.getUnitPrice());
-            statement.setDouble(5, item.getSubtotal());
-
-            int affectedRows = statement.executeUpdate();
-
-            if (affectedRows == 0) {
-                return false;
-            }
-
-            generatedKeys = statement.getGeneratedKeys();
-
-            if (generatedKeys.next()) {
-                item.setId(generatedKeys.getInt(1));
-                return true;
-            } else {
-                return false;
-            }
-        } finally {
-            if (generatedKeys != null) {
-                generatedKeys.close();
-            }
-            if (statement != null) {
-                statement.close();
-            }
         }
     }
 
     /**
      * Updates an existing purchase order in the database.
      *
-     * @param purchaseOrder The purchase order to update
-     * @return True if the update was successful, false otherwise
+     * @param order The purchase order to update
+     * @return The updated purchase order
+     * @throws SQLException If a database access error occurs
      */
-    public boolean update(PurchaseOrder purchaseOrder) {
-        LOGGER.log(Level.INFO, "Updating purchase order with ID: {0}", purchaseOrder.getId());
+    public PurchaseOrder update(PurchaseOrder order) throws SQLException {
+        LOGGER.log(Level.INFO, "Updating purchase order with ID: {0}", order.getId());
 
-        String sql = "UPDATE purchase_orders SET order_number = ?, order_date = ?, " +
-                "expected_delivery_date = ?, delivery_date = ?, status = ?, " +
-                "total_amount = ?, notes = ?, supplier_id = ?, updated_at = ? " +
-                "WHERE id = ?";
+        String sql = "UPDATE purchase_orders SET supplier_id = ?, order_date = ?, expected_date = ?, " +
+                "actual_delivery_date = ?, status = ?, notes = ?, total = ? WHERE id = ?";
 
         Connection connection = null;
         PreparedStatement statement = null;
 
         try {
             connection = dbConnection.getConnection();
-            connection.setAutoCommit(false);
-
             statement = connection.prepareStatement(sql);
 
-            statement.setString(1, purchaseOrder.getOrderNumber());
-            statement.setTimestamp(2, new Timestamp(purchaseOrder.getOrderDate().getTime()));
-
-            if (purchaseOrder.getExpectedDeliveryDate() != null) {
-                statement.setTimestamp(3, new Timestamp(purchaseOrder.getExpectedDeliveryDate().getTime()));
-            } else {
-                statement.setNull(3, java.sql.Types.TIMESTAMP);
-            }
-
-            if (purchaseOrder.getDeliveryDate() != null) {
-                statement.setTimestamp(4, new Timestamp(purchaseOrder.getDeliveryDate().getTime()));
-            } else {
-                statement.setNull(4, java.sql.Types.TIMESTAMP);
-            }
-
-            statement.setString(5, purchaseOrder.getStatus());
-            statement.setDouble(6, purchaseOrder.getTotalAmount());
-            statement.setString(7, purchaseOrder.getNotes());
-            statement.setInt(8, purchaseOrder.getSupplier().getId());
-            statement.setTimestamp(9, new Timestamp(purchaseOrder.getUpdatedAt().getTime()));
-            statement.setInt(10, purchaseOrder.getId());
+            statement.setInt(1, order.getSupplierId());
+            statement.setTimestamp(2, order.getOrderDate() != null ?
+                    new Timestamp(order.getOrderDate().getTime()) : null);
+            statement.setTimestamp(3, order.getExpectedDate() != null ?
+                    new Timestamp(order.getExpectedDate().getTime()) : null);
+            statement.setTimestamp(4, order.getActualDeliveryDate() != null ?
+                    new Timestamp(order.getActualDeliveryDate().getTime()) : null);
+            statement.setString(5, order.getStatus());
+            statement.setString(6, order.getNotes());
+            statement.setDouble(7, order.getTotal());
+            statement.setInt(8, order.getId());
 
             int affectedRows = statement.executeUpdate();
 
-            if (affectedRows == 0) {
-                connection.rollback();
-                LOGGER.log(Level.WARNING, "No purchase order found with ID: {0}", purchaseOrder.getId());
-                return false;
+            if (affectedRows > 0) {
+                LOGGER.log(Level.INFO, "Purchase order updated successfully with ID: {0}", order.getId());
+                return order;
+            } else {
+                LOGGER.log(Level.WARNING, "No purchase order found with ID: {0}", order.getId());
+                throw new SQLException("Updating purchase order failed, no rows affected.");
             }
-
-            // Delete existing items
-            if (!deletePurchaseOrderItems(connection, purchaseOrder.getId())) {
-                connection.rollback();
-                LOGGER.log(Level.WARNING, "Failed to delete existing items for purchase order ID: {0}", purchaseOrder.getId());
-                return false;
-            }
-
-            // Insert updated items
-            for (PurchaseOrderDetail item : purchaseOrder.getItems()) {
-                item.setPurchaseOrder(purchaseOrder);
-                if (!insertPurchaseOrderItem(connection, item)) {
-                    connection.rollback();
-                    LOGGER.log(Level.WARNING, "Failed to insert updated item for purchase order ID: {0}", purchaseOrder.getId());
-                    return false;
-                }
-            }
-
-            connection.commit();
-            LOGGER.log(Level.INFO, "Purchase order updated successfully with ID: {0}", purchaseOrder.getId());
-            return true;
-        } catch (SQLException e) {
-            try {
-                if (connection != null) {
-                    connection.rollback();
-                }
-            } catch (SQLException ex) {
-                LOGGER.log(Level.SEVERE, "Error rolling back transaction", ex);
-            }
-            LOGGER.log(Level.SEVERE, "Error updating purchase order", e);
-            return false;
         } finally {
-            try {
-                if (connection != null) {
-                    connection.setAutoCommit(true);
-                }
-            } catch (SQLException e) {
-                LOGGER.log(Level.WARNING, "Error resetting auto-commit", e);
-            }
             closeResources(connection, statement, null);
-        }
-    }
-
-    /**
-     * Deletes purchase order items for a purchase order.
-     *
-     * @param connection The database connection
-     * @param purchaseOrderId The ID of the purchase order
-     * @return True if the deletion was successful, false otherwise
-     * @throws SQLException If an error occurs while accessing the database
-     */
-    private boolean deletePurchaseOrderItems(Connection connection, int purchaseOrderId) throws SQLException {
-        String sql = "DELETE FROM purchase_order_items WHERE purchase_order_id = ?";
-
-        PreparedStatement statement = null;
-
-        try {
-            statement = connection.prepareStatement(sql);
-
-            statement.setInt(1, purchaseOrderId);
-
-            statement.executeUpdate();
-
-            return true;
-        } finally {
-            if (statement != null) {
-                statement.close();
-            }
         }
     }
 
     /**
      * Deletes a purchase order from the database.
      *
-     * @param id The ID of the purchase order to delete
+     * @param orderId The ID of the purchase order to delete
      * @return True if the deletion was successful, false otherwise
+     * @throws SQLException If a database access error occurs
      */
-    public boolean delete(int id) {
-        LOGGER.log(Level.INFO, "Deleting purchase order with ID: {0}", id);
+    public boolean delete(int orderId) throws SQLException {
+        LOGGER.log(Level.INFO, "Deleting purchase order with ID: {0}", orderId);
+
+        // First delete all details
+        deleteAllDetails(orderId);
 
         String sql = "DELETE FROM purchase_orders WHERE id = ?";
 
@@ -326,49 +165,20 @@ public class PurchaseOrderDAO {
 
         try {
             connection = dbConnection.getConnection();
-            connection.setAutoCommit(false);
-
-            // Delete purchase order items first
-            if (!deletePurchaseOrderItems(connection, id)) {
-                connection.rollback();
-                LOGGER.log(Level.WARNING, "Failed to delete items for purchase order ID: {0}", id);
-                return false;
-            }
-
-            // Delete purchase order
             statement = connection.prepareStatement(sql);
 
-            statement.setInt(1, id);
+            statement.setInt(1, orderId);
 
             int affectedRows = statement.executeUpdate();
 
             if (affectedRows > 0) {
-                connection.commit();
-                LOGGER.log(Level.INFO, "Purchase order deleted successfully with ID: {0}", id);
+                LOGGER.log(Level.INFO, "Purchase order deleted successfully with ID: {0}", orderId);
                 return true;
             } else {
-                connection.rollback();
-                LOGGER.log(Level.WARNING, "No purchase order found with ID: {0}", id);
+                LOGGER.log(Level.WARNING, "No purchase order found with ID: {0}", orderId);
                 return false;
             }
-        } catch (SQLException e) {
-            try {
-                if (connection != null) {
-                    connection.rollback();
-                }
-            } catch (SQLException ex) {
-                LOGGER.log(Level.SEVERE, "Error rolling back transaction", ex);
-            }
-            LOGGER.log(Level.SEVERE, "Error deleting purchase order", e);
-            return false;
         } finally {
-            try {
-                if (connection != null) {
-                    connection.setAutoCommit(true);
-                }
-            } catch (SQLException e) {
-                LOGGER.log(Level.WARNING, "Error resetting auto-commit", e);
-            }
             closeResources(connection, statement, null);
         }
     }
@@ -376,11 +186,12 @@ public class PurchaseOrderDAO {
     /**
      * Finds a purchase order by its ID.
      *
-     * @param id The ID of the purchase order to find
+     * @param orderId The ID of the purchase order to find
      * @return The found purchase order, or null if no purchase order was found
+     * @throws SQLException If a database access error occurs
      */
-    public PurchaseOrder findById(int id) {
-        LOGGER.log(Level.INFO, "Finding purchase order with ID: {0}", id);
+    public PurchaseOrder findById(int orderId) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding purchase order with ID: {0}", orderId);
 
         String sql = "SELECT * FROM purchase_orders WHERE id = ?";
 
@@ -392,68 +203,18 @@ public class PurchaseOrderDAO {
             connection = dbConnection.getConnection();
             statement = connection.prepareStatement(sql);
 
-            statement.setInt(1, id);
+            statement.setInt(1, orderId);
 
             resultSet = statement.executeQuery();
 
             if (resultSet.next()) {
-                PurchaseOrder purchaseOrder = mapResultSetToPurchaseOrder(resultSet);
-
-                // Load purchase order items
-                loadPurchaseOrderItems(connection, purchaseOrder);
-
-                LOGGER.log(Level.INFO, "Purchase order found with ID: {0}", id);
-                return purchaseOrder;
+                PurchaseOrder order = mapResultSetToOrder(resultSet);
+                LOGGER.log(Level.INFO, "Purchase order found with ID: {0}", orderId);
+                return order;
             } else {
-                LOGGER.log(Level.WARNING, "No purchase order found with ID: {0}", id);
+                LOGGER.log(Level.WARNING, "No purchase order found with ID: {0}", orderId);
                 return null;
             }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error finding purchase order by ID", e);
-            return null;
-        } finally {
-            closeResources(connection, statement, resultSet);
-        }
-    }
-
-    /**
-     * Finds a purchase order by its order number.
-     *
-     * @param orderNumber The order number of the purchase order to find
-     * @return The found purchase order, or null if no purchase order was found
-     */
-    public PurchaseOrder findByOrderNumber(String orderNumber) {
-        LOGGER.log(Level.INFO, "Finding purchase order with order number: {0}", orderNumber);
-
-        String sql = "SELECT * FROM purchase_orders WHERE order_number = ?";
-
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
-
-        try {
-            connection = dbConnection.getConnection();
-            statement = connection.prepareStatement(sql);
-
-            statement.setString(1, orderNumber);
-
-            resultSet = statement.executeQuery();
-
-            if (resultSet.next()) {
-                PurchaseOrder purchaseOrder = mapResultSetToPurchaseOrder(resultSet);
-
-                // Load purchase order items
-                loadPurchaseOrderItems(connection, purchaseOrder);
-
-                LOGGER.log(Level.INFO, "Purchase order found with order number: {0}", orderNumber);
-                return purchaseOrder;
-            } else {
-                LOGGER.log(Level.WARNING, "No purchase order found with order number: {0}", orderNumber);
-                return null;
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error finding purchase order by order number", e);
-            return null;
         } finally {
             closeResources(connection, statement, resultSet);
         }
@@ -463,11 +224,12 @@ public class PurchaseOrderDAO {
      * Finds all purchase orders.
      *
      * @return A list of all purchase orders
+     * @throws SQLException If a database access error occurs
      */
-    public List<PurchaseOrder> findAll() {
+    public List<PurchaseOrder> findAll() throws SQLException {
         LOGGER.info("Finding all purchase orders");
 
-        String sql = "SELECT * FROM purchase_orders";
+        String sql = "SELECT * FROM purchase_orders ORDER BY order_date DESC";
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -479,66 +241,15 @@ public class PurchaseOrderDAO {
 
             resultSet = statement.executeQuery();
 
-            List<PurchaseOrder> purchaseOrders = new ArrayList<>();
+            List<PurchaseOrder> orders = new ArrayList<>();
 
             while (resultSet.next()) {
-                PurchaseOrder purchaseOrder = mapResultSetToPurchaseOrder(resultSet);
-
-                // Load purchase order items
-                loadPurchaseOrderItems(connection, purchaseOrder);
-
-                purchaseOrders.add(purchaseOrder);
+                PurchaseOrder order = mapResultSetToOrder(resultSet);
+                orders.add(order);
             }
 
-            LOGGER.log(Level.INFO, "Found {0} purchase orders", purchaseOrders.size());
-            return purchaseOrders;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error finding all purchase orders", e);
-            return new ArrayList<>();
-        } finally {
-            closeResources(connection, statement, resultSet);
-        }
-    }
-
-    /**
-     * Finds purchase orders by supplier ID.
-     *
-     * @param supplierId The ID of the supplier
-     * @return A list of purchase orders for the specified supplier
-     */
-    public List<PurchaseOrder> findBySupplier(int supplierId) {
-        LOGGER.log(Level.INFO, "Finding purchase orders by supplier ID: {0}", supplierId);
-
-        String sql = "SELECT * FROM purchase_orders WHERE supplier_id = ?";
-
-        Connection connection = null;
-        PreparedStatement statement = null;
-        ResultSet resultSet = null;
-
-        try {
-            connection = dbConnection.getConnection();
-            statement = connection.prepareStatement(sql);
-
-            statement.setInt(1, supplierId);
-
-            resultSet = statement.executeQuery();
-
-            List<PurchaseOrder> purchaseOrders = new ArrayList<>();
-
-            while (resultSet.next()) {
-                PurchaseOrder purchaseOrder = mapResultSetToPurchaseOrder(resultSet);
-
-                // Load purchase order items
-                loadPurchaseOrderItems(connection, purchaseOrder);
-
-                purchaseOrders.add(purchaseOrder);
-            }
-
-            LOGGER.log(Level.INFO, "Found {0} purchase orders for supplier ID: {1}", new Object[]{purchaseOrders.size(), supplierId});
-            return purchaseOrders;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error finding purchase orders by supplier", e);
-            return new ArrayList<>();
+            LOGGER.log(Level.INFO, "Found {0} purchase orders", orders.size());
+            return orders;
         } finally {
             closeResources(connection, statement, resultSet);
         }
@@ -549,11 +260,12 @@ public class PurchaseOrderDAO {
      *
      * @param status The status to search for
      * @return A list of purchase orders with the specified status
+     * @throws SQLException If a database access error occurs
      */
-    public List<PurchaseOrder> findByStatus(String status) {
-        LOGGER.log(Level.INFO, "Finding purchase orders by status: {0}", status);
+    public List<PurchaseOrder> findByStatus(String status) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding purchase orders with status: {0}", status);
 
-        String sql = "SELECT * FROM purchase_orders WHERE status = ?";
+        String sql = "SELECT * FROM purchase_orders WHERE status = ? ORDER BY order_date DESC";
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -567,38 +279,32 @@ public class PurchaseOrderDAO {
 
             resultSet = statement.executeQuery();
 
-            List<PurchaseOrder> purchaseOrders = new ArrayList<>();
+            List<PurchaseOrder> orders = new ArrayList<>();
 
             while (resultSet.next()) {
-                PurchaseOrder purchaseOrder = mapResultSetToPurchaseOrder(resultSet);
-
-                // Load purchase order items
-                loadPurchaseOrderItems(connection, purchaseOrder);
-
-                purchaseOrders.add(purchaseOrder);
+                PurchaseOrder order = mapResultSetToOrder(resultSet);
+                orders.add(order);
             }
 
-            LOGGER.log(Level.INFO, "Found {0} purchase orders with status: {1}", new Object[]{purchaseOrders.size(), status});
-            return purchaseOrders;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error finding purchase orders by status", e);
-            return new ArrayList<>();
+            LOGGER.log(Level.INFO, "Found {0} purchase orders with status: {1}",
+                    new Object[]{orders.size(), status});
+            return orders;
         } finally {
             closeResources(connection, statement, resultSet);
         }
     }
 
     /**
-     * Finds purchase orders by date range.
+     * Finds purchase orders by supplier.
      *
-     * @param startDate The start date of the range
-     * @param endDate The end date of the range
-     * @return A list of purchase orders within the specified date range
+     * @param supplierId The ID of the supplier
+     * @return A list of purchase orders from the specified supplier
+     * @throws SQLException If a database access error occurs
      */
-    public List<PurchaseOrder> findByDateRange(Date startDate, Date endDate) {
-        LOGGER.log(Level.INFO, "Finding purchase orders by date range: {0} to {1}", new Object[]{startDate, endDate});
+    public List<PurchaseOrder> findBySupplier(int supplierId) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding purchase orders for supplier ID: {0}", supplierId);
 
-        String sql = "SELECT * FROM purchase_orders WHERE order_date BETWEEN ? AND ?";
+        String sql = "SELECT * FROM purchase_orders WHERE supplier_id = ? ORDER BY order_date DESC";
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -608,77 +314,365 @@ public class PurchaseOrderDAO {
             connection = dbConnection.getConnection();
             statement = connection.prepareStatement(sql);
 
-            statement.setTimestamp(1, new Timestamp(startDate.getTime()));
-            statement.setTimestamp(2, new Timestamp(endDate.getTime()));
+            statement.setInt(1, supplierId);
 
             resultSet = statement.executeQuery();
 
-            List<PurchaseOrder> purchaseOrders = new ArrayList<>();
+            List<PurchaseOrder> orders = new ArrayList<>();
 
             while (resultSet.next()) {
-                PurchaseOrder purchaseOrder = mapResultSetToPurchaseOrder(resultSet);
-
-                // Load purchase order items
-                loadPurchaseOrderItems(connection, purchaseOrder);
-
-                purchaseOrders.add(purchaseOrder);
+                PurchaseOrder order = mapResultSetToOrder(resultSet);
+                orders.add(order);
             }
 
-            LOGGER.log(Level.INFO, "Found {0} purchase orders in date range", purchaseOrders.size());
-            return purchaseOrders;
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Error finding purchase orders by date range", e);
-            return new ArrayList<>();
+            LOGGER.log(Level.INFO, "Found {0} purchase orders for supplier ID: {1}",
+                    new Object[]{orders.size(), supplierId});
+            return orders;
         } finally {
             closeResources(connection, statement, resultSet);
         }
     }
 
     /**
-     * Loads purchase order items for a purchase order.
+     * Finds purchase orders by status and supplier.
      *
-     * @param connection The database connection
-     * @param purchaseOrder The purchase order to load items for
-     * @throws SQLException If an error occurs while accessing the database
+     * @param status The status to search for
+     * @param supplierId The ID of the supplier
+     * @return A list of purchase orders with the specified status and supplier
+     * @throws SQLException If a database access error occurs
      */
-    private void loadPurchaseOrderItems(Connection connection, PurchaseOrder purchaseOrder) throws SQLException {
-        String sql = "SELECT * FROM purchase_order_items WHERE purchase_order_id = ?";
+    public List<PurchaseOrder> findByStatusAndSupplier(String status, int supplierId) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding purchase orders with status: {0} and supplier ID: {1}",
+                new Object[]{status, supplierId});
 
+        String sql = "SELECT * FROM purchase_orders WHERE status = ? AND supplier_id = ? ORDER BY order_date DESC";
+
+        Connection connection = null;
         PreparedStatement statement = null;
         ResultSet resultSet = null;
 
         try {
+            connection = dbConnection.getConnection();
             statement = connection.prepareStatement(sql);
 
-            statement.setInt(1, purchaseOrder.getId());
+            statement.setString(1, status);
+            statement.setInt(2, supplierId);
 
             resultSet = statement.executeQuery();
 
-            List<PurchaseOrder> items = new ArrayList<>();
+            List<PurchaseOrder> orders = new ArrayList<>();
 
             while (resultSet.next()) {
-                PurchaseOrder item = new PurchaseOrder();
-
-                item.setId(resultSet.getInt("id"));
-                item.setQuantity(resultSet.getInt("quantity"));
-                item.setUnitPrice(resultSet.getDouble("unit_price"));
-                item.setPurchaseOrder(purchaseOrder);
-
-                // Load part
-                int partId = resultSet.getInt("part_id");
-                Part part = partDAO.findById(partId);
-                item.setPart(part);
-
-                items.add(item);
+                PurchaseOrder order = mapResultSetToOrder(resultSet);
+                orders.add(order);
             }
 
-            purchaseOrder.setItems(items);
+            LOGGER.log(Level.INFO, "Found {0} purchase orders with status: {1} and supplier ID: {2}",
+                    new Object[]{orders.size(), status, supplierId});
+            return orders;
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Adds a detail item to a purchase order.
+     *
+     * @param detail The detail to add
+     * @return The added detail with its generated ID
+     * @throws SQLException If a database access error occurs
+     */
+    public PurchaseOrderDetail addDetail(PurchaseOrderDetail detail) throws SQLException {
+        LOGGER.log(Level.INFO, "Adding detail to purchase order ID: {0}", detail.getOrderId());
+
+        String sql = "INSERT INTO purchase_order_details (order_id, part_id, quantity, unit_price) " +
+                "VALUES (?, ?, ?, ?)";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet generatedKeys = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+
+            statement.setInt(1, detail.getOrderId());
+            statement.setInt(2, detail.getPartId());
+            statement.setInt(3, detail.getQuantity());
+            statement.setDouble(4, detail.getUnitPrice());
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows == 0) {
+                LOGGER.log(Level.WARNING, "Failed to add detail to purchase order");
+                throw new SQLException("Adding detail failed, no rows affected.");
+            }
+
+            generatedKeys = statement.getGeneratedKeys();
+
+            if (generatedKeys.next()) {
+                detail.setDetailId(generatedKeys.getInt(1));
+
+                // Update order total
+                updateOrderTotal(detail.getOrderId());
+
+                LOGGER.log(Level.INFO, "Detail added successfully with ID: {0}", detail.getDetailId());
+                return detail;
+            } else {
+                LOGGER.log(Level.WARNING, "Failed to get generated ID for detail");
+                throw new SQLException("Adding detail failed, no ID obtained.");
+            }
+        } finally {
+            closeResources(connection, statement, generatedKeys);
+        }
+    }
+
+    /**
+     * Updates an existing detail item in a purchase order.
+     *
+     * @param detail The detail to update
+     * @return The updated detail
+     * @throws SQLException If a database access error occurs
+     */
+    public PurchaseOrderDetail updateDetail(PurchaseOrderDetail detail) throws SQLException {
+        LOGGER.log(Level.INFO, "Updating detail with ID: {0}", detail.getDetailId());
+
+        String sql = "UPDATE purchase_order_details SET order_id = ?, part_id = ?, quantity = ?, " +
+                "unit_price = ? WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, detail.getOrderId());
+            statement.setInt(2, detail.getPartId());
+            statement.setInt(3, detail.getQuantity());
+            statement.setDouble(4, detail.getUnitPrice());
+            statement.setInt(5, detail.getDetailId());
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows > 0) {
+                // Update order total
+                updateOrderTotal(detail.getOrderId());
+
+                LOGGER.log(Level.INFO, "Detail updated successfully with ID: {0}", detail.getDetailId());
+                return detail;
+            } else {
+                LOGGER.log(Level.WARNING, "No detail found with ID: {0}", detail.getDetailId());
+                throw new SQLException("Updating detail failed, no rows affected.");
+            }
+        } finally {
+            closeResources(connection, statement, null);
+        }
+    }
+
+    /**
+     * Deletes a detail item from a purchase order.
+     *
+     * @param detailId The ID of the detail to delete
+     * @return True if the deletion was successful, false otherwise
+     * @throws SQLException If a database access error occurs
+     */
+    public boolean deleteDetail(int detailId) throws SQLException {
+        LOGGER.log(Level.INFO, "Deleting detail with ID: {0}", detailId);
+
+        // First get the order ID to update total later
+        PurchaseOrderDetail detail = findDetailById(detailId);
+        if (detail == null) {
+            return false;
+        }
+
+        int orderId = detail.getOrderId();
+
+        String sql = "DELETE FROM purchase_order_details WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, detailId);
+
+            int affectedRows = statement.executeUpdate();
+
+            if (affectedRows > 0) {
+                // Update order total
+                updateOrderTotal(orderId);
+
+                LOGGER.log(Level.INFO, "Detail deleted successfully with ID: {0}", detailId);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "No detail found with ID: {0}", detailId);
+                return false;
+            }
+        } finally {
+            closeResources(connection, statement, null);
+        }
+    }
+
+    /**
+     * Deletes all details for a purchase order.
+     *
+     * @param orderId The ID of the purchase order
+     * @throws SQLException If a database access error occurs
+     */
+    private void deleteAllDetails(int orderId) throws SQLException {
+        LOGGER.log(Level.INFO, "Deleting all details for purchase order ID: {0}", orderId);
+
+        String sql = "DELETE FROM purchase_order_details WHERE order_id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, orderId);
+
+            int affectedRows = statement.executeUpdate();
+
+            LOGGER.log(Level.INFO, "Deleted {0} details for purchase order ID: {1}",
+                    new Object[]{affectedRows, orderId});
+        } finally {
+            closeResources(connection, statement, null);
+        }
+    }
+
+    /**
+     * Finds a detail item by its ID.
+     *
+     * @param detailId The ID of the detail to find
+     * @return The found detail, or null if no detail was found
+     * @throws SQLException If a database access error occurs
+     */
+    public PurchaseOrderDetail findDetailById(int detailId) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding detail with ID: {0}", detailId);
+
+        String sql = "SELECT * FROM purchase_order_details WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, detailId);
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                PurchaseOrderDetail detail = mapResultSetToDetail(resultSet);
+                LOGGER.log(Level.INFO, "Detail found with ID: {0}", detailId);
+                return detail;
+            } else {
+                LOGGER.log(Level.WARNING, "No detail found with ID: {0}", detailId);
+                return null;
+            }
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Finds all details for a purchase order.
+     *
+     * @param orderId The ID of the purchase order
+     * @return A list of details for the specified purchase order
+     * @throws SQLException If a database access error occurs
+     */
+    public List<PurchaseOrderDetail> findDetailsByOrderId(int orderId) throws SQLException {
+        LOGGER.log(Level.INFO, "Finding details for purchase order ID: {0}", orderId);
+
+        String sql = "SELECT d.*, p.name as part_name FROM purchase_order_details d " +
+                "JOIN parts p ON d.part_id = p.id WHERE d.order_id = ?";
+
+        Connection connection = null;
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            statement = connection.prepareStatement(sql);
+
+            statement.setInt(1, orderId);
+
+            resultSet = statement.executeQuery();
+
+            List<PurchaseOrderDetail> details = new ArrayList<>();
+
+            while (resultSet.next()) {
+                PurchaseOrderDetail detail = mapResultSetToDetail(resultSet);
+                detail.setPartName(resultSet.getString("part_name"));
+                details.add(detail);
+            }
+
+            LOGGER.log(Level.INFO, "Found {0} details for purchase order ID: {1}",
+                    new Object[]{details.size(), orderId});
+            return details;
+        } finally {
+            closeResources(connection, statement, resultSet);
+        }
+    }
+
+    /**
+     * Updates the total for a purchase order based on its details.
+     *
+     * @param orderId The ID of the purchase order
+     * @throws SQLException If a database access error occurs
+     */
+    private void updateOrderTotal(int orderId) throws SQLException {
+        LOGGER.log(Level.INFO, "Updating total for purchase order ID: {0}", orderId);
+
+        String sqlSelect = "SELECT SUM(quantity * unit_price) as total FROM purchase_order_details " +
+                "WHERE order_id = ?";
+        String sqlUpdate = "UPDATE purchase_orders SET total = ? WHERE id = ?";
+
+        Connection connection = null;
+        PreparedStatement selectStatement = null;
+        PreparedStatement updateStatement = null;
+        ResultSet resultSet = null;
+
+        try {
+            connection = dbConnection.getConnection();
+            selectStatement = connection.prepareStatement(sqlSelect);
+
+            selectStatement.setInt(1, orderId);
+
+            resultSet = selectStatement.executeQuery();
+
+            if (resultSet.next()) {
+                double total = resultSet.getDouble("total");
+
+                updateStatement = connection.prepareStatement(sqlUpdate);
+                updateStatement.setDouble(1, total);
+                updateStatement.setInt(2, orderId);
+
+                updateStatement.executeUpdate();
+
+                LOGGER.log(Level.INFO, "Updated total for purchase order ID: {0} to {1}",
+                        new Object[]{orderId, total});
+            }
         } finally {
             if (resultSet != null) {
                 resultSet.close();
             }
-            if (statement != null) {
-                statement.close();
+            if (selectStatement != null) {
+                selectStatement.close();
+            }
+            if (updateStatement != null) {
+                updateStatement.close();
+            }
+            if (connection != null) {
+                dbConnection.closeConnection(connection);
             }
         }
     }
@@ -690,35 +684,66 @@ public class PurchaseOrderDAO {
      * @return The mapped PurchaseOrder object
      * @throws SQLException If an error occurs while accessing the ResultSet
      */
-    private PurchaseOrder mapResultSetToPurchaseOrder(ResultSet resultSet) throws SQLException {
-        PurchaseOrder purchaseOrder = new PurchaseOrder();
+    private PurchaseOrder mapResultSetToOrder(ResultSet resultSet) throws SQLException {
+        PurchaseOrder order = new PurchaseOrder();
 
-        purchaseOrder.setId(resultSet.getInt("id"));
-        purchaseOrder.setOrderNumber(resultSet.getString("order_number"));
-        purchaseOrder.setOrderDate(resultSet.getTimestamp("order_date"));
-
-        Timestamp expectedDeliveryDate = resultSet.getTimestamp("expected_delivery_date");
-        if (expectedDeliveryDate != null) {
-            purchaseOrder.setExpectedDeliveryDate(expectedDeliveryDate);
-        }
-
-        Timestamp deliveryDate = resultSet.getTimestamp("delivery_date");
-        if (deliveryDate != null) {
-            purchaseOrder.setDeliveryDate(deliveryDate);
-        }
-
-        purchaseOrder.setStatus(resultSet.getString("status"));
-        purchaseOrder.setTotalAmount(resultSet.getDouble("total_amount"));
-        purchaseOrder.setNotes(resultSet.getString("notes"));
-        purchaseOrder.setCreatedAt(resultSet.getTimestamp("created_at"));
-        purchaseOrder.setUpdatedAt(resultSet.getTimestamp("updated_at"));
+        order.setId(resultSet.getInt("id"));
+        order.setSupplierId(resultSet.getInt("supplier_id"));
 
         // Load supplier
-        int supplierId = resultSet.getInt("supplier_id");
-        Supplier supplier = supplierDAO.findById(supplierId);
-        purchaseOrder.setSupplier(supplier);
+        Supplier supplier = supplierDAO.findById(order.getSupplierId());
+        order.setSupplier(supplier);
 
-        return purchaseOrder;
+        Timestamp orderDate = resultSet.getTimestamp("order_date");
+        if (orderDate != null) {
+            order.setOrderDate(new java.util.Date(orderDate.getTime()));
+        }
+
+        Timestamp expectedDate = resultSet.getTimestamp("expected_date");
+        if (expectedDate != null) {
+            order.setExpectedDate(new java.util.Date(expectedDate.getTime()));
+        }
+
+        Timestamp actualDeliveryDate = resultSet.getTimestamp("actual_delivery_date");
+        if (actualDeliveryDate != null) {
+            order.setActualDeliveryDate(new java.util.Date(actualDeliveryDate.getTime()));
+        }
+
+        order.setStatus(resultSet.getString("status"));
+        order.setNotes(resultSet.getString("notes"));
+        order.setTotal(resultSet.getDouble("total"));
+
+        return order;
+    }
+
+    /**
+     * Maps a ResultSet to a PurchaseOrderDetail object.
+     *
+     * @param resultSet The ResultSet to map
+     * @return The mapped PurchaseOrderDetail object
+     * @throws SQLException If an error occurs while accessing the ResultSet
+     */
+    private PurchaseOrderDetail mapResultSetToDetail(ResultSet resultSet) throws SQLException {
+        PurchaseOrderDetail detail = new PurchaseOrderDetail();
+
+        detail.setDetailId(resultSet.getInt("id"));
+        detail.setOrderId(resultSet.getInt("order_id"));
+        detail.setPartId(resultSet.getInt("part_id"));
+        detail.setQuantity(resultSet.getInt("quantity"));
+        detail.setUnitPrice(resultSet.getDouble("unit_price"));
+
+        // Load part if needed
+        try {
+            Part part = partDAO.findById(detail.getPartId());
+            if (part != null) {
+                detail.setPart(part);
+                detail.setPartName(part.getName());
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error loading part for detail", e);
+        }
+
+        return detail;
     }
 
     /**

@@ -1,9 +1,9 @@
 package com.carmotorsproject.utils;
 
-import com.carmotorsproject.parts.modelo.Part;
-import com.carmotorsproject.services.modelo.Service;
-import com.carmotorsproject.customers.modelo.Customer;
-import com.carmotorsproject.campaigns.modelo.Campaign;
+import com.carmotorsproject.parts.model.Part;
+import com.carmotorsproject.services.model.Service;
+import com.carmotorsproject.customers.model.Customer;
+import com.carmotorsproject.campaigns.model.Campaign;
 import com.itextpdf.kernel.colors.ColorConstants;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -16,6 +16,7 @@ import com.itextpdf.layout.properties.UnitValue;
 
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -32,6 +33,9 @@ public class ReportUtil {
     private static final Logger LOGGER = Logger.getLogger(ReportUtil.class.getName());
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy");
 
+    public static void exportTableToPDF(JTable reportTable, File fileToSave, Map<String, Object> parameters) {
+    }
+
     /**
      * Generates an inventory report as a JTable model.
      *
@@ -39,29 +43,7 @@ public class ReportUtil {
      * @return A DefaultTableModel for use in a JTable
      */
     public DefaultTableModel generateInventoryReportModel(List<Part> parts) {
-        LOGGER.log(Level.INFO, "Generating inventory report for {0} parts", parts.size());
-
-        // Define column names
-        String[] columnNames = {"ID", "Nombre", "Tipo", "Cantidad", "Precio", "Proveedor", "Estado"};
-
-        // Create table model
-        DefaultTableModel model = new DefaultTableModel(columnNames, 0);
-
-        // Add rows
-        for (Part part : parts) {
-            Object[] row = {
-                    part.getId(),
-                    part.getName(),
-                    part.getType(),
-                    part.getQuantityInStock(),
-                    part.getPrice(),
-                    part.getSupplier() != null ? part.getSupplier().getName() : "N/A",
-                    part.getStatus()
-            };
-            model.addRow(row);
-        }
-
-        return model;
+        return null;
     }
 
     /**
@@ -86,7 +68,7 @@ public class ReportUtil {
                     service.getMaintenanceType(),
                     service.getVehicle() != null ? service.getVehicle().getLicensePlate() : "N/A",
                     service.getVehicle() != null && service.getVehicle().getCustomer() != null ?
-                            service.getVehicle().getCustomer().getName() : "N/A",
+                            service.getVehicle().getCustomer().getFullName() : "N/A", // Usar getFullName()
                     service.getServiceDate() != null ? DATE_FORMAT.format(service.getServiceDate()) : "N/A",
                     service.getStatus(),
                     service.getTechnician() != null ? service.getTechnician().getName() : "N/A",
@@ -117,7 +99,7 @@ public class ReportUtil {
         for (Customer customer : customers) {
             Object[] row = {
                     customer.getId(),
-                    customer.getName(),
+                    customer.getFullName(),
                     customer.getIdentification(),
                     customer.getPhone(),
                     customer.getEmail(),

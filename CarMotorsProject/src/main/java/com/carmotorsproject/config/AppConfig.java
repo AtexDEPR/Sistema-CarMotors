@@ -13,7 +13,7 @@ public class AppConfig {
     // Database configuration
     private static final String DB_URL = "jdbc:mysql://localhost:3306/carmotors";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "password";
+    private static final String DB_PASSWORD = "kova3452";
 
     // Email configuration
     private static final String EMAIL_HOST = "smtp.gmail.com";

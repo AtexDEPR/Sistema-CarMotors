@@ -1,53 +1,45 @@
 package com.carmotorsproject.campaigns.model;
 
 /**
- * Enumeration of possible campaign statuses
+ * Enum representing the possible statuses of a campaign appointment.
  */
 public enum CampaignStatus {
-    
-    DRAFT("Borrador"),
-    ACTIVE("Activa"),
-    PAUSED("Pausada"),
-    COMPLETED("Completada"),
-    CANCELLED("Cancelada");
-    
-    private final String displayName;
-    
     /**
-     * Constructor
-     * 
-     * @param displayName Display name in Spanish
+     * The appointment is pending confirmation.
      */
-    CampaignStatus(String displayName) {
-        this.displayName = displayName;
-    }
-    
+    PENDING,
+
     /**
-     * Get the display name
-     * 
-     * @return Display name in Spanish
+     * The appointment has been confirmed.
      */
-    public String getDisplayName() {
-        return displayName;
-    }
-    
+    CONFIRMED,
+
     /**
-     * Get CampaignStatus from display name
-     * 
-     * @param displayName Display name in Spanish
-     * @return CampaignStatus enum value
+     * The appointment has been completed.
      */
-    public static CampaignStatus fromDisplayName(String displayName) {
-        for (CampaignStatus status : CampaignStatus.values()) {
-            if (status.getDisplayName().equals(displayName)) {
-                return status;
-            }
+    COMPLETED,
+
+    DRAFT,
+    ACTIVE,
+    SCHEDULED,
+    EXPIRED,
+
+    /**
+     * The appointment has been cancelled.
+     */
+    CANCELLED;
+
+    /**
+     * Converts a string to a CampaignStatus enum value.
+     *
+     * @param status The status string
+     * @return The corresponding CampaignStatus enum value
+     */
+    public static CampaignStatus fromString(String status) {
+        try {
+            return CampaignStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return PENDING; // Default value
         }
-        throw new IllegalArgumentException("No CampaignStatus with display name: " + displayName);
-    }
-    
-    @Override
-    public String toString() {
-        return displayName;
     }
 }

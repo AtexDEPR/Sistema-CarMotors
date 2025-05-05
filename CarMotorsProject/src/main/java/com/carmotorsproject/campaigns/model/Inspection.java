@@ -1,154 +1,273 @@
 package com.carmotorsproject.campaigns.model;
 
 import java.util.Date;
-import java.util.List;
-import java.util.UUID;
 
 /**
- * Model class representing a vehicle inspection
+ * Represents a vehicle inspection.
+ * Maps to the inspections table in the database.
  */
 public class Inspection implements Identifiable {
-    
-    private String id;
-    private String vehicleId;
-    private String customerId;
-    private String technicianName;
+
+    private int inspectionId;
+    private int vehicleId;
+    private int technicianId;
     private Date inspectionDate;
-    private String overallCondition;
+    private InspectionResult result;
     private String notes;
-    private String status;
-    private Date creationDate;
+    private String createdBy;
+    private Date createdDate;
+    private String lastModifiedBy;
     private Date lastModifiedDate;
-    
+
     /**
-     * Default constructor
+     * Default constructor.
      */
     public Inspection() {
-        this.id = UUID.randomUUID().toString();
-        this.creationDate = new Date();
-        this.inspectionDate = new Date();
     }
-    
+
     /**
-     * Constructor with parameters
-     * 
-     * @param vehicleId Vehicle ID
-     * @param customerId Customer ID
-     * @param technicianName Technician name
-     * @param overallCondition Overall condition
+     * Constructor with essential fields.
+     *
+     * @param inspectionId The inspection ID
+     * @param vehicleId The vehicle ID
+     * @param technicianId The technician ID
+     * @param inspectionDate The inspection date
+     * @param result The inspection result
      */
-    public Inspection(String vehicleId, String customerId, String technicianName, String overallCondition) {
-        this();
+    public Inspection(int inspectionId, int vehicleId, int technicianId, Date inspectionDate, InspectionResult result) {
+        this.inspectionId = inspectionId;
         this.vehicleId = vehicleId;
-        this.customerId = customerId;
-        this.technicianName = technicianName;
-        this.overallCondition = overallCondition;
-        this.status = "Completada";
+        this.technicianId = technicianId;
+        this.inspectionDate = inspectionDate;
+        this.result = result;
     }
-    
+
+    /**
+     * Full constructor with all fields.
+     *
+     * @param inspectionId The inspection ID
+     * @param vehicleId The vehicle ID
+     * @param technicianId The technician ID
+     * @param inspectionDate The inspection date
+     * @param result The inspection result
+     * @param notes Additional notes
+     * @param createdBy The user who created the inspection
+     * @param createdDate The date the inspection was created
+     * @param lastModifiedBy The user who last modified the inspection
+     * @param lastModifiedDate The date the inspection was last modified
+     */
+    public Inspection(int inspectionId, int vehicleId, int technicianId, Date inspectionDate,
+                      InspectionResult result, String notes, String createdBy, Date createdDate,
+                      String lastModifiedBy, Date lastModifiedDate) {
+        this.inspectionId = inspectionId;
+        this.vehicleId = vehicleId;
+        this.technicianId = technicianId;
+        this.inspectionDate = inspectionDate;
+        this.result = result;
+        this.notes = notes;
+        this.createdBy = createdBy;
+        this.createdDate = createdDate;
+        this.lastModifiedBy = lastModifiedBy;
+        this.lastModifiedDate = lastModifiedDate;
+    }
+
+    /**
+     * Gets the inspection ID.
+     *
+     * @return The inspection ID
+     */
     @Override
-    public String getId() {
-        return id;
+    public int getId() {
+        return inspectionId;
     }
-    
-    public void setId(String id) {
-        this.id = id;
+
+    /**
+     * Gets the inspection ID.
+     *
+     * @return The inspection ID
+     */
+    public int getInspectionId() {
+        return inspectionId;
     }
-    
-    public String getVehicleId() {
+
+    /**
+     * Sets the inspection ID.
+     *
+     * @param inspectionId The inspection ID
+     */
+    public void setInspectionId(int inspectionId) {
+        this.inspectionId = inspectionId;
+    }
+
+    /**
+     * Gets the vehicle ID.
+     *
+     * @return The vehicle ID
+     */
+    public int getVehicleId() {
         return vehicleId;
     }
-    
-    public void setVehicleId(String vehicleId) {
+
+    /**
+     * Sets the vehicle ID.
+     *
+     * @param vehicleId The vehicle ID
+     */
+    public void setVehicleId(int vehicleId) {
         this.vehicleId = vehicleId;
     }
-    
-    public String getCustomerId() {
-        return customerId;
+
+    /**
+     * Gets the technician ID.
+     *
+     * @return The technician ID
+     */
+    public int getTechnicianId() {
+        return technicianId;
     }
-    
-    public void setCustomerId(String customerId) {
-        this.customerId = customerId;
+
+    /**
+     * Sets the technician ID.
+     *
+     * @param technicianId The technician ID
+     */
+    public void setTechnicianId(int technicianId) {
+        this.technicianId = technicianId;
     }
-    
-    public String getTechnicianName() {
-        return technicianName;
-    }
-    
-    public void setTechnicianName(String technicianName) {
-        this.technicianName = technicianName;
-    }
-    
+
+    /**
+     * Gets the inspection date.
+     *
+     * @return The inspection date
+     */
     public Date getInspectionDate() {
         return inspectionDate;
     }
-    
+
+    /**
+     * Sets the inspection date.
+     *
+     * @param inspectionDate The inspection date
+     */
     public void setInspectionDate(Date inspectionDate) {
         this.inspectionDate = inspectionDate;
     }
-    
-    public String getOverallCondition() {
-        return overallCondition;
+
+    /**
+     * Gets the inspection result.
+     *
+     * @return The inspection result
+     */
+    public InspectionResult getResult() {
+        return result;
     }
-    
-    public void setOverallCondition(String overallCondition) {
-        this.overallCondition = overallCondition;
+
+    /**
+     * Sets the inspection result.
+     *
+     * @param result The inspection result
+     */
+    public void setResult(InspectionResult result) {
+        this.result = result;
     }
-    
+
+    /**
+     * Gets the additional notes.
+     *
+     * @return The additional notes
+     */
     public String getNotes() {
         return notes;
     }
-    
+
+    /**
+     * Sets the additional notes.
+     *
+     * @param notes The additional notes
+     */
     public void setNotes(String notes) {
         this.notes = notes;
     }
-    
-    public String getStatus() {
-        return status;
+
+    /**
+     * Gets the user who created the inspection.
+     *
+     * @return The creator
+     */
+    public String getCreatedBy() {
+        return createdBy;
     }
-    
-    public void setStatus(String status) {
-        this.status = status;
+
+    /**
+     * Sets the user who created the inspection.
+     *
+     * @param createdBy The creator
+     */
+    public void setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
     }
-    
-    public Date getCreationDate() {
-        return creationDate;
+
+    /**
+     * Gets the date the inspection was created.
+     *
+     * @return The creation date
+     */
+    public Date getCreatedDate() {
+        return createdDate;
     }
-    
-    public void setCreationDate(Date creationDate) {
-        this.creationDate = creationDate;
+
+    /**
+     * Sets the date the inspection was created.
+     *
+     * @param createdDate The creation date
+     */
+    public void setCreatedDate(Date createdDate) {
+        this.createdDate = createdDate;
     }
-    
+
+    /**
+     * Gets the user who last modified the inspection.
+     *
+     * @return The last modifier
+     */
+    public String getLastModifiedBy() {
+        return lastModifiedBy;
+    }
+
+    /**
+     * Sets the user who last modified the inspection.
+     *
+     * @param lastModifiedBy The last modifier
+     */
+    public void setLastModifiedBy(String lastModifiedBy) {
+        this.lastModifiedBy = lastModifiedBy;
+    }
+
+    /**
+     * Gets the date the inspection was last modified.
+     *
+     * @return The last modification date
+     */
     public Date getLastModifiedDate() {
         return lastModifiedDate;
     }
-    
+
+    /**
+     * Sets the date the inspection was last modified.
+     *
+     * @param lastModifiedDate The last modification date
+     */
     public void setLastModifiedDate(Date lastModifiedDate) {
         this.lastModifiedDate = lastModifiedDate;
     }
-    
+
     /**
-     * Calculate the age of the inspection in days
-     * 
-     * @return age in days
+     * Returns a string representation of the inspection.
+     *
+     * @return A string representation
      */
-    public int getAgeInDays() {
-        Date now = new Date();
-        long diff = now.getTime() - inspectionDate.getTime();
-        return (int) (diff / (1000 * 60 * 60 * 24));
-    }
-    
-    /**
-     * Check if the inspection is recent (less than 30 days old)
-     * 
-     * @return true if the inspection is recent
-     */
-    public boolean isRecent() {
-        return getAgeInDays() < 30;
-    }
-    
     @Override
     public String toString() {
-        return "Inspección: " + inspectionDate + " - Condición: " + overallCondition;
+        return "Inspection #" + inspectionId + " (" + result + ")";
     }
 }

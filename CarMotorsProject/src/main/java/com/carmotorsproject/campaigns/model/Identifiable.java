@@ -1,14 +1,15 @@
 package com.carmotorsproject.campaigns.model;
 
 /**
- * Interface for objects that have an identifier
+ * Interface for objects that have a unique identifier.
+ * Used by campaign-related models.
  */
 public interface Identifiable {
-    
+
     /**
-     * Get the object's unique identifier
-     * 
-     * @return Unique identifier
+     * Gets the unique identifier of the object.
+     *
+     * @return The unique identifier
      */
-    String getId();
+    int getId();
 }

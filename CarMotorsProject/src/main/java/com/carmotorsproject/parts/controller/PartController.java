@@ -5,231 +5,294 @@
 package com.carmotorsproject.parts.controller;
 
 import com.carmotorsproject.parts.model.PartDAO;
+import com.carmotorsproject.parts.model.DAOFactory;
 import com.carmotorsproject.parts.model.Part;
-import com.carmotorsproject.parts.model.Supplier;
+import com.carmotorsproject.parts.model.PartType;
+import com.carmotorsproject.parts.views.PartView;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Controller for Part entities.
- * Handles business logic for parts.
+ * Controller class that mediates between PartView and PartDAO.
+ * Handles user actions from the view and updates the model and view accordingly.
  */
 public class PartController {
+
     private static final Logger LOGGER = Logger.getLogger(PartController.class.getName());
-    private final PartDAO partDAO;
+
+    private final PartView view;
+    private final PartDAO dao;
 
     /**
-     * Constructor.
-     */
-    public PartController() {
-        this.partDAO = new PartDAO();
-    }
-
-    /**
-     * Creates a new part.
+     * Constructor that initializes the controller with a view.
      *
-     * @param part The part to create
-     * @return The created part with its generated ID, or null if the creation failed
+     * @param view The part view
      */
-    public Part createPart(Part part) {
-        LOGGER.log(Level.INFO, "Creating part: {0}", part.getName());
-        return partDAO.insert(part);
+    public PartController(PartView view) {
+        this.view = view;
+        this.dao = DAOFactory.getPartDAO();
+        LOGGER.log(Level.INFO, "PartController initialized");
     }
 
     /**
-     * Updates an existing part.
-     *
-     * @param part The part to update
-     * @return True if the update was successful, false otherwise
+     * Loads all parts from the database and updates the view.
      */
-    public boolean updatePart(Part part) {
-        LOGGER.log(Level.INFO, "Updating part with ID: {0}", part.getId());
-        return partDAO.update(part);
+    public void loadAllParts() {
+        List<Part> parts = dao.findAll();
+        view.updateTable(parts);
+        LOGGER.log(Level.INFO, "Loaded {0} parts", parts.size());
     }
 
     /**
-     * Deletes a part.
-     *
-     * @param id The ID of the part to delete
-     * @return True if the deletion was successful, false otherwise
-     */
-    public boolean deletePart(int id) {
-        LOGGER.log(Level.INFO, "Deleting part with ID: {0}", id);
-        return partDAO.delete(id);
-    }
-
-    /**
-     * Gets a part by its ID.
-     *
-     * @param id The ID of the part to get
-     * @return The found part, or null if no part was found
-     */
-    public Part getPartById(int id) {
-        LOGGER.log(Level.INFO, "Getting part with ID: {0}", id);
-        return partDAO.findById(id);
-    }
-
-    /**
-     * Gets a part by its reference code.
-     *
-     * @param reference The reference code of the part to get
-     * @return The found part, or null if no part was found
-     */
-    public Part getPartByReference(String reference) {
-        LOGGER.log(Level.INFO, "Getting part with reference: {0}", reference);
-        return partDAO.findByReference(reference);
-    }
-
-    /**
-     * Gets all parts.
-     *
-     * @return A list of all parts
-     */
-    public List<Part> getAllParts() {
-        LOGGER.info("Getting all parts");
-        return partDAO.findAll();
-    }
-
-    /**
-     * Gets parts by supplier.
-     *
-     * @param supplier The supplier
-     * @return A list of parts supplied by the specified supplier
-     */
-    public List<Part> getPartsBySupplier(Supplier supplier) {
-        LOGGER.log(Level.INFO, "Getting parts by supplier ID: {0}", supplier.getId());
-        return partDAO.findBySupplier(supplier.getId());
-    }
-
-    /**
-     * Gets parts by type.
-     *
-     * @param type The type of parts to get
-     * @return A list of parts of the specified type
-     */
-    public List<Part> getPartsByType(String type) {
-        LOGGER.log(Level.INFO, "Getting parts by type: {0}", type);
-        return partDAO.findByType(type);
-    }
-
-    /**
-     * Gets parts that are below their minimum stock level.
-     *
-     * @return A list of parts that are below their minimum stock level
-     */
-    public List<Part> getPartsBelowMinimumStock() {
-        LOGGER.info("Getting parts below minimum stock");
-        return partDAO.findBelowMinimumStock();
-    }
-
-    /**
-     * Adds stock to a part.
+     * Loads a part's description by ID.
      *
      * @param partId The ID of the part
-     * @param quantity The quantity to add
-     * @return True if the stock was successfully added, false otherwise
      */
-    public boolean addStock(int partId, int quantity) {
-        LOGGER.log(Level.INFO, "Adding {0} units to part with ID: {1}", new Object[]{quantity, partId});
-
-        if (quantity <= 0) {
-            LOGGER.log(Level.WARNING, "Cannot add non-positive quantity: {0}", quantity);
-            return false;
+    public void loadPartDescription(int partId) {
+        Part part = dao.findById(partId);
+        if (part != null) {
+            view.setDescription(part.getDescription());
         }
-
-        Part part = partDAO.findById(partId);
-
-        if (part == null) {
-            LOGGER.log(Level.WARNING, "Part not found with ID: {0}", partId);
-            return false;
-        }
-
-        part.addStock(quantity);
-        return partDAO.update(part);
     }
 
     /**
-     * Removes stock from a part.
-     *
-     * @param partId The ID of the part
-     * @param quantity The quantity to remove
-     * @return True if the stock was successfully removed, false otherwise
+     * Adds a new part to the database.
      */
-    public boolean removeStock(int partId, int quantity) {
-        LOGGER.log(Level.INFO, "Removing {0} units from part with ID: {1}", new Object[]{quantity, partId});
-
-        if (quantity <= 0) {
-            LOGGER.log(Level.WARNING, "Cannot remove non-positive quantity: {0}", quantity);
-            return false;
-        }
-
-        Part part = partDAO.findById(partId);
-
+    public void addPart() {
+        Part part = view.getPartFromForm();
         if (part == null) {
-            LOGGER.log(Level.WARNING, "Part not found with ID: {0}", partId);
-            return false;
+            return; // Form validation failed
         }
 
-        if (part.getQuantityInStock() < quantity) {
-            LOGGER.log(Level.WARNING, "Not enough stock for part with ID: {0}", partId);
-            return false;
-        }
+        try {
+            // Validate part data
+            if (!validatePart(part)) {
+                return;
+            }
 
-        part.removeStock(quantity);
-        return partDAO.update(part);
+            // Save part to database
+            Part savedPart = dao.save(part);
+
+            // Update view
+            view.clearForm();
+            loadAllParts();
+            view.showInfo("Part added successfully: " + savedPart.getName());
+            LOGGER.log(Level.INFO, "Part added: {0}", savedPart.getName());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error adding part", e);
+            view.showError("Error adding part: " + e.getMessage());
+        }
     }
 
     /**
-     * Updates the price of a part.
-     *
-     * @param partId The ID of the part
-     * @param newPrice The new price
-     * @return True if the price was successfully updated, false otherwise
+     * Updates an existing part in the database.
      */
-    public boolean updatePrice(int partId, double newPrice) {
-        LOGGER.log(Level.INFO, "Updating price to {0} for part with ID: {1}", new Object[]{newPrice, partId});
-
-        if (newPrice < 0) {
-            LOGGER.log(Level.WARNING, "Cannot set negative price: {0}", newPrice);
-            return false;
-        }
-
-        Part part = partDAO.findById(partId);
-
+    public void updatePart() {
+        Part part = view.getPartFromForm();
         if (part == null) {
-            LOGGER.log(Level.WARNING, "Part not found with ID: {0}", partId);
-            return false;
+            return; // Form validation failed
         }
 
-        part.setPrice(newPrice);
-        return partDAO.update(part);
+        // Check if a part is selected
+        if (part.getPartId() == 0) {
+            view.showError("Please select a part to update.");
+            return;
+        }
+
+        try {
+            // Validate part data
+            if (!validatePart(part)) {
+                return;
+            }
+
+            // Update part in database
+            Part updatedPart = dao.update(part);
+
+            // Update view
+            view.clearForm();
+            loadAllParts();
+            view.showInfo("Part updated successfully: " + updatedPart.getName());
+            LOGGER.log(Level.INFO, "Part updated: {0}", updatedPart.getName());
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error updating part", e);
+            view.showError("Error updating part: " + e.getMessage());
+        }
     }
 
     /**
-     * Updates the minimum stock level of a part.
-     *
-     * @param partId The ID of the part
-     * @param minimumStock The new minimum stock level
-     * @return True if the minimum stock level was successfully updated, false otherwise
+     * Deletes a part from the database.
      */
-    public boolean updateMinimumStock(int partId, int minimumStock) {
-        LOGGER.log(Level.INFO, "Updating minimum stock to {0} for part with ID: {1}", new Object[]{minimumStock, partId});
+    public void deletePart() {
+        Part part = view.getPartFromForm();
+        if (part == null || part.getPartId() == 0) {
+            view.showError("Please select a part to delete.");
+            return;
+        }
 
-        if (minimumStock < 0) {
-            LOGGER.log(Level.WARNING, "Cannot set negative minimum stock: {0}", minimumStock);
+        // Confirm deletion
+        if (!view.showConfirm("Are you sure you want to delete this part: " + part.getName() + "?")) {
+            return;
+        }
+
+        // Delete part from database
+        boolean deleted = dao.delete(part.getPartId());
+
+        if (deleted) {
+            // Update view
+            view.clearForm();
+            loadAllParts();
+            view.showInfo("Part deleted successfully.");
+            LOGGER.log(Level.INFO, "Part deleted: ID {0}", part.getPartId());
+        } else {
+            view.showError("Part could not be deleted. It may be referenced by other records.");
+        }
+    }
+
+    /**
+     * Searches for parts based on search criteria.
+     *
+     * @param searchText The search text
+     * @param searchType The type of search (Name, Part Number, Type, Supplier ID)
+     */
+    public void searchParts(String searchText, String searchType) {
+        if (searchText.isEmpty()) {
+            view.showError("Please enter search text.");
+            return;
+        }
+
+        try {
+            List<Part> results = new ArrayList<>();
+
+            switch (searchType) {
+                case "Name":
+                    results = dao.findByName(searchText);
+                    break;
+                case "Part Number":
+                    // Find by exact part number
+                    Part part = dao.findById(0); // Placeholder to avoid null
+                    for (Part p : dao.findAll()) {
+                        if (p.getPartNumber().equalsIgnoreCase(searchText)) {
+                            part = p;
+                            results.add(p);
+                            break;
+                        }
+                    }
+                    break;
+                case "Type":
+                    try {
+                        PartType type = PartType.valueOf(searchText.toUpperCase());
+                        results = dao.findByType(type);
+                    } catch (IllegalArgumentException e) {
+                        view.showError("Invalid part type. Valid types are: " +
+                                String.join(", ", getPartTypeNames()));
+                        return;
+                    }
+                    break;
+                case "Supplier ID":
+                    try {
+                        int supplierId = Integer.parseInt(searchText);
+                        results = dao.findBySupplier(supplierId);
+                    } catch (NumberFormatException e) {
+                        view.showError("Please enter a valid supplier ID (number).");
+                        return;
+                    }
+                    break;
+                default:
+                    view.showError("Invalid search type.");
+                    return;
+            }
+
+            // Update view with search results
+            view.updateTable(results);
+            LOGGER.log(Level.INFO, "Search completed. Found {0} results.", results.size());
+
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Error searching parts", e);
+            view.showError("Error searching parts: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Finds parts with stock levels below their minimum stock level.
+     */
+    public void findLowStock() {
+        List<Part> lowStockParts = new ArrayList<>();
+
+        // Get all parts and filter those with stock below minimum
+        for (Part part : dao.findAll()) {
+            if (part.getStockQuantity() < part.getMinStockLevel()) {
+                lowStockParts.add(part);
+            }
+        }
+
+        // Update view with low stock parts
+        view.updateTable(lowStockParts);
+        LOGGER.log(Level.INFO, "Found {0} parts with low stock", lowStockParts.size());
+
+    }
+
+    /**
+     * Validates part data.
+     *
+     * @param part The part to validate
+     * @return true if the part is valid, false otherwise
+     */
+    private boolean validatePart(Part part) {
+        // Validate name
+        if (part.getName() == null || part.getName().trim().isEmpty()) {
+            view.showError("Part name is required.");
             return false;
         }
 
-        Part part = partDAO.findById(partId);
-
-        if (part == null) {
-            LOGGER.log(Level.WARNING, "Part not found with ID: {0}", partId);
+        // Validate part number
+        if (part.getPartNumber() == null || part.getPartNumber().trim().isEmpty()) {
+            view.showError("Part number is required.");
             return false;
         }
 
-        part.setMinimumStock(minimumStock);
-        return partDAO.update(part);
+        // Validate prices
+        if (part.getPurchasePrice() < 0) {
+            view.showError("Purchase price cannot be negative.");
+            return false;
+        }
+
+        if (part.getSellingPrice() < 0) {
+            view.showError("Selling price cannot be negative.");
+            return false;
+        }
+
+        // Validate stock quantity
+        if (part.getStockQuantity() < 0) {
+            view.showError("Stock quantity cannot be negative.");
+            return false;
+        }
+
+        // Validate min stock level
+        if (part.getMinStockLevel() < 0) {
+            view.showError("Minimum stock level cannot be negative.");
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Gets the names of all part types.
+     *
+     * @return An array of part type names
+     */
+    private String[] getPartTypeNames() {
+        PartType[] types = PartType.values();
+        String[] names = new String[types.length];
+
+        for (int i = 0; i < types.length; i++) {
+            names[i] = types[i].name();
+        }
+
+        return names;
     }
 }

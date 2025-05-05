@@ -1,136 +1,104 @@
 package com.carmotorsproject.campaigns.model;
 
-import com.carmotorsproject.customers.model.Customer;
-import com.carmotorsproject.services.model.Vehicle;
 
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Interface for Inspection Data Access Object
+ * Interface for inspection data access operations.
  */
 public interface InspectionDAOInterface {
-    
+
     /**
-     * Save a new inspection
-     * 
-     * @param inspection Inspection to save
-     * @param inspectionItems List of inspection items
-     * @return true if successful
+     * Saves a new inspection.
+     *
+     * @param inspection The inspection to save
+     * @return The saved inspection with its ID
+     * @throws SQLException If a database error occurs
      */
-    boolean save(Inspection inspection, List<InspectionResult> inspectionItems);
-    
+    Inspection save(Inspection inspection) throws SQLException;
+
     /**
-     * Update an existing inspection
-     * 
-     * @param inspection Inspection to update
-     * @return true if successful
+     * Updates an existing inspection.
+     *
+     * @param inspection The inspection to update
+     * @return The updated inspection
+     * @throws SQLException If a database error occurs
      */
-    boolean update(Inspection inspection);
-    
+    Inspection update(Inspection inspection) throws SQLException;
+
     /**
-     * Delete an inspection
-     * 
-     * @param inspectionId Inspection ID
-     * @return true if successful
+     * Deletes an inspection by ID.
+     *
+     * @param id The ID of the inspection to delete
+     * @return true if the inspection was deleted, false otherwise
+     * @throws SQLException If a database error occurs
      */
-    boolean delete(String inspectionId);
-    
+    boolean delete(int id) throws SQLException;
+
     /**
-     * Get an inspection by ID
-     * 
-     * @param inspectionId Inspection ID
-     * @return Inspection object or null if not found
+     * Finds an inspection by ID.
+     *
+     * @param id The ID of the inspection to find
+     * @return The inspection, or null if not found
+     * @throws SQLException If a database error occurs
      */
-    Inspection getById(String inspectionId);
-    
+    Inspection findById(int id) throws SQLException;
+
     /**
-     * Get all inspections
-     * 
-     * @return List of all inspections
+     * Finds all inspections.
+     *
+     * @return A list of all inspections
+     * @throws SQLException If a database error occurs
      */
-    List<Inspection> getAll();
-    
+    List<Inspection> findAll() throws SQLException;
+
     /**
-     * Get inspections by vehicle
-     * 
-     * @param vehicleId Vehicle ID
-     * @return List of inspections for the specified vehicle
+     * Finds inspections by vehicle ID.
+     *
+     * @param vehicleId The vehicle ID to search for
+     * @return A list of inspections for the vehicle
+     * @throws SQLException If a database error occurs
      */
-    List<Inspection> getByVehicle(String vehicleId);
-    
+    List<Inspection> findByVehicle(int vehicleId) throws SQLException;
+
     /**
-     * Get inspections by customer
-     * 
-     * @param customerId Customer ID
-     * @return List of inspections for the specified customer
+     * Finds inspections by technician ID.
+     *
+     * @param technicianId The technician ID to search for
+     * @return A list of inspections performed by the technician
+     * @throws SQLException If a database error occurs
      */
-    List<Inspection> getByCustomer(String customerId);
-    
+    List<Inspection> findByTechnician(int technicianId) throws SQLException;
+
     /**
-     * Get inspections by date range
-     * 
-     * @param startDate Start date
-     * @param endDate End date
-     * @return List of inspections within the date range
+     * Finds inspections by date range.
+     *
+     * @param startDate The start date
+     * @param endDate The end date
+     * @return A list of inspections within the date range
+     * @throws SQLException If a database error occurs
      */
-    List<Inspection> getByDateRange(Date startDate, Date endDate);
-    
+    List<Inspection> findByDateRange(Date startDate, Date endDate) throws SQLException;
+
     /**
-     * Get inspections by overall condition
-     * 
-     * @param condition Overall condition
-     * @return List of inspections with the specified condition
+     * Finds inspections by result.
+     *
+     * @param result The result to search for
+     * @return A list of inspections with the result
+     * @throws SQLException If a database error occurs
      */
-    List<Inspection> getByCondition(String condition);
-    
+    List<Inspection> findByResult(InspectionResult result) throws SQLException;
+
     /**
-     * Get inspection items for an inspection
-     * 
-     * @param inspectionId Inspection ID
-     * @return List of inspection items
+     * Updates the result of an inspection.
+     *
+     * @param id The ID of the inspection
+     * @param result The new result
+     * @param notes Additional notes about the result
+     * @return true if the result was updated, false otherwise
+     * @throws SQLException If a database error occurs
      */
-    List<InspectionResult> getInspectionItems(String inspectionId);
-    
-    /**
-     * Get all inspection conditions
-     * 
-     * @return List of inspection conditions
-     */
-    List<String> getAllConditions();
-    
-    /**
-     * Get all inspection item categories
-     * 
-     * @return List of inspection item categories
-     */
-    List<String> getAllItemCategories();
-    
-    /**
-     * Get default inspection items by vehicle type
-     * 
-     * @param vehicleType Vehicle type
-     * @return List of default inspection items
-     */
-    List<InspectionResult> getDefaultItems(String vehicleType);
-    
-    /**
-     * Generate inspection report
-     * 
-     * @param inspection Inspection
-     * @param inspectionItems Inspection items
-     * @param vehicle Vehicle
-     * @param customer Customer
-     * @return true if successful
-     */
-    boolean generateReport(Inspection inspection, List<InspectionResult> inspectionItems, 
-                          Vehicle vehicle, Customer customer);
-    
-    /**
-     * Get inspection statistics
-     * 
-     * @return Map with inspection statistics
-     */
-    Map<String, Object> getStatistics();
+    boolean updateResult(int id, InspectionResult result, String notes) throws SQLException;
 }

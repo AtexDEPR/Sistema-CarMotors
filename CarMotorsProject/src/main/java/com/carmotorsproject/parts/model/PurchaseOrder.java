@@ -14,82 +14,77 @@ import java.util.List;
  */
 public class PurchaseOrder implements Identifiable {
     private int id;
-    private String orderNumber;
-    private Date orderDate;
-    private Date expectedDeliveryDate;
-    private Date deliveryDate;
-    private String status;
-    private double totalAmount;
-    private String notes;
+    private int supplierId;
     private Supplier supplier;
-    private List<PurchaseOrderItem> items;
-    private Date createdAt;
-    private Date updatedAt;
+    private Date orderDate;
+    private Date expectedDate;
+    private Date actualDeliveryDate;
+    private String status;
+    private String notes;
+    private double total;
+    private List<PurchaseOrderDetail> details;
 
     /**
      * Default constructor.
      */
     public PurchaseOrder() {
         this.orderDate = new Date();
-        this.status = "PENDING";
-        this.items = new ArrayList<>();
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
+        this.status = "PENDIENTE";
+        this.details = new ArrayList<>();
     }
 
     /**
      * Constructor with essential fields.
      *
-     * @param id The purchase order ID
-     * @param orderNumber The purchase order number
-     * @param orderDate The order date
+     * @param id The order ID
      * @param supplier The supplier
+     * @param orderDate The order date
+     * @param status The order status
      */
-    public PurchaseOrder(int id, String orderNumber, Date orderDate, Supplier supplier) {
+    public PurchaseOrder(int id, Supplier supplier, Date orderDate, String status) {
         this.id = id;
-        this.orderNumber = orderNumber;
-        this.orderDate = orderDate;
         this.supplier = supplier;
-        this.status = "PENDING";
-        this.items = new ArrayList<>();
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
+        if (supplier != null) {
+            this.supplierId = supplier.getId();
+        }
+        this.orderDate = orderDate;
+        this.status = status;
+        this.details = new ArrayList<>();
     }
 
     /**
      * Full constructor with all fields.
      *
-     * @param id The purchase order ID
-     * @param orderNumber The purchase order number
-     * @param orderDate The order date
-     * @param expectedDeliveryDate The expected delivery date
-     * @param deliveryDate The actual delivery date
-     * @param status The purchase order status
-     * @param totalAmount The total amount
-     * @param notes Additional notes
+     * @param id The order ID
      * @param supplier The supplier
+     * @param orderDate The order date
+     * @param expectedDate The expected delivery date
+     * @param actualDeliveryDate The actual delivery date
+     * @param status The order status
+     * @param notes Order notes
+     * @param details Order details
      */
-    public PurchaseOrder(int id, String orderNumber, Date orderDate, Date expectedDeliveryDate,
-                         Date deliveryDate, String status, double totalAmount, String notes,
-                         Supplier supplier) {
+    public PurchaseOrder(int id, Supplier supplier, Date orderDate, Date expectedDate,
+                         Date actualDeliveryDate, String status, String notes,
+                         List<PurchaseOrderDetail> details) {
         this.id = id;
-        this.orderNumber = orderNumber;
-        this.orderDate = orderDate;
-        this.expectedDeliveryDate = expectedDeliveryDate;
-        this.deliveryDate = deliveryDate;
-        this.status = status;
-        this.totalAmount = totalAmount;
-        this.notes = notes;
         this.supplier = supplier;
-        this.items = new ArrayList<>();
-        this.createdAt = new Date();
-        this.updatedAt = new Date();
+        if (supplier != null) {
+            this.supplierId = supplier.getId();
+        }
+        this.orderDate = orderDate;
+        this.expectedDate = expectedDate;
+        this.actualDeliveryDate = actualDeliveryDate;
+        this.status = status;
+        this.notes = notes;
+        this.details = details != null ? details : new ArrayList<>();
+        calculateTotal();
     }
 
     /**
-     * Gets the purchase order ID.
+     * Gets the order ID.
      *
-     * @return The purchase order ID
+     * @return The order ID
      */
     @Override
     public int getId() {
@@ -97,145 +92,30 @@ public class PurchaseOrder implements Identifiable {
     }
 
     /**
-     * Sets the purchase order ID.
+     * Sets the order ID.
      *
-     * @param id The purchase order ID
+     * @param id The order ID
      */
     public void setId(int id) {
         this.id = id;
     }
 
     /**
-     * Gets the purchase order number.
+     * Gets the supplier ID.
      *
-     * @return The purchase order number
+     * @return The supplier ID
      */
-    public String getOrderNumber() {
-        return orderNumber;
+    public int getSupplierId() {
+        return supplierId;
     }
 
     /**
-     * Sets the purchase order number.
+     * Sets the supplier ID.
      *
-     * @param orderNumber The purchase order number
+     * @param supplierId The supplier ID
      */
-    public void setOrderNumber(String orderNumber) {
-        this.orderNumber = orderNumber;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets the order date.
-     *
-     * @return The order date
-     */
-    public Date getOrderDate() {
-        return orderDate;
-    }
-
-    /**
-     * Sets the order date.
-     *
-     * @param orderDate The order date
-     */
-    public void setOrderDate(Date orderDate) {
-        this.orderDate = orderDate;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets the expected delivery date.
-     *
-     * @return The expected delivery date
-     */
-    public Date getExpectedDeliveryDate() {
-        return expectedDeliveryDate;
-    }
-
-    /**
-     * Sets the expected delivery date.
-     *
-     * @param expectedDeliveryDate The expected delivery date
-     */
-    public void setExpectedDeliveryDate(Date expectedDeliveryDate) {
-        this.expectedDeliveryDate = expectedDeliveryDate;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets the actual delivery date.
-     *
-     * @return The actual delivery date
-     */
-    public Date getDeliveryDate() {
-        return deliveryDate;
-    }
-
-    /**
-     * Sets the actual delivery date.
-     *
-     * @param deliveryDate The actual delivery date
-     */
-    public void setDeliveryDate(Date deliveryDate) {
-        this.deliveryDate = deliveryDate;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets the purchase order status.
-     *
-     * @return The purchase order status
-     */
-    public String getStatus() {
-        return status;
-    }
-
-    /**
-     * Sets the purchase order status.
-     *
-     * @param status The purchase order status
-     */
-    public void setStatus(String status) {
-        this.status = status;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets the total amount.
-     *
-     * @return The total amount
-     */
-    public double getTotalAmount() {
-        return totalAmount;
-    }
-
-    /**
-     * Sets the total amount.
-     *
-     * @param totalAmount The total amount
-     */
-    public void setTotalAmount(double totalAmount) {
-        this.totalAmount = totalAmount;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets additional notes.
-     *
-     * @return Additional notes
-     */
-    public String getNotes() {
-        return notes;
-    }
-
-    /**
-     * Sets additional notes.
-     *
-     * @param notes Additional notes
-     */
-    public void setNotes(String notes) {
-        this.notes = notes;
-        this.updatedAt = new Date();
+    public void setSupplierId(int supplierId) {
+        this.supplierId = supplierId;
     }
 
     /**
@@ -254,142 +134,176 @@ public class PurchaseOrder implements Identifiable {
      */
     public void setSupplier(Supplier supplier) {
         this.supplier = supplier;
-        this.updatedAt = new Date();
-    }
-
-    /**
-     * Gets the list of purchase order items.
-     *
-     * @return The list of purchase order items
-     */
-    public List<PurchaseOrderItem> getItems() {
-        return items;
-    }
-
-    /**
-     * Sets the list of purchase order items.
-     *
-     * @param items The list of purchase order items
-     */
-    public void setItems(List<PurchaseOrderItem> items) {
-        this.items = items;
-        this.updatedAt = new Date();
-        calculateTotalAmount();
-    }
-
-    /**
-     * Gets the creation date.
-     *
-     * @return The creation date
-     */
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-
-    /**
-     * Sets the creation date.
-     *
-     * @param createdAt The creation date
-     */
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    /**
-     * Gets the last update date.
-     *
-     * @return The last update date
-     */
-    public Date getUpdatedAt() {
-        return updatedAt;
-    }
-
-    /**
-     * Sets the last update date.
-     *
-     * @param updatedAt The last update date
-     */
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    /**
-     * Adds an item to the purchase order.
-     *
-     * @param item The item to add
-     */
-    public void addItem(PurchaseOrderItem item) {
-        if (item != null) {
-            items.add(item);
-            calculateTotalAmount();
-            this.updatedAt = new Date();
+        if (supplier != null) {
+            this.supplierId = supplier.getId();
         }
     }
 
     /**
-     * Removes an item from the purchase order.
+     * Gets the order date.
      *
-     * @param item The item to remove
-     * @return True if the item was successfully removed, false otherwise
+     * @return The order date
      */
-    public boolean removeItem(PurchaseOrderItem item) {
-        if (item != null && items.contains(item)) {
-            items.remove(item);
-            calculateTotalAmount();
-            this.updatedAt = new Date();
+    public Date getOrderDate() {
+        return orderDate;
+    }
+
+    /**
+     * Sets the order date.
+     *
+     * @param orderDate The order date
+     */
+    public void setOrderDate(Date orderDate) {
+        this.orderDate = orderDate;
+    }
+
+    /**
+     * Gets the expected delivery date.
+     *
+     * @return The expected delivery date
+     */
+    public Date getExpectedDate() {
+        return expectedDate;
+    }
+
+    /**
+     * Sets the expected delivery date.
+     *
+     * @param expectedDate The expected delivery date
+     */
+    public void setExpectedDate(Date expectedDate) {
+        this.expectedDate = expectedDate;
+    }
+
+    /**
+     * Gets the actual delivery date.
+     *
+     * @return The actual delivery date
+     */
+    public Date getActualDeliveryDate() {
+        return actualDeliveryDate;
+    }
+
+    /**
+     * Sets the actual delivery date.
+     *
+     * @param actualDeliveryDate The actual delivery date
+     */
+    public void setActualDeliveryDate(Date actualDeliveryDate) {
+        this.actualDeliveryDate = actualDeliveryDate;
+    }
+
+    /**
+     * Gets the order status.
+     *
+     * @return The order status
+     */
+    public String getStatus() {
+        return status;
+    }
+
+    /**
+     * Sets the order status.
+     *
+     * @param status The order status
+     */
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    /**
+     * Gets the order notes.
+     *
+     * @return The order notes
+     */
+    public String getNotes() {
+        return notes;
+    }
+
+    /**
+     * Sets the order notes.
+     *
+     * @param notes The order notes
+     */
+    public void setNotes(String notes) {
+        this.notes = notes;
+    }
+
+    /**
+     * Gets the order total.
+     *
+     * @return The order total
+     */
+    public double getTotal() {
+        return total;
+    }
+
+    /**
+     * Sets the order total.
+     *
+     * @param total The order total
+     */
+    public void setTotal(double total) {
+        this.total = total;
+    }
+
+    /**
+     * Gets the order details.
+     *
+     * @return The order details
+     */
+    public List<PurchaseOrderDetail> getDetails() {
+        return details;
+    }
+
+    /**
+     * Sets the order details.
+     *
+     * @param details The order details
+     */
+    public void setDetails(List<PurchaseOrderDetail> details) {
+        this.details = details != null ? details : new ArrayList<>();
+        calculateTotal();
+    }
+
+    /**
+     * Adds a detail to the order.
+     *
+     * @param detail The detail to add
+     */
+    public void addDetail(PurchaseOrderDetail detail) {
+        if (details == null) {
+            details = new ArrayList<>();
+        }
+        details.add(detail);
+        detail.setPurchaseOrder(this);
+        calculateTotal();
+    }
+
+    /**
+     * Removes a detail from the order.
+     *
+     * @param detail The detail to remove
+     * @return True if the detail was removed, false otherwise
+     */
+    public boolean removeDetail(PurchaseOrderDetail detail) {
+        if (details != null && details.remove(detail)) {
+            calculateTotal();
             return true;
         }
         return false;
     }
 
     /**
-     * Calculates the total amount of the purchase order.
+     * Calculates the order total.
      */
-    public void calculateTotalAmount() {
-        totalAmount = 0;
-        for (PurchaseOrderItem item : items) {
-            totalAmount += item.getSubtotal();
-        }
-    }
-
-    /**
-     * Marks the purchase order as received.
-     * Updates the delivery date and status, and adds the received parts to inventory.
-     *
-     * @param deliveryDate The delivery date
-     * @return True if the purchase order was successfully marked as received, false otherwise
-     */
-    public boolean markAsReceived(Date deliveryDate) {
-        if (!"RECEIVED".equals(status)) {
-            this.deliveryDate = deliveryDate;
-            this.status = "RECEIVED";
-            this.updatedAt = new Date();
-
-            // Add received parts to inventory
-            for (PurchaseOrderItem item : items) {
-                Part part = item.getPart();
-                if (part != null) {
-                    part.addStock(item.getQuantity());
-                }
+    private void calculateTotal() {
+        total = 0.0;
+        if (details != null) {
+            for (PurchaseOrderDetail detail : details) {
+                total += detail.getQuantity() * detail.getUnitPrice();
             }
-
-            return true;
         }
-        return false;
-    }
-
-    /**
-     * Cancels the purchase order.
-     *
-     * @return True if the purchase order was successfully cancelled, false otherwise
-     */
-    public boolean cancel() {
-        if ("PENDING".equals(status)) {
-            this.status = "CANCELLED";
-            this.updatedAt = new Date();
-            return true;
-        }
-        return false;
     }
 
     /**
@@ -399,6 +313,6 @@ public class PurchaseOrder implements Identifiable {
      */
     @Override
     public String toString() {
-        return "Orden #" + orderNumber + " - " + supplier.getName();
+        return "Order #" + id + " - " + (supplier != null ? supplier.getName() : "Unknown Supplier");
     }
 }

@@ -1,623 +1,968 @@
 package com.carmotorsproject.services.views;
 
-import com.carmotorsproject.services.model.Service;
-import com.carmotorsproject.services.model.MaintenanceType;
-import com.carmotorsproject.services.model.ServiceStatus;
-import com.carmotorsproject.utils.UITheme;
-import com.carmotorsproject.utils.AnimationUtil;
+import com.carmotorsproject.services.controller.ServiceController;
+import com.carmotorsproject.services.model.*;
+import com.carmotorsproject.parts.model.Part;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Service management view
+ * Swing UI for managing services.
  */
-public class ServiceView extends JPanel {
-    
+public class ServiceView extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(ServiceView.class.getName());
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+    // Controller
+    private final ServiceController controller;
+
+    // UI Components
     private JTable serviceTable;
-    private DefaultTableModel tableModel;
-    private JTextField searchField;
-    private JButton addButton;
-    private JButton editButton;
-    private JButton deleteButton;
-    private JButton viewDetailsButton;
-    private JPanel formPanel;
-    private JPanel detailsPanel;
-    
-    // Form fields
-    private JComboBox<String> maintenanceTypeCombo;
-    private JComboBox<String> vehicleCombo;
-    private JTextField mileageField;
-    private JTextArea descriptionArea;
+    private DefaultTableModel serviceTableModel;
+    private JTable partsTable;
+    private DefaultTableModel partsTableModel;
+
+    // Service Form Components
+    private JComboBox<Vehicle> vehicleComboBox;
+    private JComboBox<Technician> technicianComboBox;
+    private JComboBox<MaintenanceType> maintenanceTypeComboBox;
+    private JComboBox<ServiceStatus> statusComboBox;
+    private JTextField startDateField;
+    private JTextField endDateField;
+    private JTextField descriptionField;
     private JTextArea diagnosisArea;
-    private JTextField estimatedTimeField;
     private JTextField laborCostField;
-    private JComboBox<String> statusCombo;
-    
-    // Controller reference will be added here
-    
+    private JTextField mileageField;
+    private JTextArea notesArea;
+
+    // Part Form Components
+    private JComboBox<Part> partComboBox;
+    private JTextField quantityField;
+    private JTextField unitPriceField;
+
+    // Buttons
+    private JButton addServiceButton;
+    private JButton updateServiceButton;
+    private JButton deleteServiceButton;
+    private JButton clearServiceFormButton;
+    private JButton addPartButton;
+    private JButton removePartButton;
+    private JButton generateReportButton;
+    private JButton createDeliveryOrderButton;
+
+    // Selected IDs
+    private int selectedServiceId = 0;
+    private int selectedPartInServiceId = 0;
+
+    /**
+     * Constructor that initializes the UI and controller.
+     */
     public ServiceView() {
-        setLayout(new BorderLayout());
-        setBackground(UITheme.WHITE);
-        
+        this.controller = new ServiceController(this);
         initComponents();
-        setupLayout();
-        setupListeners();
+        loadData();
     }
-    
+
+    /**
+     * Initializes the UI components.
+     */
     private void initComponents() {
-        // Search panel
-        JPanel searchPanel = new JPanel(new BorderLayout());
-        searchPanel.setBackground(UITheme.WHITE);
-        searchPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        searchField = new JTextField(20);
-        UITheme.applyTextFieldTheme(searchField);
-        
-        JButton searchButton = new JButton("Buscar");
-        UITheme.applyPrimaryButtonTheme(searchButton);
-        AnimationUtil.applyButtonHoverEffect(searchButton);
-        
-        searchPanel.add(new JLabel("Buscar servicio:"), BorderLayout.WEST);
-        searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.add(searchButton, BorderLayout.EAST);
-        
-        // Table panel
-        String[] columnNames = {"ID", "Tipo", "Vehículo", "Cliente", "Descripción", "Estado", "Fecha Inicio"};
-        tableModel = new DefaultTableModel(columnNames, 0) {
+        // Set up the frame
+        setTitle("Service Management");
+        setSize(1000, 700);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Create the main panel with a border layout
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create the service table panel
+        JPanel serviceTablePanel = createServiceTablePanel();
+        mainPanel.add(serviceTablePanel, BorderLayout.NORTH);
+
+        // Create the form panel
+        JPanel formPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+
+        // Create the service form panel
+        JPanel serviceFormPanel = createServiceFormPanel();
+        formPanel.add(serviceFormPanel);
+
+        // Create the parts panel
+        JPanel partsPanel = createPartsPanel();
+        formPanel.add(partsPanel);
+
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Create the button panel
+        JPanel buttonPanel = createButtonPanel();
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Add the main panel to the frame
+        add(mainPanel);
+
+        // Initialize combo boxes
+        initComboBoxes();
+    }
+
+    /**
+     * Creates the service table panel.
+     *
+     * @return The service table panel
+     */
+    private JPanel createServiceTablePanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder("Services"));
+
+        // Create the table model
+        serviceTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table non-editable
+                return false;
             }
         };
-        
-        serviceTable = new JTable(tableModel);
-        UITheme.applyTableTheme(serviceTable);
-        
+
+        // Add columns to the table model
+        serviceTableModel.addColumn("ID");
+        serviceTableModel.addColumn("Vehicle");
+        serviceTableModel.addColumn("Technician");
+        serviceTableModel.addColumn("Type");
+        serviceTableModel.addColumn("Status");
+        serviceTableModel.addColumn("Start Date");
+        serviceTableModel.addColumn("End Date");
+        serviceTableModel.addColumn("Description");
+        serviceTableModel.addColumn("Labor Cost");
+        serviceTableModel.addColumn("Parts Cost");
+        serviceTableModel.addColumn("Total Cost");
+
+        // Create the table
+        serviceTable = new JTable(serviceTableModel);
+        serviceTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        serviceTable.getTableHeader().setReorderingAllowed(false);
+
+        // Add a mouse listener to the table
+        serviceTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = serviceTable.getSelectedRow();
+                if (row >= 0) {
+                    selectedServiceId = (int) serviceTableModel.getValueAt(row, 0);
+                    controller.loadServiceDetails(selectedServiceId);
+                    controller.loadPartsForService(selectedServiceId);
+                    updateServiceButton.setEnabled(true);
+                    deleteServiceButton.setEnabled(true);
+                    addPartButton.setEnabled(true);
+                    createDeliveryOrderButton.setEnabled(true);
+                }
+            }
+        });
+
+        // Add the table to a scroll pane
         JScrollPane scrollPane = new JScrollPane(serviceTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        
-        // Button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        addButton = new JButton("Nuevo Servicio");
-        editButton = new JButton("Editar Servicio");
-        deleteButton = new JButton("Eliminar Servicio");
-        viewDetailsButton = new JButton("Ver Detalles");
-        
-        UITheme.applyPrimaryButtonTheme(addButton);
-        UITheme.applySecondaryButtonTheme(editButton);
-        UITheme.applySecondaryButtonTheme(deleteButton);
-        UITheme.applySecondaryButtonTheme(viewDetailsButton);
-        
-        AnimationUtil.applyButtonHoverEffect(addButton);
-        AnimationUtil.applyButtonHoverEffect(editButton);
-        AnimationUtil.applyButtonHoverEffect(deleteButton);
-        AnimationUtil.applyButtonHoverEffect(viewDetailsButton);
-        
-        buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(viewDetailsButton);
-        
-        // Form panel (initially hidden)
-        formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(UITheme.WHITE);
-        formPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-        formPanel.setVisible(false);
-        
-        // Form fields
-        JPanel fieldsPanel = new JPanel(new GridLayout(8, 2, 10, 10));
-        fieldsPanel.setBackground(UITheme.WHITE);
-        
-        maintenanceTypeCombo = new JComboBox<>(new String[]{"Seleccione tipo", "Preventivo", "Correctivo"});
-        vehicleCombo = new JComboBox<>(new String[]{"Seleccione vehículo", "ABC123 - Toyota Corolla", "XYZ789 - Honda Civic"});
-        mileageField = new JTextField(10);
-        descriptionArea = new JTextArea(3, 20);
+        scrollPane.setPreferredSize(new Dimension(900, 200));
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    /**
+     * Creates the service form panel.
+     *
+     * @return The service form panel
+     */
+    private JPanel createServiceFormPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Service Details"));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        // Vehicle
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(new JLabel("Vehicle:"), gbc);
+
+        gbc.gridx = 1;
+        vehicleComboBox = new JComboBox<>();
+        panel.add(vehicleComboBox, gbc);
+
+        // Technician
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(new JLabel("Technician:"), gbc);
+
+        gbc.gridx = 1;
+        technicianComboBox = new JComboBox<>();
+        panel.add(technicianComboBox, gbc);
+
+        // Maintenance Type
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        panel.add(new JLabel("Maintenance Type:"), gbc);
+
+        gbc.gridx = 1;
+        maintenanceTypeComboBox = new JComboBox<>(MaintenanceType.values());
+        panel.add(maintenanceTypeComboBox, gbc);
+
+        // Status
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        panel.add(new JLabel("Status:"), gbc);
+
+        gbc.gridx = 1;
+        statusComboBox = new JComboBox<>(ServiceStatus.values());
+        panel.add(statusComboBox, gbc);
+
+        // Start Date
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        panel.add(new JLabel("Start Date (yyyy-MM-dd):"), gbc);
+
+        gbc.gridx = 1;
+        startDateField = new JTextField(10);
+        startDateField.setText(DATE_FORMAT.format(new Date())); // Default to current date
+        panel.add(startDateField, gbc);
+
+        // End Date
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        panel.add(new JLabel("End Date (yyyy-MM-dd):"), gbc);
+
+        gbc.gridx = 1;
+        endDateField = new JTextField(10);
+        panel.add(endDateField, gbc);
+
+        // Description
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        panel.add(new JLabel("Description:"), gbc);
+
+        gbc.gridx = 1;
+        descriptionField = new JTextField(20);
+        panel.add(descriptionField, gbc);
+
+        // Diagnosis
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        panel.add(new JLabel("Diagnosis:"), gbc);
+
+        gbc.gridx = 1;
         diagnosisArea = new JTextArea(3, 20);
-        estimatedTimeField = new JTextField(10);
-        laborCostField = new JTextField(10);
-        statusCombo = new JComboBox<>(new String[]{"Pendiente", "En progreso", "Completado", "Entregado"});
-        
-        UITheme.applyComboBoxTheme(maintenanceTypeCombo);
-        UITheme.applyComboBoxTheme(vehicleCombo);
-        UITheme.applyTextFieldTheme(mileageField);
-        UITheme.applyTextFieldTheme(estimatedTimeField);
-        UITheme.applyTextFieldTheme(laborCostField);
-        UITheme.applyComboBoxTheme(statusCombo);
-        
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
-        descriptionArea.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-        
         diagnosisArea.setLineWrap(true);
-        diagnosisArea.setWrapStyleWord(true);
-        diagnosisArea.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(5, 5, 5, 5)));
-        
-        JScrollPane descriptionScroll = new JScrollPane(descriptionArea);
-        JScrollPane diagnosisScroll = new JScrollPane(diagnosisArea);
-        
-        fieldsPanel.add(new JLabel("Tipo de Mantenimiento:"));
-        fieldsPanel.add(maintenanceTypeCombo);
-        fieldsPanel.add(new JLabel("Vehículo:"));
-        fieldsPanel.add(vehicleCombo);
-        fieldsPanel.add(new JLabel("Kilometraje:"));
-        fieldsPanel.add(mileageField);
-        fieldsPanel.add(new JLabel("Descripción:"));
-        fieldsPanel.add(descriptionScroll);
-        fieldsPanel.add(new JLabel("Diagnóstico Inicial:"));
-        fieldsPanel.add(diagnosisScroll);
-        fieldsPanel.add(new JLabel("Tiempo Estimado (horas):"));
-        fieldsPanel.add(estimatedTimeField);
-        fieldsPanel.add(new JLabel("Costo de Mano de Obra:"));
-        fieldsPanel.add(laborCostField);
-        fieldsPanel.add(new JLabel("Estado:"));
-        fieldsPanel.add(statusCombo);
-        
-        // Form buttons
-        JPanel formButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        formButtonPanel.setBackground(UITheme.WHITE);
-        
-        JButton saveButton = new JButton("Guardar");
-        JButton cancelButton = new JButton("Cancelar");
-        
-        UITheme.applyPrimaryButtonTheme(saveButton);
-        UITheme.applySecondaryButtonTheme(cancelButton);
-        
-        AnimationUtil.applyButtonHoverEffect(saveButton);
-        AnimationUtil.applyButtonHoverEffect(cancelButton);
-        
-        formButtonPanel.add(saveButton);
-        formButtonPanel.add(cancelButton);
-        
-        formPanel.add(fieldsPanel);
-        formPanel.add(Box.createVerticalStrut(20));
-        formPanel.add(formButtonPanel);
-        
-        // Details panel (initially hidden)
-        detailsPanel = new JPanel();
-        detailsPanel.setLayout(new BorderLayout());
-        detailsPanel.setBackground(UITheme.WHITE);
-        detailsPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-        detailsPanel.setVisible(false);
-        
-        // Save button action
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveService();
-            }
-        });
-        
-        // Cancel button action
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                hideForm();
-            }
-        });
+        JScrollPane diagnosisScrollPane = new JScrollPane(diagnosisArea);
+        panel.add(diagnosisScrollPane, gbc);
+
+        // Labor Cost
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        panel.add(new JLabel("Labor Cost:"), gbc);
+
+        gbc.gridx = 1;
+        laborCostField = new JTextField(10);
+        panel.add(laborCostField, gbc);
+
+        // Mileage
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        panel.add(new JLabel("Mileage:"), gbc);
+
+        gbc.gridx = 1;
+        mileageField = new JTextField(10);
+        panel.add(mileageField, gbc);
+
+        // Notes
+        gbc.gridx = 0;
+        gbc.gridy = 10;
+        panel.add(new JLabel("Notes:"), gbc);
+
+        gbc.gridx = 1;
+        notesArea = new JTextArea(3, 20);
+        notesArea.setLineWrap(true);
+        JScrollPane notesScrollPane = new JScrollPane(notesArea);
+        panel.add(notesScrollPane, gbc);
+
+        return panel;
     }
-    
-    private void setupLayout() {
-        // Search panel at the top
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBackground(UITheme.WHITE);
-        
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setBackground(UITheme.WHITE);
-        searchPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        searchPanel.add(new JLabel("Buscar:"));
-        searchPanel.add(searchField);
-        
-        JButton searchButton = new JButton("Buscar");
-        UITheme.applyPrimaryButtonTheme(searchButton);
-        searchPanel.add(searchButton);
-        
-        topPanel.add(searchPanel, BorderLayout.WEST);
-        topPanel.add(addButton, BorderLayout.EAST);
-        
-        // Main content panel
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(UITheme.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
-        
-        // Table with scroll pane
-        JScrollPane scrollPane = new JScrollPane(serviceTable);
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Button panel at the bottom of the table
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(viewDetailsButton);
-        
-        contentPanel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        // Add all panels to the main panel
-        add(topPanel, BorderLayout.NORTH);
-        add(contentPanel, BorderLayout.CENTER);
-        add(formPanel, BorderLayout.SOUTH);
-        add(detailsPanel, BorderLayout.SOUTH);
-    }
-    
-    private void setupListeners() {
-        // Add button action
-        addButton.addActionListener(new ActionListener() {
+
+    /**
+     * Creates the parts panel.
+     *
+     * @return The parts panel
+     */
+    private JPanel createPartsPanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder("Parts"));
+
+        // Create the parts table
+        JPanel partsTablePanel = new JPanel(new BorderLayout(5, 5));
+
+        // Create the table model
+        partsTableModel = new DefaultTableModel() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                showAddForm();
+            public boolean isCellEditable(int row, int column) {
+                return false;
             }
-        });
-        
-        // Edit button action
-        editButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = serviceTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    showEditForm(selectedRow);
-                } else {
-                    JOptionPane.showMessageDialog(ServiceView.this,
-                            "Por favor, seleccione un servicio para editar.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
-        
-        // Delete button action
-        deleteButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = serviceTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    int option = JOptionPane.showConfirmDialog(ServiceView.this,
-                            "¿Está seguro de que desea eliminar este servicio?",
-                            "Confirmar eliminación",
-                            JOptionPane.YES_NO_OPTION);
-                    
-                    if (option == JOptionPane.YES_OPTION) {
-                        deleteService(selectedRow);
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(ServiceView.this,
-                            "Por favor, seleccione un servicio para eliminar.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
-        
-        // View details button action
-        viewDetailsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = serviceTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    showServiceDetails(selectedRow);
-                } else {
-                    JOptionPane.showMessageDialog(ServiceView.this,
-                            "Por favor, seleccione un servicio para ver detalles.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
-    }
-    
-    // Show the add service form
-    private void showAddForm() {
-        // Clear form fields
-        maintenanceTypeCombo.setSelectedIndex(0);
-        vehicleCombo.setSelectedIndex(0);
-        mileageField.setText("");
-        descriptionArea.setText("");
-        diagnosisArea.setText("");
-        estimatedTimeField.setText("");
-        laborCostField.setText("");
-        statusCombo.setSelectedIndex(0);
-        
-        // Hide details panel if visible
-        if (detailsPanel.isVisible()) {
-            AnimationUtil.fadeOut(detailsPanel, 300);
-            detailsPanel.setVisible(false);
-        }
-        
-        // Show form panel with animation
-        formPanel.setVisible(true);
-        AnimationUtil.fadeIn(formPanel, 300);
-    }
-    
-    // Show the edit service form
-    private void showEditForm(int row) {
-        // TODO: Populate form fields with selected service data
-        // This is just a placeholder implementation
-        
-        // Hide details panel if visible
-        if (detailsPanel.isVisible()) {
-            AnimationUtil.fadeOut(detailsPanel, 300);
-            detailsPanel.setVisible(false);
-        }
-        
-        // Show form panel with animation
-        formPanel.setVisible(true);
-        AnimationUtil.fadeIn(formPanel, 300);
-    }
-    
-    // Hide the form
-    private void hideForm() {
-        AnimationUtil.fadeOut(formPanel, 300);
-        formPanel.setVisible(false);
-    }
-    
-    // Save service (add or update)
-    private void saveService() {
-        // Validate form fields
-        if (maintenanceTypeCombo.getSelectedIndex() == 0 || 
-            vehicleCombo.getSelectedIndex() == 0 || 
-            descriptionArea.getText().trim().isEmpty()) {
-            
-            JOptionPane.showMessageDialog(this,
-                    "Por favor, complete los campos obligatorios.",
-                    "Campos incompletos",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        // Create service object
-        Service service = new Service();
-        service.setMaintenanceType(maintenanceTypeCombo.getSelectedIndex() == 1 ? 
-                MaintenanceType.Preventive : MaintenanceType.Corrective);
-        
-        // In a real app, you would set the vehicle ID
-        // service.setVehicleId(vehicleId);
-        
-        try {
-            if (!mileageField.getText().trim().isEmpty()) {
-                service.setMileage(Integer.parseInt(mileageField.getText().trim()));
-            }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "El kilometraje debe ser un número entero.",
-                    "Error de formato",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        service.setDescription(descriptionArea.getText().trim());
-        service.setInitialDiagnosis(diagnosisArea.getText().trim());
-        
-        try {
-            if (!estimatedTimeField.getText().trim().isEmpty()) {
-                service.setEstimatedTime(Double.parseDouble(estimatedTimeField.getText().trim()));
-            }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "El tiempo estimado debe ser un número decimal.",
-                    "Error de formato",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        try {
-            if (!laborCostField.getText().trim().isEmpty()) {
-                service.setLaborCost(Double.parseDouble(laborCostField.getText().trim()));
-            }
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
-                    "El costo de mano de obra debe ser un número decimal.",
-                    "Error de formato",
-                    JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        // Set status based on selection
-        switch (statusCombo.getSelectedIndex()) {
-            case 0:
-                service.setStatus(ServiceStatus.Pending);
-                break;
-            case 1:
-                service.setStatus(ServiceStatus.In_progress);
-                break;
-            case 2:
-                service.setStatus(ServiceStatus.Completed);
-                break;
-            case 3:
-                service.setStatus(ServiceStatus.Delivered);
-                break;
-        }
-        
-        // Set start date to current date
-        service.setStartDate(new Date());
-        
-        // TODO: Save service using controller
-        
-        // For now, just add to table model
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        
-        Object[] row = {
-                "1", // Placeholder ID
-                service.getMaintenanceType().toString(),
-                vehicleCombo.getSelectedItem().toString(),
-                "Cliente", // This would come from the vehicle's customer in a real implementation
-                service.getDescription(),
-                service.getStatus().toString(),
-                dateFormat.format(service.getStartDate())
         };
-        
-        tableModel.addRow(row);
-        
-        // Hide form
-        hideForm();
-        
-        // Show success message
-        JOptionPane.showMessageDialog(this,
-                "Servicio guardado exitosamente.",
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    // Delete service
-    private void deleteService(int row) {
-        // TODO: Delete service using controller
-        
-        // For now, just remove from table model
-        tableModel.removeRow(row);
-        
-        // Show success message
-        JOptionPane.showMessageDialog(this,
-                "Servicio eliminado exitosamente.",
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    // Show service details
-    private void showServiceDetails(int row) {
-        // Hide form panel if visible
-        if (formPanel.isVisible()) {
-            AnimationUtil.fadeOut(formPanel, 300);
-            formPanel.setVisible(false);
-        }
-        
-        // Create details content
-        detailsPanel.removeAll();
-        
-        // Service info
-        JPanel infoPanel = new JPanel(new GridLayout(0, 2, 10, 10));
-        infoPanel.setBackground(UITheme.WHITE);
-        
-        String id = (String) tableModel.getValueAt(row, 0);
-        String type = (String) tableModel.getValueAt(row, 1);
-        String vehicle = (String) tableModel.getValueAt(row, 2);
-        String customer = (String) tableModel.getValueAt(row, 3);
-        String description = (String) tableModel.getValueAt(row, 4);
-        String status = (String) tableModel.getValueAt(row, 5);
-        String startDate = (String) tableModel.getValueAt(row, 6);
-        
-        infoPanel.add(createBoldLabel("ID:"));
-        infoPanel.add(new JLabel(id));
-        infoPanel.add(createBoldLabel("Tipo:"));
-        infoPanel.add(new JLabel(type));
-        infoPanel.add(createBoldLabel("Vehículo:"));
-        infoPanel.add(new JLabel(vehicle));
-        infoPanel.add(createBoldLabel("Cliente:"));
-        infoPanel.add(new JLabel(customer));
-        infoPanel.add(createBoldLabel("Descripción:"));
-        infoPanel.add(new JLabel(description));
-        infoPanel.add(createBoldLabel("Estado:"));
-        infoPanel.add(new JLabel(status));
-        infoPanel.add(createBoldLabel("Fecha Inicio:"));
-        infoPanel.add(new JLabel(startDate));
-        
-        // Parts used in service
-        JPanel partsPanel = new JPanel(new BorderLayout());
-        partsPanel.setBackground(UITheme.WHITE);
-        partsPanel.setBorder(BorderFactory.createTitledBorder("Repuestos Utilizados"));
-        
-        String[] partsColumns = {"Repuesto", "Cantidad", "Precio Unitario", "Subtotal"};
-        DefaultTableModel partsModel = new DefaultTableModel(partsColumns, 0);
-        JTable partsTable = new JTable(partsModel);
-        UITheme.applyTableTheme(partsTable);
-        
-        // Add some dummy data
-        partsModel.addRow(new Object[]{"Filtro de aceite", "1", "$15.00", "$15.00"});
-        partsModel.addRow(new Object[]{"Aceite de motor", "5", "$8.00", "$40.00"});
-        
-        partsPanel.add(new JScrollPane(partsTable), BorderLayout.CENTER);
-        
-        // Technicians assigned
-        JPanel techniciansPanel = new JPanel(new BorderLayout());
-        techniciansPanel.setBackground(UITheme.WHITE);
-        techniciansPanel.setBorder(BorderFactory.createTitledBorder("Técnicos Asignados"));
-        
-        String[] techColumns = {"Técnico", "Especialidad", "Horas Trabajadas"};
-        DefaultTableModel techModel = new DefaultTableModel(techColumns, 0);
-        JTable techTable = new JTable(techModel);
-        UITheme.applyTableTheme(techTable);
-        
-        // Add some dummy data
-        techModel.addRow(new Object[]{"Juan Pérez", "Mecánico", "2.5"});
-        
-        techniciansPanel.add(new JScrollPane(techTable), BorderLayout.CENTER);
-        
-        // Close button
-        JButton closeButton = new JButton("Cerrar");
-        UITheme.applySecondaryButtonTheme(closeButton);
-        AnimationUtil.applyButtonHoverEffect(closeButton);
-        
-        closeButton.addActionListener(new ActionListener() {
+
+        // Add columns to the table model
+        partsTableModel.addColumn("ID");
+        partsTableModel.addColumn("Part");
+        partsTableModel.addColumn("Quantity");
+        partsTableModel.addColumn("Unit Price");
+        partsTableModel.addColumn("Total Price");
+
+        // Create the table
+        partsTable = new JTable(partsTableModel);
+        partsTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        partsTable.getTableHeader().setReorderingAllowed(false);
+
+        // Add a mouse listener to the table
+        partsTable.addMouseListener(new MouseAdapter() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                AnimationUtil.fadeOut(detailsPanel, 300);
-                detailsPanel.setVisible(false);
+            public void mouseClicked(MouseEvent e) {
+                int row = partsTable.getSelectedRow();
+                if (row >= 0) {
+                    selectedPartInServiceId = (int) partsTableModel.getValueAt(row, 0);
+                    removePartButton.setEnabled(true);
+                }
             }
         });
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.add(closeButton);
-        
-        // Add all to details panel
-        JPanel tablesPanel = new JPanel(new GridLayout(2, 1, 0, 10));
-        tablesPanel.setBackground(UITheme.WHITE);
-        tablesPanel.add(partsPanel);
-        tablesPanel.add(techniciansPanel);
-        
-        detailsPanel.add(infoPanel, BorderLayout.NORTH);
-        detailsPanel.add(tablesPanel, BorderLayout.CENTER);
-        detailsPanel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        // Show details panel with animation
-        detailsPanel.setVisible(true);
-        AnimationUtil.fadeIn(detailsPanel, 300);
+
+        // Add the table to a scroll pane
+        JScrollPane scrollPane = new JScrollPane(partsTable);
+        scrollPane.setPreferredSize(new Dimension(400, 150));
+
+        partsTablePanel.add(scrollPane, BorderLayout.CENTER);
+
+        panel.add(partsTablePanel, BorderLayout.CENTER);
+
+        // Create the parts form panel
+        JPanel partsFormPanel = new JPanel(new GridBagLayout());
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        // Part
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        partsFormPanel.add(new JLabel("Part:"), gbc);
+
+        gbc.gridx = 1;
+        partComboBox = new JComboBox<>();
+        partsFormPanel.add(partComboBox, gbc);
+
+        // Quantity
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        partsFormPanel.add(new JLabel("Quantity:"), gbc);
+
+        gbc.gridx = 1;
+        quantityField = new JTextField(5);
+        partsFormPanel.add(quantityField, gbc);
+
+        // Unit Price
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        partsFormPanel.add(new JLabel("Unit Price:"), gbc);
+
+        gbc.gridx = 1;
+        unitPriceField = new JTextField(10);
+        partsFormPanel.add(unitPriceField, gbc);
+
+        // Add and Remove Part buttons
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        JPanel partButtonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 5, 0));
+
+        addPartButton = new JButton("Add Part");
+        addPartButton.setEnabled(false);
+        addPartButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addPart();
+            }
+        });
+        partButtonPanel.add(addPartButton);
+
+        removePartButton = new JButton("Remove Part");
+        removePartButton.setEnabled(false);
+        removePartButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                removePart();
+            }
+        });
+        partButtonPanel.add(removePartButton);
+
+        partsFormPanel.add(partButtonPanel, gbc);
+
+        panel.add(partsFormPanel, BorderLayout.SOUTH);
+
+        return panel;
     }
-    
-    private JLabel createBoldLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font(label.getFont().getName(), Font.BOLD, label.getFont().getSize()));
-        return label;
+
+    /**
+     * Creates the button panel.
+     *
+     * @return The button panel
+     */
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+
+        addServiceButton = new JButton("Add Service");
+        addServiceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                addService();
+            }
+        });
+        panel.add(addServiceButton);
+
+        updateServiceButton = new JButton("Update Service");
+        updateServiceButton.setEnabled(false);
+        updateServiceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateService();
+            }
+        });
+        panel.add(updateServiceButton);
+
+        deleteServiceButton = new JButton("Delete Service");
+        deleteServiceButton.setEnabled(false);
+        deleteServiceButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                deleteService();
+            }
+        });
+        panel.add(deleteServiceButton);
+
+        clearServiceFormButton = new JButton("Clear Form");
+        clearServiceFormButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                clearServiceForm();
+            }
+        });
+        panel.add(clearServiceFormButton);
+
+        generateReportButton = new JButton("Generate Report");
+        generateReportButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                generateReport();
+            }
+        });
+        panel.add(generateReportButton);
+
+        createDeliveryOrderButton = new JButton("Create Delivery Order");
+        createDeliveryOrderButton.setEnabled(false);
+        createDeliveryOrderButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                createDeliveryOrder();
+            }
+        });
+        panel.add(createDeliveryOrderButton);
+
+        return panel;
     }
-    
-    // Method to update the table with service data
+
+    /**
+     * Initializes the combo boxes with data.
+     */
+    private void initComboBoxes() {
+        controller.loadVehicles();
+        controller.loadTechnicians();
+        controller.loadParts();
+    }
+
+    /**
+     * Loads data into the tables.
+     */
+    public void loadData() {
+        controller.loadServices();
+    }
+
+    /**
+     * Adds a new service.
+     */
+    private void addService() {
+        try {
+            // Create a new Service object from form data
+            Service service = getServiceFromForm();
+
+            // Call the controller to add the service
+            controller.addService(service);
+
+            // Clear the form
+            clearServiceForm();
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error adding service", ex);
+            JOptionPane.showMessageDialog(this, "Error adding service: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Updates an existing service.
+     */
+    private void updateService() {
+        try {
+            // Create a Service object from form data
+            Service service = getServiceFromForm();
+            service.setServiceId(selectedServiceId);
+
+            // Call the controller to update the service
+            controller.updateService(service);
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error updating service", ex);
+            JOptionPane.showMessageDialog(this, "Error updating service: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Deletes a service.
+     */
+    private void deleteService() {
+        try {
+            // Confirm deletion
+            int option = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to delete this service?",
+                    "Confirm Deletion",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (option == JOptionPane.YES_OPTION) {
+                // Call the controller to delete the service
+                controller.deleteService(selectedServiceId);
+
+                // Clear the form
+                clearServiceForm();
+            }
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error deleting service", ex);
+            JOptionPane.showMessageDialog(this, "Error deleting service: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Adds a part to the service.
+     */
+    private void addPart() {
+        try {
+            // Get the selected part
+            Part part = (Part) partComboBox.getSelectedItem();
+            if (part == null) {
+                JOptionPane.showMessageDialog(this, "Please select a part.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Get the quantity
+            int quantity;
+            try {
+                quantity = Integer.parseInt(quantityField.getText().trim());
+                if (quantity <= 0) {
+                    JOptionPane.showMessageDialog(this, "Quantity must be greater than zero.",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid quantity.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Get the unit price
+            double unitPrice;
+            try {
+                unitPrice = Double.parseDouble(unitPriceField.getText().trim());
+                if (unitPrice <= 0) {
+                    JOptionPane.showMessageDialog(this, "Unit price must be greater than zero.",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Please enter a valid unit price.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Create a PartInService object
+            PartInService partInService = new PartInService();
+            partInService.setServiceId(selectedServiceId);
+            partInService.setPartId(part.getId());
+            partInService.setQuantity(quantity);
+            partInService.setUnitPrice(unitPrice);
+            partInService.setTotalPrice(quantity * unitPrice);
+
+            // Call the controller to add the part
+            controller.addPartToService(partInService);
+
+            // Clear the part form
+            quantityField.setText("");
+            unitPriceField.setText("");
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error adding part to service", ex);
+            JOptionPane.showMessageDialog(this, "Error adding part to service: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Removes a part from the service.
+     */
+    private void removePart() {
+        try {
+            // Confirm removal
+            int option = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to remove this part?",
+                    "Confirm Removal",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (option == JOptionPane.YES_OPTION) {
+                // Call the controller to remove the part
+                controller.removePartFromService(selectedPartInServiceId);
+
+                // Disable the remove button
+                removePartButton.setEnabled(false);
+            }
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error removing part from service", ex);
+            JOptionPane.showMessageDialog(this, "Error removing part from service: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Generates a service report.
+     */
+    private void generateReport() {
+        // Open the service report view
+        ServiceReportView reportView = new ServiceReportView();
+        reportView.setVisible(true);
+    }
+
+    /**
+     * Creates a delivery order for the selected service.
+     */
+    private void createDeliveryOrder() {
+        try {
+            // Check if the service is completed
+            Service service = controller.getServiceById(selectedServiceId);
+            if (service.getStatus() != ServiceStatus.COMPLETED) {
+                JOptionPane.showMessageDialog(this,
+                        "Service must be completed before creating a delivery order.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Check if a delivery order already exists
+            if (controller.deliveryOrderExistsForService(selectedServiceId)) {
+                JOptionPane.showMessageDialog(this,
+                        "A delivery order already exists for this service.",
+                        "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+
+            // Open the delivery order view
+            DeliveryOrderView deliveryOrderView = new DeliveryOrderView(selectedServiceId);
+            deliveryOrderView.setVisible(true);
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error creating delivery order", ex);
+            JOptionPane.showMessageDialog(this, "Error creating delivery order: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Clears the service form.
+     */
+    private void clearServiceForm() {
+        // Reset form fields
+        vehicleComboBox.setSelectedIndex(-1);
+        technicianComboBox.setSelectedIndex(-1);
+        maintenanceTypeComboBox.setSelectedIndex(0);
+        statusComboBox.setSelectedIndex(0);
+        startDateField.setText(DATE_FORMAT.format(new Date()));
+        endDateField.setText("");
+        descriptionField.setText("");
+        diagnosisArea.setText("");
+        laborCostField.setText("");
+        mileageField.setText("");
+        notesArea.setText("");
+
+        // Clear the parts table
+        partsTableModel.setRowCount(0);
+
+        // Reset selected IDs
+        selectedServiceId = 0;
+        selectedPartInServiceId = 0;
+
+        // Disable buttons
+        updateServiceButton.setEnabled(false);
+        deleteServiceButton.setEnabled(false);
+        addPartButton.setEnabled(false);
+        removePartButton.setEnabled(false);
+        createDeliveryOrderButton.setEnabled(false);
+    }
+
+    /**
+     * Creates a Service object from the form data.
+     *
+     * @return A Service object populated with form data
+     * @throws ParseException If a date parsing error occurs
+     */
+    private Service getServiceFromForm() throws ParseException {
+        Service service = new Service();
+
+        // Get the selected vehicle
+        Vehicle vehicle = (Vehicle) vehicleComboBox.getSelectedItem();
+        if (vehicle != null) {
+            service.setVehicleId(vehicle.getVehicleId());
+        } else {
+            throw new IllegalArgumentException("Please select a vehicle.");
+        }
+
+        // Get the selected technician
+        Technician technician = (Technician) technicianComboBox.getSelectedItem();
+        if (technician != null) {
+            service.setTechnicianId(technician.getTechnicianId());
+        } else {
+            throw new IllegalArgumentException("Please select a technician.");
+        }
+
+        // Get the maintenance type
+        MaintenanceType maintenanceType = (MaintenanceType) maintenanceTypeComboBox.getSelectedItem();
+        service.setMaintenanceType(maintenanceType);
+
+        // Get the status
+        ServiceStatus status = (ServiceStatus) statusComboBox.getSelectedItem();
+        service.setStatus(status);
+
+        // Get the start date
+        String startDateStr = startDateField.getText().trim();
+        if (!startDateStr.isEmpty()) {
+            service.setStartDate(DATE_FORMAT.parse(startDateStr));
+        } else {
+            throw new IllegalArgumentException("Please enter a start date.");
+        }
+
+        // Get the end date
+        String endDateStr = endDateField.getText().trim();
+        if (!endDateStr.isEmpty()) {
+            service.setEndDate(DATE_FORMAT.parse(endDateStr));
+        }
+
+        // Get the description
+        service.setDescription(descriptionField.getText().trim());
+
+        // Get the diagnosis
+        service.setDiagnosis(diagnosisArea.getText().trim());
+
+        // Get the labor cost
+        String laborCostStr = laborCostField.getText().trim();
+        if (!laborCostStr.isEmpty()) {
+            try {
+                service.setLaborCost(Double.parseDouble(laborCostStr));
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Please enter a valid labor cost.");
+            }
+        } else {
+            service.setLaborCost(0.0);
+        }
+
+        // Get the mileage
+        String mileageStr = mileageField.getText().trim();
+        if (!mileageStr.isEmpty()) {
+            try {
+                service.setMileage(Integer.parseInt(mileageStr));
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Please enter a valid mileage.");
+            }
+        } else {
+            throw new IllegalArgumentException("Please enter the vehicle mileage.");
+        }
+
+        // Get the notes
+        service.setNotes(notesArea.getText().trim());
+
+        return service;
+    }
+
+    /**
+     * Updates the service table with the provided services.
+     *
+     * @param services The list of services to display
+     */
     public void updateServiceTable(List<Service> services) {
         // Clear the table
-        tableModel.setRowCount(0);
-        
+        serviceTableModel.setRowCount(0);
+
         // Add services to the table
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-        
         for (Service service : services) {
-            Object[] row = {
-                    service.getServiceId(),
-                    service.getMaintenanceType().toString(),
-                    "Vehicle Info", // This would come from the vehicle object in a real implementation
-                    "Customer Info", // This would come from the customer object in a real implementation
-                    service.getDescription(),
-                    service.getStatus().toString(),
-                    service.getStartDate() != null ? dateFormat.format(service.getStartDate()) : ""
-            };
-            tableModel.addRow(row);
+            Vector<Object> row = new Vector<>();
+            row.add(service.getServiceId());
+            row.add("ID: " + service.getVehicleId());
+            row.add("ID: " + service.getTechnicianId());
+            row.add(service.getMaintenanceType());
+            row.add(service.getStatus());
+            row.add(service.getStartDate() != null ? DATE_FORMAT.format(service.getStartDate()) : "");
+            row.add(service.getEndDate() != null ? DATE_FORMAT.format(service.getEndDate()) : "");
+            row.add(service.getDescription());
+            row.add(service.getLaborCost());
+            row.add(service.getPartsCost());
+            row.add(service.getTotalCost());
+
+            serviceTableModel.addRow(row);
+        }
+    }
+
+    /**
+     * Updates the parts table with the provided parts.
+     *
+     * @param parts The list of parts to display
+     */
+    public void updatePartsTable(List<PartInService> parts) {
+        // Clear the table
+        partsTableModel.setRowCount(0);
+
+        // Add parts to the table
+        for (PartInService part : parts) {
+            Vector<Object> row = new Vector<>();
+            row.add(part.getPartsInServiceId());
+            row.add("ID: " + part.getPartId());
+            row.add(part.getQuantity());
+            row.add(part.getUnitPrice());
+            row.add(part.getTotalPrice());
+
+            partsTableModel.addRow(row);
+        }
+    }
+
+    /**
+     * Populates the service form with the provided service.
+     *
+     * @param service The service to display
+     */
+    public void populateServiceForm(Service service) {
+        // Set the vehicle
+        for (int i = 0; i < vehicleComboBox.getItemCount(); i++) {
+            Vehicle vehicle = vehicleComboBox.getItemAt(i);
+            if (vehicle.getVehicleId() == service.getVehicleId()) {
+                vehicleComboBox.setSelectedIndex(i);
+                break;
+            }
+        }
+
+        // Set the technician
+        for (int i = 0; i < technicianComboBox.getItemCount(); i++) {
+            Technician technician = technicianComboBox.getItemAt(i);
+            if (technician.getTechnicianId() == service.getTechnicianId()) {
+                technicianComboBox.setSelectedIndex(i);
+                break;
+            }
+        }
+
+        // Set the maintenance type
+        maintenanceTypeComboBox.setSelectedItem(service.getMaintenanceType());
+
+        // Set the status
+        statusComboBox.setSelectedItem(service.getStatus());
+
+        // Set the start date
+        if (service.getStartDate() != null) {
+            startDateField.setText(DATE_FORMAT.format(service.getStartDate()));
+        } else {
+            startDateField.setText("");
+        }
+
+        // Set the end date
+        if (service.getEndDate() != null) {
+            endDateField.setText(DATE_FORMAT.format(service.getEndDate()));
+        } else {
+            endDateField.setText("");
+        }
+
+        // Set the description
+        descriptionField.setText(service.getDescription());
+
+        // Set the diagnosis
+        diagnosisArea.setText(service.getDiagnosis());
+
+        // Set the labor cost
+        laborCostField.setText(String.valueOf(service.getLaborCost()));
+
+        // Set the mileage
+        mileageField.setText(String.valueOf(service.getMileage()));
+
+        // Set the notes
+        notesArea.setText(service.getNotes());
+    }
+
+    /**
+     * Updates the vehicle combo box with the provided vehicles.
+     *
+     * @param vehicles The list of vehicles to display
+     */
+    public void updateVehicleComboBox(List<Vehicle> vehicles) {
+        vehicleComboBox.removeAllItems();
+        for (Vehicle vehicle : vehicles) {
+            vehicleComboBox.addItem(vehicle);
+        }
+    }
+
+    /**
+     * Updates the technician combo box with the provided technicians.
+     *
+     * @param technicians The list of technicians to display
+     */
+    public void updateTechnicianComboBox(List<Technician> technicians) {
+        technicianComboBox.removeAllItems();
+        for (Technician technician : technicians) {
+            technicianComboBox.addItem(technician);
+        }
+    }
+
+    /**
+     * Updates the part combo box with the provided parts.
+     *
+     * @param parts The list of parts to display
+     */
+    public void updatePartComboBox(List<Part> parts) {
+        partComboBox.removeAllItems();
+        for (Part part : parts) {
+            partComboBox.addItem(part);
         }
     }
 }

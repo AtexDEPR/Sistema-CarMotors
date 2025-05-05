@@ -1,517 +1,615 @@
 package com.carmotorsproject.services.views;
 
+import com.carmotorsproject.services.controller.VehicleController;
 import com.carmotorsproject.services.model.Vehicle;
-import com.carmotorsproject.utils.UITheme;
-import com.carmotorsproject.utils.AnimationUtil;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Vector;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * Vehicle management view
+ * Swing UI for managing vehicles.
  */
-public class VehicleView extends JPanel {
-    
+public class VehicleView extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(VehicleView.class.getName());
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+    // Controller
+    private final VehicleController controller;
+
+    // UI Components
     private JTable vehicleTable;
-    private DefaultTableModel tableModel;
-    private JTextField searchField;
-    private JButton addButton;
-    private JButton editButton;
-    private JButton deleteButton;
-    private JButton viewDetailsButton;
-    private JPanel formPanel;
-    private JPanel detailsPanel;
-    
-    // Form fields
+    private DefaultTableModel vehicleTableModel;
+
+    // Form Components
+    private JTextField customerIdField;
+    private JTextField licensePlateField;
     private JTextField makeField;
     private JTextField modelField;
-    private JTextField licensePlateField;
-    private JTextField typeField;
-    private JComboBox<String> customerComboBox;
-    
-    // Controller reference will be added here
-    
+    private JTextField yearField;
+    private JTextField vinField;
+    private JTextField colorField;
+    private JTextField engineTypeField;
+    private JTextField transmissionField;
+    private JTextField mileageField;
+    private JTextField lastServiceDateField;
+    private JTextArea notesArea;
+
+    // Buttons
+    private JButton addButton;
+    private JButton updateButton;
+    private JButton deleteButton;
+    private JButton clearButton;
+    private JButton searchButton;
+
+    // Selected ID
+    private int selectedVehicleId = 0;
+
+    /**
+     * Constructor that initializes the UI and controller.
+     */
     public VehicleView() {
-        setLayout(new BorderLayout());
-        setBackground(UITheme.WHITE);
-        
+        this.controller = new VehicleController(this);
         initComponents();
-        setupLayout();
-        setupListeners();
+        loadData();
     }
-    
+
+    /**
+     * Initializes the UI components.
+     */
     private void initComponents() {
-        // Search panel
-        JPanel searchPanel = new JPanel(new BorderLayout());
-        searchPanel.setBackground(UITheme.WHITE);
-        searchPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        searchField = new JTextField(20);
-        UITheme.applyTextFieldTheme(searchField);
-        
-        JButton searchButton = new JButton("Buscar");
-        UITheme.applyPrimaryButtonTheme(searchButton);
-        AnimationUtil.applyButtonHoverEffect(searchButton);
-        
-        searchPanel.add(new JLabel("Buscar vehículo:"), BorderLayout.WEST);
-        searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.add(searchButton, BorderLayout.EAST);
-        
-        // Table panel
-        String[] columnNames = {"ID", "Placa", "Marca", "Modelo", "Tipo", "Cliente"};
-        tableModel = new DefaultTableModel(columnNames, 0) {
+        // Set up the frame
+        setTitle("Vehicle Management");
+        setSize(900, 600);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        // Create the main panel with a border layout
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+        // Create the table panel
+        JPanel tablePanel = createTablePanel();
+        mainPanel.add(tablePanel, BorderLayout.NORTH);
+
+        // Create the form panel
+        JPanel formPanel = createFormPanel();
+        mainPanel.add(formPanel, BorderLayout.CENTER);
+
+        // Create the button panel
+        JPanel buttonPanel = createButtonPanel();
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Add the main panel to the frame
+        add(mainPanel);
+    }
+
+    /**
+     * Creates the table panel.
+     *
+     * @return The table panel
+     */
+    private JPanel createTablePanel() {
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.setBorder(BorderFactory.createTitledBorder("Vehicles"));
+
+        // Create the table model
+        vehicleTableModel = new DefaultTableModel() {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; // Make table non-editable
+                return false;
             }
         };
-        
-        vehicleTable = new JTable(tableModel);
-        UITheme.applyTableTheme(vehicleTable);
-        
+
+        // Add columns to the table model
+        vehicleTableModel.addColumn("ID");
+        vehicleTableModel.addColumn("Customer ID");
+        vehicleTableModel.addColumn("License Plate");
+        vehicleTableModel.addColumn("Make");
+        vehicleTableModel.addColumn("Model");
+        vehicleTableModel.addColumn("Year");
+        vehicleTableModel.addColumn("VIN");
+        vehicleTableModel.addColumn("Color");
+        vehicleTableModel.addColumn("Engine Type");
+        vehicleTableModel.addColumn("Transmission");
+        vehicleTableModel.addColumn("Mileage");
+        vehicleTableModel.addColumn("Last Service Date");
+
+        // Create the table
+        vehicleTable = new JTable(vehicleTableModel);
+        vehicleTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        vehicleTable.getTableHeader().setReorderingAllowed(false);
+
+        // Add a mouse listener to the table
+        vehicleTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = vehicleTable.getSelectedRow();
+                if (row >= 0) {
+                    selectedVehicleId = (int) vehicleTableModel.getValueAt(row, 0);
+                    controller.loadVehicleDetails(selectedVehicleId);
+                    updateButton.setEnabled(true);
+                    deleteButton.setEnabled(true);
+                }
+            }
+        });
+
+        // Add the table to a scroll pane
         JScrollPane scrollPane = new JScrollPane(vehicleTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
-        
-        // Button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        addButton = new JButton("Agregar Vehículo");
-        editButton = new JButton("Editar Vehículo");
-        deleteButton = new JButton("Eliminar Vehículo");
-        viewDetailsButton = new JButton("Ver Historial");
-        
-        UITheme.applyPrimaryButtonTheme(addButton);
-        UITheme.applySecondaryButtonTheme(editButton);
-        UITheme.applySecondaryButtonTheme(deleteButton);
-        UITheme.applySecondaryButtonTheme(viewDetailsButton);
-        
-        AnimationUtil.applyButtonHoverEffect(addButton);
-        AnimationUtil.applyButtonHoverEffect(editButton);
-        AnimationUtil.applyButtonHoverEffect(deleteButton);
-        AnimationUtil.applyButtonHoverEffect(viewDetailsButton);
-        
-        buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(viewDetailsButton);
-        
-        // Form panel (initially hidden)
-        formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(UITheme.WHITE);
-        formPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-        formPanel.setVisible(false);
-        
-        // Form fields
-        JPanel fieldsPanel = new JPanel(new GridLayout(5, 2, 10, 10));
-        fieldsPanel.setBackground(UITheme.WHITE);
-        
+        scrollPane.setPreferredSize(new Dimension(850, 200));
+
+        panel.add(scrollPane, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    /**
+     * Creates the form panel.
+     *
+     * @return The form panel
+     */
+    private JPanel createFormPanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        panel.setBorder(BorderFactory.createTitledBorder("Vehicle Details"));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        // Customer ID
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(new JLabel("Customer ID:"), gbc);
+
+        gbc.gridx = 1;
+        customerIdField = new JTextField(10);
+        panel.add(customerIdField, gbc);
+
+        // License Plate
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(new JLabel("License Plate:"), gbc);
+
+        gbc.gridx = 1;
+        licensePlateField = new JTextField(10);
+        panel.add(licensePlateField, gbc);
+
+        // Make
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        panel.add(new JLabel("Make:"), gbc);
+
+        gbc.gridx = 1;
         makeField = new JTextField(20);
+        panel.add(makeField, gbc);
+
+        // Model
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        panel.add(new JLabel("Model:"), gbc);
+
+        gbc.gridx = 1;
         modelField = new JTextField(20);
-        licensePlateField = new JTextField(20);
-        typeField = new JTextField(20);
-        customerComboBox = new JComboBox<String>();
-        
-        UITheme.applyTextFieldTheme(makeField);
-        UITheme.applyTextFieldTheme(modelField);
-        UITheme.applyTextFieldTheme(licensePlateField);
-        UITheme.applyTextFieldTheme(typeField);
-        UITheme.applyComboBoxTheme(customerComboBox);
-        
-        // Add some dummy customer data
-        customerComboBox.addItem("Seleccione un cliente");
-        customerComboBox.addItem("Juan Pérez");
-        customerComboBox.addItem("María López");
-        customerComboBox.addItem("Carlos Rodríguez");
-        
-        fieldsPanel.add(new JLabel("Marca:"));
-        fieldsPanel.add(makeField);
-        fieldsPanel.add(new JLabel("Modelo:"));
-        fieldsPanel.add(modelField);
-        fieldsPanel.add(new JLabel("Placa:"));
-        fieldsPanel.add(licensePlateField);
-        fieldsPanel.add(new JLabel("Tipo:"));
-        fieldsPanel.add(typeField);
-        fieldsPanel.add(new JLabel("Cliente:"));
-        fieldsPanel.add(customerComboBox);
-        
-        // Form buttons
-        JPanel formButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        formButtonPanel.setBackground(UITheme.WHITE);
-        
-        JButton saveButton = new JButton("Guardar");
-        JButton cancelButton = new JButton("Cancelar");
-        
-        UITheme.applyPrimaryButtonTheme(saveButton);
-        UITheme.applySecondaryButtonTheme(cancelButton);
-        
-        AnimationUtil.applyButtonHoverEffect(saveButton);
-        AnimationUtil.applyButtonHoverEffect(cancelButton);
-        
-        formButtonPanel.add(saveButton);
-        formButtonPanel.add(cancelButton);
-        
-        formPanel.add(fieldsPanel);
-        formPanel.add(Box.createVerticalStrut(20));
-        formPanel.add(formButtonPanel);
-        
-        // Details panel (initially hidden)
-        detailsPanel = new JPanel();
-        detailsPanel.setLayout(new BorderLayout());
-        detailsPanel.setBackground(UITheme.WHITE);
-        detailsPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-        detailsPanel.setVisible(false);
-        
-        // Save button action
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveVehicle();
-            }
-        });
-        
-        // Cancel button action
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                hideForm();
-            }
-        });
+        panel.add(modelField, gbc);
+
+        // Year
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        panel.add(new JLabel("Year:"), gbc);
+
+        gbc.gridx = 1;
+        yearField = new JTextField(5);
+        panel.add(yearField, gbc);
+
+        // VIN
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        panel.add(new JLabel("VIN:"), gbc);
+
+        gbc.gridx = 1;
+        vinField = new JTextField(20);
+        panel.add(vinField, gbc);
+
+        // Color
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        panel.add(new JLabel("Color:"), gbc);
+
+        gbc.gridx = 1;
+        colorField = new JTextField(10);
+        panel.add(colorField, gbc);
+
+        // Engine Type
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        panel.add(new JLabel("Engine Type:"), gbc);
+
+        gbc.gridx = 1;
+        engineTypeField = new JTextField(20);
+        panel.add(engineTypeField, gbc);
+
+        // Transmission
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        panel.add(new JLabel("Transmission:"), gbc);
+
+        gbc.gridx = 1;
+        transmissionField = new JTextField(10);
+        panel.add(transmissionField, gbc);
+
+        // Mileage
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        panel.add(new JLabel("Current Mileage:"), gbc);
+
+        gbc.gridx = 1;
+        mileageField = new JTextField(10);
+        panel.add(mileageField, gbc);
+
+        // Last Service Date
+        gbc.gridx = 0;
+        gbc.gridy = 10;
+        panel.add(new JLabel("Last Service Date (yyyy-MM-dd):"), gbc);
+
+        gbc.gridx = 1;
+        lastServiceDateField = new JTextField(10);
+        panel.add(lastServiceDateField, gbc);
+
+        // Notes
+        gbc.gridx = 0;
+        gbc.gridy = 11;
+        panel.add(new JLabel("Notes:"), gbc);
+
+        gbc.gridx = 1;
+        notesArea = new JTextArea(3, 20);
+        notesArea.setLineWrap(true);
+        JScrollPane notesScrollPane = new JScrollPane(notesArea);
+        panel.add(notesScrollPane, gbc);
+
+        return panel;
     }
-    
-    private void setupLayout() {
-        // Search panel at the top
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBackground(UITheme.WHITE);
-        
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setBackground(UITheme.WHITE);
-        searchPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        
-        searchPanel.add(new JLabel("Buscar:"));
-        searchPanel.add(searchField);
-        
-        JButton searchButton = new JButton("Buscar");
-        UITheme.applyPrimaryButtonTheme(searchButton);
-        searchPanel.add(searchButton);
-        
-        topPanel.add(searchPanel, BorderLayout.WEST);
-        topPanel.add(addButton, BorderLayout.EAST);
-        
-        // Main content panel
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(UITheme.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
-        
-        // Table with scroll pane
-        JScrollPane scrollPane = new JScrollPane(vehicleTable);
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-        
-        // Button panel at the bottom of the table
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(viewDetailsButton);
-        
-        contentPanel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        // Add all panels to the main panel
-        add(topPanel, BorderLayout.NORTH);
-        add(contentPanel, BorderLayout.CENTER);
-        add(formPanel, BorderLayout.SOUTH);
-        add(detailsPanel, BorderLayout.SOUTH);
-    }
-    
-    private void setupListeners() {
-        // Add button action
+
+    /**
+     * Creates the button panel.
+     *
+     * @return The button panel
+     */
+    private JPanel createButtonPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+
+        addButton = new JButton("Add Vehicle");
         addButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                showAddForm();
+                addVehicle();
             }
         });
-        
-        // Edit button action
-        editButton.addActionListener(new ActionListener() {
+        panel.add(addButton);
+
+        updateButton = new JButton("Update Vehicle");
+        updateButton.setEnabled(false);
+        updateButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int selectedRow = vehicleTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    showEditForm(selectedRow);
-                } else {
-                    JOptionPane.showMessageDialog(VehicleView.this,
-                            "Por favor, seleccione un vehículo para editar.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
+                updateVehicle();
             }
         });
-        
-        // Delete button action
+        panel.add(updateButton);
+
+        deleteButton = new JButton("Delete Vehicle");
+        deleteButton.setEnabled(false);
         deleteButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int selectedRow = vehicleTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    int option = JOptionPane.showConfirmDialog(VehicleView.this,
-                            "¿Está seguro de que desea eliminar este vehículo?",
-                            "Confirmar eliminación",
-                            JOptionPane.YES_NO_OPTION);
-                    
-                    if (option == JOptionPane.YES_OPTION) {
-                        deleteVehicle(selectedRow);
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(VehicleView.this,
-                            "Por favor, seleccione un vehículo para eliminar.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
+                deleteVehicle();
             }
         });
-        
-        // View details button action
-        viewDetailsButton.addActionListener(new ActionListener() {
+        panel.add(deleteButton);
+
+        clearButton = new JButton("Clear Form");
+        clearButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int selectedRow = vehicleTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    showVehicleHistory(selectedRow);
-                } else {
-                    JOptionPane.showMessageDialog(VehicleView.this,
-                            "Por favor, seleccione un vehículo para ver su historial.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
+                clearForm();
             }
         });
+        panel.add(clearButton);
+
+        searchButton = new JButton("Search");
+        searchButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                searchVehicles();
+            }
+        });
+        panel.add(searchButton);
+
+        return panel;
     }
-    
-    // Show the add vehicle form
-    private void showAddForm() {
-        // Clear form fields
+
+    /**
+     * Loads data into the table.
+     */
+    public void loadData() {
+        controller.loadVehicles();
+    }
+
+    /**
+     * Adds a new vehicle.
+     */
+    private void addVehicle() {
+        try {
+            // Create a new Vehicle object from form data
+            Vehicle vehicle = getVehicleFromForm();
+
+            // Call the controller to add the vehicle
+            controller.addVehicle(vehicle);
+
+            // Clear the form
+            clearForm();
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error adding vehicle", ex);
+            JOptionPane.showMessageDialog(this, "Error adding vehicle: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Updates an existing vehicle.
+     */
+    private void updateVehicle() {
+        try {
+            // Create a Vehicle object from form data
+            Vehicle vehicle = getVehicleFromForm();
+            vehicle.setVehicleId(selectedVehicleId);
+
+            // Call the controller to update the vehicle
+            controller.updateVehicle(vehicle);
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error updating vehicle", ex);
+            JOptionPane.showMessageDialog(this, "Error updating vehicle: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Deletes a vehicle.
+     */
+    private void deleteVehicle() {
+        try {
+            // Confirm deletion
+            int option = JOptionPane.showConfirmDialog(this,
+                    "Are you sure you want to delete this vehicle?",
+                    "Confirm Deletion",
+                    JOptionPane.YES_NO_OPTION);
+
+            if (option == JOptionPane.YES_OPTION) {
+                // Call the controller to delete the vehicle
+                controller.deleteVehicle(selectedVehicleId);
+
+                // Clear the form
+                clearForm();
+            }
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error deleting vehicle", ex);
+            JOptionPane.showMessageDialog(this, "Error deleting vehicle: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Searches for vehicles based on make and model.
+     */
+    private void searchVehicles() {
+        try {
+            String make = makeField.getText().trim();
+            String model = modelField.getText().trim();
+
+            if (make.isEmpty() && model.isEmpty()) {
+                // If both fields are empty, load all vehicles
+                controller.loadVehicles();
+            } else {
+                // Search by make and model
+                controller.searchVehiclesByMakeAndModel(make, model);
+            }
+
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Error searching vehicles", ex);
+            JOptionPane.showMessageDialog(this, "Error searching vehicles: " + ex.getMessage(),
+                    "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Clears the form.
+     */
+    private void clearForm() {
+        // Reset form fields
+        customerIdField.setText("");
+        licensePlateField.setText("");
         makeField.setText("");
         modelField.setText("");
-        licensePlateField.setText("");
-        typeField.setText("");
-        customerComboBox.setSelectedIndex(0);
-        
-        // Hide details panel if visible
-        if (detailsPanel.isVisible()) {
-            AnimationUtil.fadeOut(detailsPanel, 300);
-            detailsPanel.setVisible(false);
-        }
-        
-        // Show form panel with animation
-        formPanel.setVisible(true);
-        AnimationUtil.fadeIn(formPanel, 300);
+        yearField.setText("");
+        vinField.setText("");
+        colorField.setText("");
+        engineTypeField.setText("");
+        transmissionField.setText("");
+        mileageField.setText("");
+        lastServiceDateField.setText("");
+        notesArea.setText("");
+
+        // Reset selected ID
+        selectedVehicleId = 0;
+
+        // Disable buttons
+        updateButton.setEnabled(false);
+        deleteButton.setEnabled(false);
     }
-    
-    // Show the edit vehicle form
-    private void showEditForm(int row) {
-        // Populate form fields with selected vehicle data
-        makeField.setText((String) tableModel.getValueAt(row, 2));
-        modelField.setText((String) tableModel.getValueAt(row, 3));
-        licensePlateField.setText((String) tableModel.getValueAt(row, 1));
-        typeField.setText((String) tableModel.getValueAt(row, 4));
-        
-        // Set customer (this is just a placeholder, in a real app you'd match by ID)
-        String customerName = (String) tableModel.getValueAt(row, 5);
-        for (int i = 0; i < customerComboBox.getItemCount(); i++) {
-            if (customerComboBox.getItemAt(i).equals(customerName)) {
-                customerComboBox.setSelectedIndex(i);
-                break;
-            }
-        }
-        
-        // Hide details panel if visible
-        if (detailsPanel.isVisible()) {
-            AnimationUtil.fadeOut(detailsPanel, 300);
-            detailsPanel.setVisible(false);
-        }
-        
-        // Show form panel with animation
-        formPanel.setVisible(true);
-        AnimationUtil.fadeIn(formPanel, 300);
-    }
-    
-    // Hide the form
-    private void hideForm() {
-        AnimationUtil.fadeOut(formPanel, 300);
-        formPanel.setVisible(false);
-    }
-    
-    // Save vehicle (add or update)
-    private void saveVehicle() {
-        // Validate form fields
-        if (makeField.getText().trim().isEmpty() || 
-            modelField.getText().trim().isEmpty() || 
-            licensePlateField.getText().trim().isEmpty() ||
-            customerComboBox.getSelectedIndex() == 0) {
-            
-            JOptionPane.showMessageDialog(this,
-                    "Por favor, complete todos los campos obligatorios.",
-                    "Campos incompletos",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        // Create vehicle object
+
+    /**
+     * Creates a Vehicle object from the form data.
+     *
+     * @return A Vehicle object populated with form data
+     * @throws ParseException If a date parsing error occurs
+     */
+    private Vehicle getVehicleFromForm() throws ParseException {
         Vehicle vehicle = new Vehicle();
-        vehicle.setMake(makeField.getText().trim());
-        vehicle.setModel(modelField.getText().trim());
-        vehicle.setLicensePlate(licensePlateField.getText().trim());
-        vehicle.setType(typeField.getText().trim());
-        
-        // TODO: Set customer ID and save vehicle using controller
-        
-        // For now, just add to table model
-        Object[] row = {
-                "1", // Placeholder ID
-                vehicle.getLicensePlate(),
-                vehicle.getMake(),
-                vehicle.getModel(),
-                vehicle.getType(),
-                customerComboBox.getSelectedItem()
-        };
-        
-        tableModel.addRow(row);
-        
-        // Hide form
-        hideForm();
-        
-        // Show success message
-        JOptionPane.showMessageDialog(this,
-                "Vehículo guardado exitosamente.",
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    // Delete vehicle
-    private void deleteVehicle(int row) {
-        // TODO: Delete vehicle using controller
-        
-        // For now, just remove from table model
-        tableModel.removeRow(row);
-        
-        // Show success message
-        JOptionPane.showMessageDialog(this,
-                "Vehículo eliminado exitosamente.",
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-    
-    // Show vehicle maintenance history
-    private void showVehicleHistory(int row) {
-        // Hide form panel if visible
-        if (formPanel.isVisible()) {
-            AnimationUtil.fadeOut(formPanel, 300);
-            formPanel.setVisible(false);
-        }
-        
-        // Create details content
-        detailsPanel.removeAll();
-        
-        // Vehicle info
-        JPanel infoPanel = new JPanel(new GridLayout(5, 2, 10, 10));
-        infoPanel.setBackground(UITheme.WHITE);
-        
-        String id = (String) tableModel.getValueAt(row, 0);
-        String licensePlate = (String) tableModel.getValueAt(row, 1);
-        String make = (String) tableModel.getValueAt(row, 2);
-        String model = (String) tableModel.getValueAt(row, 3);
-        String type = (String) tableModel.getValueAt(row, 4);
-        String customer = (String) tableModel.getValueAt(row, 5);
-        
-        infoPanel.add(createBoldLabel("ID:"));
-        infoPanel.add(new JLabel(id));
-        infoPanel.add(createBoldLabel("Placa:"));
-        infoPanel.add(new JLabel(licensePlate));
-        infoPanel.add(createBoldLabel("Marca:"));
-        infoPanel.add(new JLabel(make));
-        infoPanel.add(createBoldLabel("Modelo:"));
-        infoPanel.add(new JLabel(model));
-        infoPanel.add(createBoldLabel("Cliente:"));
-        infoPanel.add(new JLabel(customer));
-        
-        // Maintenance history
-        JPanel historyPanel = new JPanel(new BorderLayout());
-        historyPanel.setBackground(UITheme.WHITE);
-        historyPanel.setBorder(BorderFactory.createTitledBorder("Historial de Mantenimiento"));
-        
-        String[] historyColumns = {"Fecha", "Tipo", "Descripción", "Kilometraje", "Estado"};
-        DefaultTableModel historyModel = new DefaultTableModel(historyColumns, 0);
-        JTable historyTable = new JTable(historyModel);
-        UITheme.applyTableTheme(historyTable);
-        
-        // Add some dummy data
-        historyModel.addRow(new Object[]{"2023-05-15", "Preventivo", "Cambio de aceite", "15000", "Completado"});
-        historyModel.addRow(new Object[]{"2023-03-10", "Correctivo", "Reparación de frenos", "12500", "Completado"});
-        
-        historyPanel.add(new JScrollPane(historyTable), BorderLayout.CENTER);
-        
-        // Close button
-        JButton closeButton = new JButton("Cerrar");
-        UITheme.applySecondaryButtonTheme(closeButton);
-        AnimationUtil.applyButtonHoverEffect(closeButton);
-        
-        closeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                AnimationUtil.fadeOut(detailsPanel, 300);
-                detailsPanel.setVisible(false);
+
+        // Get the customer ID
+        String customerIdStr = customerIdField.getText().trim();
+        if (!customerIdStr.isEmpty()) {
+            try {
+                vehicle.setCustomerId(Integer.parseInt(customerIdStr));
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Please enter a valid customer ID.");
             }
-        });
-        
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.add(closeButton);
-        
-        // Add all to details panel
-        detailsPanel.add(infoPanel, BorderLayout.NORTH);
-        detailsPanel.add(historyPanel, BorderLayout.CENTER);
-        detailsPanel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        // Show details panel with animation
-        detailsPanel.setVisible(true);
-        AnimationUtil.fadeIn(detailsPanel, 300);
+        } else {
+            throw new IllegalArgumentException("Please enter a customer ID.");
+        }
+
+        // Get the license plate
+        String licensePlate = licensePlateField.getText().trim();
+        if (!licensePlate.isEmpty()) {
+            vehicle.setLicensePlate(licensePlate);
+        } else {
+            throw new IllegalArgumentException("Please enter a license plate.");
+        }
+
+        // Get the make
+        String make = makeField.getText().trim();
+        if (!make.isEmpty()) {
+            vehicle.setMake(make);
+        } else {
+            throw new IllegalArgumentException("Please enter a make.");
+        }
+
+        // Get the model
+        String model = modelField.getText().trim();
+        if (!model.isEmpty()) {
+            vehicle.setModel(model);
+        } else {
+            throw new IllegalArgumentException("Please enter a model.");
+        }
+
+        // Get the year
+        String yearStr = yearField.getText().trim();
+        if (!yearStr.isEmpty()) {
+            try {
+                int year = Integer.parseInt(yearStr);
+                if (year < 1900 || year > 2100) {
+                    throw new IllegalArgumentException("Please enter a valid year (1900-2100).");
+                }
+                vehicle.setYear(year);
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Please enter a valid year.");
+            }
+        } else {
+            throw new IllegalArgumentException("Please enter a year.");
+        }
+
+        // Get the VIN
+        vehicle.setVin(vinField.getText().trim());
+
+        // Get the color
+        vehicle.setColor(colorField.getText().trim());
+
+        // Get the engine type
+        vehicle.setEngineType(engineTypeField.getText().trim());
+
+        // Get the transmission
+        vehicle.setTransmission(transmissionField.getText().trim());
+
+        // Get the mileage
+        String mileageStr = mileageField.getText().trim();
+        if (!mileageStr.isEmpty()) {
+            try {
+                vehicle.setCurrentMileage(Integer.parseInt(mileageStr));
+            } catch (NumberFormatException ex) {
+                throw new IllegalArgumentException("Please enter a valid mileage.");
+            }
+        } else {
+            throw new IllegalArgumentException("Please enter the current mileage.");
+        }
+
+        // Get the last service date
+        String lastServiceDateStr = lastServiceDateField.getText().trim();
+        if (!lastServiceDateStr.isEmpty()) {
+            vehicle.setLastServiceDate(DATE_FORMAT.parse(lastServiceDateStr));
+        }
+
+        // Get the notes
+        vehicle.setNotes(notesArea.getText().trim());
+
+        return vehicle;
     }
-    
-    private JLabel createBoldLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font(label.getFont().getName(), Font.BOLD, label.getFont().getSize()));
-        return label;
-    }
-    
-    // Method to update the table with vehicle data
+
+    /**
+     * Updates the vehicle table with the provided vehicles.
+     *
+     * @param vehicles The list of vehicles to display
+     */
     public void updateVehicleTable(List<Vehicle> vehicles) {
         // Clear the table
-        tableModel.setRowCount(0);
-        
+        vehicleTableModel.setRowCount(0);
+
         // Add vehicles to the table
         for (Vehicle vehicle : vehicles) {
-            Object[] row = {
-                    vehicle.getVehicleId(),
-                    vehicle.getLicensePlate(),
-                    vehicle.getMake(),
-                    vehicle.getModel(),
-                    vehicle.getType(),
-                    "Customer Name" // This would come from the customer object in a real implementation
-            };
-            tableModel.addRow(row);
+            Vector<Object> row = new Vector<>();
+            row.add(vehicle.getVehicleId());
+            row.add(vehicle.getCustomerId());
+            row.add(vehicle.getLicensePlate());
+            row.add(vehicle.getMake());
+            row.add(vehicle.getModel());
+            row.add(vehicle.getYear());
+            row.add(vehicle.getVin());
+            row.add(vehicle.getColor());
+            row.add(vehicle.getEngineType());
+            row.add(vehicle.getTransmission());
+            row.add(vehicle.getCurrentMileage());
+            row.add(vehicle.getLastServiceDate() != null ? DATE_FORMAT.format(vehicle.getLastServiceDate()) : "");
+
+            vehicleTableModel.addRow(row);
         }
+    }
+
+    /**
+     * Populates the form with the provided vehicle.
+     *
+     * @param vehicle The vehicle to display
+     */
+    public void populateVehicleForm(Vehicle vehicle) {
+        customerIdField.setText(String.valueOf(vehicle.getCustomerId()));
+        licensePlateField.setText(vehicle.getLicensePlate());
+        makeField.setText(vehicle.getMake());
+        modelField.setText(vehicle.getModel());
+        yearField.setText(String.valueOf(vehicle.getYear()));
+        vinField.setText(vehicle.getVin());
+        colorField.setText(vehicle.getColor());
+        engineTypeField.setText(vehicle.getEngineType());
+        transmissionField.setText(vehicle.getTransmission());
+        mileageField.setText(String.valueOf(vehicle.getCurrentMileage()));
+
+        if (vehicle.getLastServiceDate() != null) {
+            lastServiceDateField.setText(DATE_FORMAT.format(vehicle.getLastServiceDate()));
+        } else {
+            lastServiceDateField.setText("");
+        }
+
+        notesArea.setText(vehicle.getNotes());
     }
 }

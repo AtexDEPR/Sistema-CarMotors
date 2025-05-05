@@ -1,67 +1,254 @@
 package com.carmotorsproject.customers.views;
 
+import com.carmotorsproject.customers.controller.CustomerController;
 import com.carmotorsproject.customers.model.Customer;
-import com.carmotorsproject.utils.UITheme;
-import com.carmotorsproject.utils.AnimationUtil;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 /**
- * Customer management view
+ * Swing UI for managing customers.
+ * Provides a graphical interface for viewing, adding, updating, and deleting customers.
  */
-public class CustomerView extends JPanel {
+public class CustomerView extends JFrame {
 
+    // Controller
+    private CustomerController controller;
+
+    // UI Components
     private JTable customerTable;
     private DefaultTableModel tableModel;
-    private JTextField searchField;
-    private JButton addButton;
-    private JButton editButton;
-    private JButton deleteButton;
-    private JButton viewDetailsButton;
-    private JPanel formPanel;
-    private JPanel detailsPanel;
+    private JTextField txtFirstName;
+    private JTextField txtLastName;
+    private JTextField txtIdentification;
+    private JComboBox<String> cmbIdentificationType;
+    private JTextField txtEmail;
+    private JTextField txtPhone;
+    private JTextField txtAddress;
+    private JTextField txtCity;
+    private JTextField txtState;
+    private JTextField txtZipCode;
+    private JTextField txtCountry;
+    private JCheckBox chkActive;
+    private JTextArea txtNotes;
+    private JButton btnAdd;
+    private JButton btnUpdate;
+    private JButton btnDelete;
+    private JButton btnClear;
+    private JButton btnSearch;
+    private JTextField txtSearch;
+    private JComboBox<String> cmbSearchType;
 
-    // Form fields
-    private JTextField nameField;
-    private JTextField idField;
-    private JTextField phoneField;
-    private JTextField emailField;
+    // Selected customer ID
+    private int selectedCustomerId = 0;
 
-    // Controller reference will be added here
+    // Date formatter
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
+    /**
+     * Constructor that initializes the view.
+     */
     public CustomerView() {
-        setLayout(new BorderLayout());
-        setBackground(UITheme.WHITE);
-
         initComponents();
-        setupLayout();
-        setupListeners();
+        controller = new CustomerController(this);
+        loadCustomers();
     }
 
+    /**
+     * Initializes the UI components.
+     */
     private void initComponents() {
-        // Search panel
-        JPanel searchPanel = new JPanel(new BorderLayout());
-        searchPanel.setBackground(UITheme.WHITE);
-        searchPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        setTitle("Customer Management");
+        setSize(1000, 600);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setLocationRelativeTo(null);
 
-        searchField = new JTextField(20);
-        UITheme.applyTextFieldTheme(searchField);
+        // Main panel
+        JPanel mainPanel = new JPanel(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JButton searchButton = new JButton("Buscar");
-        UITheme.applyPrimaryButtonTheme(searchButton);
-        AnimationUtil.applyButtonHoverEffect(searchButton);
-
-        searchPanel.add(new JLabel("Buscar cliente:"), BorderLayout.WEST);
-        searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.add(searchButton, BorderLayout.EAST);
+        // Form panel
+        JPanel formPanel = createFormPanel();
 
         // Table panel
-        String[] columnNames = {"ID", "Nombre", "Identificación", "Teléfono", "Email"};
+        JPanel tablePanel = createTablePanel();
+
+        // Search panel
+        JPanel searchPanel = createSearchPanel();
+
+        // Button panel
+        JPanel buttonPanel = createButtonPanel();
+
+        // Add panels to main panel
+        mainPanel.add(searchPanel, BorderLayout.NORTH);
+        mainPanel.add(formPanel, BorderLayout.WEST);
+        mainPanel.add(tablePanel, BorderLayout.CENTER);
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+
+        // Add main panel to frame
+        add(mainPanel);
+
+        // Add action listeners
+        addActionListeners();
+    }
+
+    /**
+     * Creates the form panel.
+     *
+     * @return The form panel
+     */
+    private JPanel createFormPanel() {
+        JPanel formPanel = new JPanel(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createTitledBorder("Customer Details"));
+        formPanel.setPreferredSize(new Dimension(400, 500));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(5, 5, 5, 5);
+
+        // First Name
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        formPanel.add(new JLabel("First Name:"), gbc);
+
+        gbc.gridx = 1;
+        txtFirstName = new JTextField(20);
+        formPanel.add(txtFirstName, gbc);
+
+        // Last Name
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        formPanel.add(new JLabel("Last Name:"), gbc);
+
+        gbc.gridx = 1;
+        txtLastName = new JTextField(20);
+        formPanel.add(txtLastName, gbc);
+
+        // Identification
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        formPanel.add(new JLabel("Identification:"), gbc);
+
+        gbc.gridx = 1;
+        txtIdentification = new JTextField(20);
+        formPanel.add(txtIdentification, gbc);
+
+        // Identification Type
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        formPanel.add(new JLabel("ID Type:"), gbc);
+
+        gbc.gridx = 1;
+        cmbIdentificationType = new JComboBox<>(new String[]{"ID Card", "Passport", "Driver's License", "Other"});
+        formPanel.add(cmbIdentificationType, gbc);
+
+        // Email
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        formPanel.add(new JLabel("Email:"), gbc);
+
+        gbc.gridx = 1;
+        txtEmail = new JTextField(20);
+        formPanel.add(txtEmail, gbc);
+
+        // Phone
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        formPanel.add(new JLabel("Phone:"), gbc);
+
+        gbc.gridx = 1;
+        txtPhone = new JTextField(20);
+        formPanel.add(txtPhone, gbc);
+
+        // Address
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        formPanel.add(new JLabel("Address:"), gbc);
+
+        gbc.gridx = 1;
+        txtAddress = new JTextField(20);
+        formPanel.add(txtAddress, gbc);
+
+        // City
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        formPanel.add(new JLabel("City:"), gbc);
+
+        gbc.gridx = 1;
+        txtCity = new JTextField(20);
+        formPanel.add(txtCity, gbc);
+
+        // State
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        formPanel.add(new JLabel("State:"), gbc);
+
+        gbc.gridx = 1;
+        txtState = new JTextField(20);
+        formPanel.add(txtState, gbc);
+
+        // ZIP Code
+        gbc.gridx = 0;
+        gbc.gridy = 9;
+        formPanel.add(new JLabel("ZIP Code:"), gbc);
+
+        gbc.gridx = 1;
+        txtZipCode = new JTextField(20);
+        formPanel.add(txtZipCode, gbc);
+
+        // Country
+        gbc.gridx = 0;
+        gbc.gridy = 10;
+        formPanel.add(new JLabel("Country:"), gbc);
+
+        gbc.gridx = 1;
+        txtCountry = new JTextField(20);
+        formPanel.add(txtCountry, gbc);
+
+        // Active
+        gbc.gridx = 0;
+        gbc.gridy = 11;
+        formPanel.add(new JLabel("Active:"), gbc);
+
+        gbc.gridx = 1;
+        chkActive = new JCheckBox();
+        chkActive.setSelected(true);
+        formPanel.add(chkActive, gbc);
+
+        // Notes
+        gbc.gridx = 0;
+        gbc.gridy = 12;
+        formPanel.add(new JLabel("Notes:"), gbc);
+
+        gbc.gridx = 1;
+        gbc.gridheight = 2;
+        txtNotes = new JTextArea(4, 20);
+        JScrollPane notesScrollPane = new JScrollPane(txtNotes);
+        formPanel.add(notesScrollPane, gbc);
+
+        return formPanel;
+    }
+
+    /**
+     * Creates the table panel.
+     *
+     * @return The table panel
+     */
+    private JPanel createTablePanel() {
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBorder(BorderFactory.createTitledBorder("Customer List"));
+
+        // Create table model
+        String[] columnNames = {"ID", "Name", "Identification", "Email", "Phone", "Active"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
@@ -69,402 +256,146 @@ public class CustomerView extends JPanel {
             }
         };
 
+        // Create table
         customerTable = new JTable(tableModel);
-        UITheme.applyTableTheme(customerTable);
+        customerTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        customerTable.getTableHeader().setReorderingAllowed(false);
 
+        // Add table to scroll pane
         JScrollPane scrollPane = new JScrollPane(customerTable);
-        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        addButton = new JButton("Agregar Cliente");
-        editButton = new JButton("Editar Cliente");
-        deleteButton = new JButton("Eliminar Cliente");
-        viewDetailsButton = new JButton("Ver Detalles");
-
-        UITheme.applyPrimaryButtonTheme(addButton);
-        UITheme.applySecondaryButtonTheme(editButton);
-        UITheme.applySecondaryButtonTheme(deleteButton);
-        UITheme.applySecondaryButtonTheme(viewDetailsButton);
-
-        AnimationUtil.applyButtonHoverEffect(addButton);
-        AnimationUtil.applyButtonHoverEffect(editButton);
-        AnimationUtil.applyButtonHoverEffect(deleteButton);
-        AnimationUtil.applyButtonHoverEffect(viewDetailsButton);
-
-        buttonPanel.add(addButton);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(viewDetailsButton);
-
-        // Form panel (initially hidden)
-        formPanel = new JPanel();
-        formPanel.setLayout(new BoxLayout(formPanel, BoxLayout.Y_AXIS));
-        formPanel.setBackground(UITheme.WHITE);
-        formPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-        formPanel.setVisible(false);
-
-        // Form fields
-        JPanel fieldsPanel = new JPanel(new GridLayout(4, 2, 10, 10));
-        fieldsPanel.setBackground(UITheme.WHITE);
-
-        nameField = new JTextField(20);
-        idField = new JTextField(20);
-        phoneField = new JTextField(20);
-        emailField = new JTextField(20);
-
-        UITheme.applyTextFieldTheme(nameField);
-        UITheme.applyTextFieldTheme(idField);
-        UITheme.applyTextFieldTheme(phoneField);
-        UITheme.applyTextFieldTheme(emailField);
-
-        fieldsPanel.add(new JLabel("Nombre:"));
-        fieldsPanel.add(nameField);
-        fieldsPanel.add(new JLabel("Identificación:"));
-        fieldsPanel.add(idField);
-        fieldsPanel.add(new JLabel("Teléfono:"));
-        fieldsPanel.add(phoneField);
-        fieldsPanel.add(new JLabel("Email:"));
-        fieldsPanel.add(emailField);
-
-        // Form buttons
-        JPanel formButtonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        formButtonPanel.setBackground(UITheme.WHITE);
-
-        JButton saveButton = new JButton("Guardar");
-        JButton cancelButton = new JButton("Cancelar");
-
-        UITheme.applyPrimaryButtonTheme(saveButton);
-        UITheme.applySecondaryButtonTheme(cancelButton);
-
-        AnimationUtil.applyButtonHoverEffect(saveButton);
-        AnimationUtil.applyButtonHoverEffect(cancelButton);
-
-        formButtonPanel.add(saveButton);
-        formButtonPanel.add(cancelButton);
-
-        formPanel.add(fieldsPanel);
-        formPanel.add(Box.createVerticalStrut(20));
-        formPanel.add(formButtonPanel);
-
-        // Details panel (initially hidden)
-        detailsPanel = new JPanel();
-        detailsPanel.setLayout(new BorderLayout());
-        detailsPanel.setBackground(UITheme.WHITE);
-        detailsPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, UITheme.LIGHT_GRAY),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-        detailsPanel.setVisible(false);
-
-        // Save button action
-        saveButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                saveCustomer();
-            }
-        });
-
-        // Cancel button action
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                hideForm();
-            }
-        });
+        return tablePanel;
     }
 
-    private void setupLayout() {
-        // Search panel at the top
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.setBackground(UITheme.WHITE);
-
+    /**
+     * Creates the search panel.
+     *
+     * @return The search panel
+     */
+    private JPanel createSearchPanel() {
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.setBackground(UITheme.WHITE);
-        searchPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        searchPanel.setBorder(BorderFactory.createTitledBorder("Search"));
 
-        searchPanel.add(new JLabel("Buscar:"));
-        searchPanel.add(searchField);
+        // Search type combo box
+        cmbSearchType = new JComboBox<>(new String[]{"Name", "Identification", "Email", "Phone"});
+        searchPanel.add(cmbSearchType);
 
-        JButton searchButton = new JButton("Buscar");
-        UITheme.applyPrimaryButtonTheme(searchButton);
-        searchPanel.add(searchButton);
+        // Search text field
+        txtSearch = new JTextField(20);
+        searchPanel.add(txtSearch);
 
-        topPanel.add(searchPanel, BorderLayout.WEST);
-        topPanel.add(addButton, BorderLayout.EAST);
+        // Search button
+        btnSearch = new JButton("Search");
+        searchPanel.add(btnSearch);
 
-        // Main content panel
-        JPanel contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBackground(UITheme.WHITE);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 10));
+        // Reset button
+        JButton btnReset = new JButton("Reset");
+        btnReset.addActionListener(e -> {
+            txtSearch.setText("");
+            loadCustomers();
+        });
+        searchPanel.add(btnReset);
 
-        // Table with scroll pane
-        JScrollPane scrollPane = new JScrollPane(customerTable);
-        contentPanel.add(scrollPane, BorderLayout.CENTER);
-
-        // Button panel at the bottom of the table
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.add(editButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(viewDetailsButton);
-
-        contentPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // Add all panels to the main panel
-        add(topPanel, BorderLayout.NORTH);
-        add(contentPanel, BorderLayout.CENTER);
-        add(formPanel, BorderLayout.SOUTH);
-        add(detailsPanel, BorderLayout.SOUTH);
+        return searchPanel;
     }
 
-    private void setupListeners() {
-        // Add button action
-        addButton.addActionListener(new ActionListener() {
+    /**
+     * Creates the button panel.
+     *
+     * @return The button panel
+     */
+    private JPanel createButtonPanel() {
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+
+        // Add button
+        btnAdd = new JButton("Add");
+        buttonPanel.add(btnAdd);
+
+        // Update button
+        btnUpdate = new JButton("Update");
+        buttonPanel.add(btnUpdate);
+
+        // Delete button
+        btnDelete = new JButton("Delete");
+        buttonPanel.add(btnDelete);
+
+        // Clear button
+        btnClear = new JButton("Clear");
+        buttonPanel.add(btnClear);
+
+        return buttonPanel;
+    }
+
+    /**
+     * Adds action listeners to the buttons and table.
+     */
+    private void addActionListeners() {
+        // Add button
+        btnAdd.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                showAddForm();
+                addCustomer();
             }
         });
 
-        // Edit button action
-        editButton.addActionListener(new ActionListener() {
+        // Update button
+        btnUpdate.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int selectedRow = customerTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    showEditForm(selectedRow);
-                } else {
-                    JOptionPane.showMessageDialog(CustomerView.this,
-                            "Por favor, seleccione un cliente para editar.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
+                updateCustomer();
+            }
+        });
+
+        // Delete button
+        btnDelete.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                deleteCustomer();
+            }
+        });
+
+        // Clear button
+        btnClear.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                clearForm();
+            }
+        });
+
+        // Search button
+        btnSearch.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                searchCustomers();
+            }
+        });
+
+        // Table row selection
+        customerTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = customerTable.getSelectedRow();
+                if (row >= 0) {
+                    selectedCustomerId = (int) customerTable.getValueAt(row, 0);
+                    controller.loadCustomerDetails(selectedCustomerId);
                 }
             }
         });
-
-        // Delete button action
-        deleteButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = customerTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    int option = JOptionPane.showConfirmDialog(CustomerView.this,
-                            "¿Está seguro de que desea eliminar este cliente?",
-                            "Confirmar eliminación",
-                            JOptionPane.YES_NO_OPTION);
-
-                    if (option == JOptionPane.YES_OPTION) {
-                        deleteCustomer(selectedRow);
-                    }
-                } else {
-                    JOptionPane.showMessageDialog(CustomerView.this,
-                            "Por favor, seleccione un cliente para eliminar.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
-
-        // View details button action
-        viewDetailsButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int selectedRow = customerTable.getSelectedRow();
-                if (selectedRow >= 0) {
-                    showCustomerDetails(selectedRow);
-                } else {
-                    JOptionPane.showMessageDialog(CustomerView.this,
-                            "Por favor, seleccione un cliente para ver detalles.",
-                            "Selección requerida",
-                            JOptionPane.WARNING_MESSAGE);
-                }
-            }
-        });
     }
 
-    // Show the add customer form
-    private void showAddForm() {
-        // Clear form fields
-        nameField.setText("");
-        idField.setText("");
-        phoneField.setText("");
-        emailField.setText("");
-
-        // Hide details panel if visible
-        if (detailsPanel.isVisible()) {
-            AnimationUtil.fadeOut(detailsPanel, 300);
-            detailsPanel.setVisible(false);
-        }
-
-        // Show form panel with animation
-        formPanel.setVisible(true);
-        AnimationUtil.fadeIn(formPanel, 300);
+    /**
+     * Loads all customers and updates the table.
+     */
+    public void loadCustomers() {
+        controller.loadCustomers();
     }
 
-    // Show the edit customer form
-    private void showEditForm(int row) {
-        // Populate form fields with selected customer data
-        nameField.setText((String) tableModel.getValueAt(row, 1));
-        idField.setText((String) tableModel.getValueAt(row, 2));
-        phoneField.setText((String) tableModel.getValueAt(row, 3));
-        emailField.setText((String) tableModel.getValueAt(row, 4));
-
-        // Hide details panel if visible
-        if (detailsPanel.isVisible()) {
-            AnimationUtil.fadeOut(detailsPanel, 300);
-            detailsPanel.setVisible(false);
-        }
-
-        // Show form panel with animation
-        formPanel.setVisible(true);
-        AnimationUtil.fadeIn(formPanel, 300);
-    }
-
-    // Hide the form
-    private void hideForm() {
-        AnimationUtil.fadeOut(formPanel, 300);
-        formPanel.setVisible(false);
-    }
-
-    // Save customer (add or update)
-    private void saveCustomer() {
-        // Validate form fields
-        if (nameField.getText().trim().isEmpty() || idField.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this,
-                    "Por favor, complete los campos obligatorios (Nombre e Identificación).",
-                    "Campos incompletos",
-                    JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-
-        // Create customer object
-        Customer customer = new Customer();
-        customer.setName(nameField.getText().trim());
-        customer.setIdentification(idField.getText().trim());
-        customer.setPhone(phoneField.getText().trim());
-        customer.setEmail(emailField.getText().trim());
-
-        // TODO: Save customer using controller
-
-        // For now, just add to table model
-        Object[] row = {
-                "1", // Placeholder ID
-                customer.getName(),
-                customer.getIdentification(),
-                customer.getPhone(),
-                customer.getEmail()
-        };
-
-        tableModel.addRow(row);
-
-        // Hide form
-        hideForm();
-
-        // Show success message
-        JOptionPane.showMessageDialog(this,
-                "Cliente guardado exitosamente.",
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    // Delete customer
-    private void deleteCustomer(int row) {
-        // TODO: Delete customer using controller
-
-        // For now, just remove from table model
-        tableModel.removeRow(row);
-
-        // Show success message
-        JOptionPane.showMessageDialog(this,
-                "Cliente eliminado exitosamente.",
-                "Éxito",
-                JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    // Show customer details
-    private void showCustomerDetails(int row) {
-        // Hide form panel if visible
-        if (formPanel.isVisible()) {
-            AnimationUtil.fadeOut(formPanel, 300);
-            formPanel.setVisible(false);
-        }
-
-        // Create details content
-        detailsPanel.removeAll();
-
-        JPanel infoPanel = new JPanel(new GridLayout(5, 2, 10, 10));
-        infoPanel.setBackground(UITheme.WHITE);
-
-        String id = (String) tableModel.getValueAt(row, 0);
-        String name = (String) tableModel.getValueAt(row, 1);
-        String identification = (String) tableModel.getValueAt(row, 2);
-        String phone = (String) tableModel.getValueAt(row, 3);
-        String email = (String) tableModel.getValueAt(row, 4);
-
-        infoPanel.add(createBoldLabel("ID:"));
-        infoPanel.add(new JLabel(id));
-        infoPanel.add(createBoldLabel("Nombre:"));
-        infoPanel.add(new JLabel(name));
-        infoPanel.add(createBoldLabel("Identificación:"));
-        infoPanel.add(new JLabel(identification));
-        infoPanel.add(createBoldLabel("Teléfono:"));
-        infoPanel.add(new JLabel(phone));
-        infoPanel.add(createBoldLabel("Email:"));
-        infoPanel.add(new JLabel(email));
-
-        // Add vehicle list (placeholder)
-        JPanel vehiclePanel = new JPanel(new BorderLayout());
-        vehiclePanel.setBackground(UITheme.WHITE);
-        vehiclePanel.setBorder(BorderFactory.createTitledBorder("Vehículos registrados"));
-
-        String[] vehicleColumns = {"Placa", "Marca", "Modelo", "Tipo"};
-        DefaultTableModel vehicleModel = new DefaultTableModel(vehicleColumns, 0);
-        JTable vehicleTable = new JTable(vehicleModel);
-        UITheme.applyTableTheme(vehicleTable);
-
-        vehiclePanel.add(new JScrollPane(vehicleTable), BorderLayout.CENTER);
-
-        // Close button
-        JButton closeButton = new JButton("Cerrar");
-        UITheme.applySecondaryButtonTheme(closeButton);
-        AnimationUtil.applyButtonHoverEffect(closeButton);
-
-        closeButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                AnimationUtil.fadeOut(detailsPanel, 300);
-                detailsPanel.setVisible(false);
-            }
-        });
-
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        buttonPanel.setBackground(UITheme.WHITE);
-        buttonPanel.add(closeButton);
-
-        // Add all to details panel
-        detailsPanel.add(infoPanel, BorderLayout.NORTH);
-        detailsPanel.add(vehiclePanel, BorderLayout.CENTER);
-        detailsPanel.add(buttonPanel, BorderLayout.SOUTH);
-
-        // Show details panel with animation
-        detailsPanel.setVisible(true);
-        AnimationUtil.fadeIn(detailsPanel, 300);
-    }
-
-    private JLabel createBoldLabel(String text) {
-        JLabel label = new JLabel(text);
-        label.setFont(new Font(label.getFont().getName(), Font.BOLD, label.getFont().getSize()));
-        return label;
-    }
-
-    // Method to update the table with customer data
+    /**
+     * Updates the customer table with the provided list of customers.
+     *
+     * @param customers The list of customers to display
+     */
     public void updateCustomerTable(List<Customer> customers) {
         // Clear the table
         tableModel.setRowCount(0);
@@ -473,12 +404,231 @@ public class CustomerView extends JPanel {
         for (Customer customer : customers) {
             Object[] row = {
                     customer.getCustomerId(),
-                    customer.getName(),
+                    customer.getFullName(),
                     customer.getIdentification(),
+                    customer.getEmail(),
                     customer.getPhone(),
-                    customer.getEmail()
+                    customer.isActive()
             };
             tableModel.addRow(row);
         }
+    }
+
+    /**
+     * Populates the form with the details of a customer.
+     *
+     * @param customer The customer to display
+     */
+    public void populateCustomerForm(Customer customer) {
+        selectedCustomerId = customer.getCustomerId();
+        txtFirstName.setText(customer.getFirstName());
+        txtLastName.setText(customer.getLastName());
+        txtIdentification.setText(customer.getIdentification());
+        cmbIdentificationType.setSelectedItem(customer.getIdentificationType());
+        txtEmail.setText(customer.getEmail());
+        txtPhone.setText(customer.getPhone());
+        txtAddress.setText(customer.getAddress());
+        txtCity.setText(customer.getCity());
+        txtState.setText(customer.getState());
+        txtZipCode.setText(customer.getZipCode());
+        txtCountry.setText(customer.getCountry());
+        chkActive.setSelected(customer.isActive());
+        txtNotes.setText(customer.getNotes());
+    }
+
+    /**
+     * Clears the form.
+     */
+    public void clearForm() {
+        selectedCustomerId = 0;
+        txtFirstName.setText("");
+        txtLastName.setText("");
+        txtIdentification.setText("");
+        cmbIdentificationType.setSelectedIndex(0);
+        txtEmail.setText("");
+        txtPhone.setText("");
+        txtAddress.setText("");
+        txtCity.setText("");
+        txtState.setText("");
+        txtZipCode.setText("");
+        txtCountry.setText("");
+        chkActive.setSelected(true);
+        txtNotes.setText("");
+        customerTable.clearSelection();
+    }
+
+    /**
+     * Adds a new customer.
+     */
+    private void addCustomer() {
+        try {
+            // Create a new customer from form data
+            Customer customer = getCustomerFromForm();
+
+            // Add the customer
+            controller.addCustomer(customer);
+
+            // Clear the form
+            clearForm();
+
+            // Show success message
+            JOptionPane.showMessageDialog(this, "Customer added successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error adding customer: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Updates an existing customer.
+     */
+    private void updateCustomer() {
+        if (selectedCustomerId == 0) {
+            JOptionPane.showMessageDialog(this, "Please select a customer to update.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        try {
+            // Create a customer from form data
+            Customer customer = getCustomerFromForm();
+            customer.setCustomerId(selectedCustomerId);
+
+            // Update the customer
+            controller.updateCustomer(customer);
+
+            // Clear the form
+            clearForm();
+
+            // Show success message
+            JOptionPane.showMessageDialog(this, "Customer updated successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error updating customer: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Deletes a customer.
+     */
+    private void deleteCustomer() {
+        if (selectedCustomerId == 0) {
+            JOptionPane.showMessageDialog(this, "Please select a customer to delete.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+        // Confirm deletion
+        int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this customer?", "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        try {
+            // Delete the customer
+            controller.deleteCustomer(selectedCustomerId);
+
+            // Clear the form
+            clearForm();
+
+            // Show success message
+            JOptionPane.showMessageDialog(this, "Customer deleted successfully.", "Success", JOptionPane.INFORMATION_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error deleting customer: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Searches for customers based on the search criteria.
+     */
+    private void searchCustomers() {
+        String searchText = txtSearch.getText().trim();
+        if (searchText.isEmpty()) {
+            loadCustomers();
+            return;
+        }
+
+        String searchType = (String) cmbSearchType.getSelectedItem();
+
+        try {
+            switch (searchType) {
+                case "Name":
+                    controller.searchCustomersByName(searchText);
+                    break;
+                case "Identification":
+                    controller.searchCustomersByIdentification(searchText);
+                    break;
+                case "Email":
+                    controller.searchCustomersByEmail(searchText);
+                    break;
+                case "Phone":
+                    controller.searchCustomersByPhone(searchText);
+                    break;
+                default:
+                    loadCustomers();
+                    break;
+            }
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Error searching customers: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Creates a Customer object from the form data.
+     *
+     * @return A Customer object with data from the form
+     */
+    private Customer getCustomerFromForm() {
+        Customer customer = new Customer();
+
+        // Set customer properties from form fields
+        customer.setFirstName(txtFirstName.getText().trim());
+        customer.setLastName(txtLastName.getText().trim());
+        customer.setIdentification(txtIdentification.getText().trim());
+        customer.setIdentificationType((String) cmbIdentificationType.getSelectedItem());
+        customer.setEmail(txtEmail.getText().trim());
+        customer.setPhone(txtPhone.getText().trim());
+        customer.setAddress(txtAddress.getText().trim());
+        customer.setCity(txtCity.getText().trim());
+        customer.setState(txtState.getText().trim());
+        customer.setZipCode(txtZipCode.getText().trim());
+        customer.setCountry(txtCountry.getText().trim());
+        customer.setActive(chkActive.isSelected());
+        customer.setNotes(txtNotes.getText().trim());
+
+        // Set registration date to current date for new customers
+        if (selectedCustomerId == 0) {
+            customer.setRegistrationDate(new Date());
+        }
+
+        return customer;
+    }
+
+    /**
+     * Shows an error message.
+     *
+     * @param message The error message to show
+     */
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+    }
+
+    /**
+     * Shows an information message.
+     *
+     * @param message The information message to show
+     */
+    public void showInfo(String message) {
+        JOptionPane.showMessageDialog(this, message, "Information", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Main method for testing the view.
+     *
+     * @param args Command line arguments
+     */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                new CustomerView().setVisible(true);
+            }
+        });
     }
 }

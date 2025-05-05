@@ -1,336 +1,341 @@
 package com.carmotorsproject.campaigns.controller;
 
 import com.carmotorsproject.campaigns.model.Inspection;
-import com.carmotorsproject.campaigns.model.InspectionItem;
-import com.carmotorsproject.campaigns.service.InspectionService;
+import com.carmotorsproject.campaigns.model.InspectionResult;
+import com.carmotorsproject.campaigns.model.InspectionDAO;
 import com.carmotorsproject.campaigns.views.InspectionView;
-import com.carmotorsproject.customers.model.Customer;
-import com.carmotorsproject.customers.service.CustomerService;
-import com.carmotorsproject.utils.ValidationUtil;
-import com.carmotorsproject.vehicles.model.Vehicle;
-import com.carmotorsproject.vehicles.service.VehicleService;
+import com.carmotorsproject.campaigns.model.DAOFactory;
 
+import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Controller for managing vehicle inspections
  */
 public class InspectionController {
-    
-    private InspectionService inspectionService;
-    private CustomerService customerService;
-    private VehicleService vehicleService;
+
+    private static final Logger LOGGER = Logger.getLogger(InspectionController.class.getName());
+
+    private InspectionDAO inspectionDAO;
     private InspectionView inspectionView;
-    
-    public InspectionController(InspectionService inspectionService,
-                               CustomerService customerService,
-                               VehicleService vehicleService,
-                               InspectionView inspectionView) {
-        this.inspectionService = inspectionService;
-        this.customerService = customerService;
-        this.vehicleService = vehicleService;
-        this.inspectionView = inspectionView;
-        
+
+    /**
+     * Constructor that initializes the controller with a view.
+     *
+     * @param view The inspection view
+     */
+    public InspectionController(InspectionView view) {
+        this.inspectionView = view;
+        this.inspectionDAO = DAOFactory.getInspectionDAO();
+
         // Initialize view with controller reference
         this.inspectionView.setController(this);
-        
+
         // Load initial data
         loadAllInspections();
+
+        LOGGER.log(Level.INFO, "InspectionController initialized");
     }
-    
+
     /**
      * Load all inspections and update the view
      */
     public void loadAllInspections() {
-        List<Inspection> inspections = inspectionService.getAllInspections();
-        inspectionView.updateInspectionTable(inspections);
+        try {
+            List<Inspection> inspections = inspectionDAO.findAll();
+            inspectionView.updateInspectionTable(inspections);
+            LOGGER.log(Level.INFO, "Loaded {0} inspections", inspections.size());
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error loading inspections", ex);
+            inspectionView.showError("Error loading inspections: " + ex.getMessage());
+        }
     }
-    
+
     /**
      * Load inspections for a specific vehicle
-     * 
+     *
      * @param vehicleId Vehicle ID
      */
-    public void loadInspectionsByVehicle(String vehicleId) {
-        List<Inspection> inspections = inspectionService.getInspectionsByVehicle(vehicleId);
-        inspectionView.updateInspectionTable(inspections);
+    public void loadInspectionsByVehicle(int vehicleId) {
+        try {
+            List<Inspection> inspections = inspectionDAO.findByVehicle(vehicleId);
+            inspectionView.updateInspectionTable(inspections);
+            LOGGER.log(Level.INFO, "Loaded {0} inspections for vehicle ID: {1}",
+                    new Object[]{inspections.size(), vehicleId});
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error loading inspections by vehicle", ex);
+            inspectionView.showError("Error loading inspections: " + ex.getMessage());
+        }
     }
-    
-    /**
-     * Load inspections for a specific customer
-     * 
-     * @param customerId Customer ID
-     */
-    public void loadInspectionsByCustomer(String customerId) {
-        List<Inspection> inspections = inspectionService.getInspectionsByCustomer(customerId);
-        inspectionView.updateInspectionTable(inspections);
-    }
-    
+
     /**
      * Create a new inspection
-     * 
-     * @param vehicleId Vehicle ID
-     * @param customerId Customer ID
-     * @param technicianName Technician name
-     * @param notes General notes
-     * @param inspectionItems List of inspection items
+     *
+     * @param inspection The inspection to create
      * @return True if inspection was created successfully
      */
-    public boolean createInspection(String vehicleId, String customerId, 
-                                   String technicianName, String notes,
-                                   List<InspectionItem> inspectionItems) {
-        
-        // Validate input
-        Map<String, String> validationErrors = validateInspectionInput(vehicleId, customerId, technicianName);
-        
-        if (!validationErrors.isEmpty()) {
-            inspectionView.showValidationErrors(validationErrors);
-            return false;
-        }
-        
-        // Check if vehicle exists
-        Vehicle vehicle = vehicleService.getVehicleById(vehicleId);
-        if (vehicle == null) {
-            inspectionView.showErrorMessage("Vehículo no encontrado");
-            return false;
-        }
-        
-        // Check if customer exists
-        Customer customer = customerService.getCustomerById(customerId);
-        if (customer == null) {
-            inspectionView.showErrorMessage("Cliente no encontrado");
-            return false;
-        }
-        
-        // Create inspection object
-        Inspection inspection = new Inspection();
-        inspection.setVehicleId(vehicleId);
-        inspection.setCustomerId(customerId);
-        inspection.setTechnicianName(technicianName);
-        inspection.setNotes(notes);
-        inspection.setInspectionDate(new Date());
-        inspection.setStatus("Completada");
-        
-        // Calculate overall condition based on inspection items
-        int totalScore = 0;
-        for (InspectionItem item : inspectionItems) {
-            totalScore += item.getConditionScore();
-        }
-        double averageScore = (double) totalScore / inspectionItems.size();
-        
-        if (averageScore >= 4.0) {
-            inspection.setOverallCondition("Excelente");
-        } else if (averageScore >= 3.0) {
-            inspection.setOverallCondition("Bueno");
-        } else if (averageScore >= 2.0) {
-            inspection.setOverallCondition("Regular");
-        } else {
-            inspection.setOverallCondition("Deficiente");
-        }
-        
-        // Save inspection and its items
-        boolean success = inspectionService.saveInspection(inspection, inspectionItems);
-        
-        if (success) {
+    public boolean createInspection(Inspection inspection) {
+        try {
+            // Validate input
+            Map<String, String> validationErrors = validateInspection(inspection);
+
+            if (!validationErrors.isEmpty()) {
+                inspectionView.showValidationErrors(validationErrors);
+                return false;
+            }
+
+            // Set current date if not provided
+            if (inspection.getInspectionDate() == null) {
+                inspection.setInspectionDate(new Date());
+            }
+
+            // Save inspection
+            Inspection savedInspection = inspectionDAO.save(inspection);
+
             // Refresh inspection list
             loadAllInspections();
-            inspectionView.showSuccessMessage("Inspección guardada exitosamente");
-        } else {
-            inspectionView.showErrorMessage("Error al guardar la inspección");
-        }
-        
-        return success;
-    }
-    
-    /**
-     * Get inspection details
-     * 
-     * @param inspectionId Inspection ID
-     */
-    public void getInspectionDetails(String inspectionId) {
-        Inspection inspection = inspectionService.getInspectionById(inspectionId);
-        
-        if (inspection == null) {
-            inspectionView.showErrorMessage("Inspección no encontrada");
-            return;
-        }
-        
-        List<InspectionItem> inspectionItems = inspectionService.getInspectionItems(inspectionId);
-        
-        // Get vehicle and customer details
-        Vehicle vehicle = vehicleService.getVehicleById(inspection.getVehicleId());
-        Customer customer = customerService.getCustomerById(inspection.getCustomerId());
-        
-        inspectionView.displayInspectionDetails(inspection, inspectionItems, vehicle, customer);
-    }
-    
-    /**
-     * Generate inspection report
-     * 
-     * @param inspectionId Inspection ID
-     * @return True if report was generated successfully
-     */
-    public boolean generateInspectionReport(String inspectionId) {
-        Inspection inspection = inspectionService.getInspectionById(inspectionId);
-        
-        if (inspection == null) {
-            inspectionView.showErrorMessage("Inspección no encontrada");
+
+            inspectionView.showSuccess("Inspection saved successfully with ID: " + savedInspection.getInspectionId());
+            LOGGER.log(Level.INFO, "Created inspection with ID: {0}", savedInspection.getInspectionId());
+
+            return true;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error creating inspection", ex);
+            inspectionView.showError("Error creating inspection: " + ex.getMessage());
             return false;
         }
-        
-        List<InspectionItem> inspectionItems = inspectionService.getInspectionItems(inspectionId);
-        
-        // Get vehicle and customer details
-        Vehicle vehicle = vehicleService.getVehicleById(inspection.getVehicleId());
-        Customer customer = customerService.getCustomerById(inspection.getCustomerId());
-        
-        boolean success = inspectionService.generateInspectionReport(inspection, inspectionItems, vehicle, customer);
-        
-        if (success) {
-            inspectionView.showSuccessMessage("Reporte de inspección generado exitosamente");
-        } else {
-            inspectionView.showErrorMessage("Error al generar el reporte de inspección");
-        }
-        
-        return success;
     }
-    
+
+    /**
+     * Update an existing inspection
+     *
+     * @param inspection The inspection to update
+     * @return True if inspection was updated successfully
+     */
+    public boolean updateInspection(Inspection inspection) {
+        try {
+            // Validate input
+            Map<String, String> validationErrors = validateInspection(inspection);
+
+            if (!validationErrors.isEmpty()) {
+                inspectionView.showValidationErrors(validationErrors);
+                return false;
+            }
+
+            // Update inspection
+            Inspection updatedInspection = inspectionDAO.update(inspection);
+
+            // Refresh inspection list
+            loadAllInspections();
+
+            inspectionView.showSuccess("Inspection updated successfully with ID: " + updatedInspection.getInspectionId());
+            LOGGER.log(Level.INFO, "Updated inspection with ID: {0}", updatedInspection.getInspectionId());
+
+            return true;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error updating inspection", ex);
+            inspectionView.showError("Error updating inspection: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Delete an inspection
+     *
+     * @param inspectionId The ID of the inspection to delete
+     * @return True if inspection was deleted successfully
+     */
+    public boolean deleteInspection(int inspectionId) {
+        try {
+            boolean deleted = inspectionDAO.delete(inspectionId);
+
+            if (deleted) {
+                // Refresh inspection list
+                loadAllInspections();
+
+                inspectionView.showSuccess("Inspection deleted successfully with ID: " + inspectionId);
+                LOGGER.log(Level.INFO, "Deleted inspection with ID: {0}", inspectionId);
+            } else {
+                inspectionView.showError("Inspection not found with ID: " + inspectionId);
+                LOGGER.log(Level.WARNING, "Inspection not found with ID: {0}", inspectionId);
+            }
+
+            return deleted;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error deleting inspection", ex);
+            inspectionView.showError("Error deleting inspection: " + ex.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Get inspection details
+     *
+     * @param inspectionId Inspection ID
+     */
+    public void getInspectionDetails(int inspectionId) {
+        try {
+            Inspection inspection = inspectionDAO.findById(inspectionId);
+
+            if (inspection == null) {
+                inspectionView.showError("Inspection not found with ID: " + inspectionId);
+                LOGGER.log(Level.WARNING, "Inspection not found with ID: {0}", inspectionId);
+                return;
+            }
+
+            inspectionView.populateInspectionForm(inspection);
+            LOGGER.log(Level.INFO, "Loaded details for inspection ID: {0}", inspectionId);
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error loading inspection details", ex);
+            inspectionView.showError("Error loading inspection details: " + ex.getMessage());
+        }
+    }
+
     /**
      * Filter inspections by date range
-     * 
+     *
      * @param startDate Start date
      * @param endDate End date
      */
     public void filterInspectionsByDateRange(Date startDate, Date endDate) {
         if (startDate == null || endDate == null) {
-            inspectionView.showErrorMessage("Ambas fechas son requeridas para filtrar por rango");
+            inspectionView.showError("Both dates are required to filter by range");
             return;
         }
-        
-        List<Inspection> inspections = inspectionService.getInspectionsByDateRange(startDate, endDate);
-        inspectionView.updateInspectionTable(inspections);
+
+        try {
+            List<Inspection> inspections = inspectionDAO.findByDateRange(startDate, endDate);
+            inspectionView.updateInspectionTable(inspections);
+            LOGGER.log(Level.INFO, "Found {0} inspections in date range: {1} to {2}",
+                    new Object[]{inspections.size(), startDate, endDate});
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error filtering inspections by date range", ex);
+            inspectionView.showError("Error filtering inspections: " + ex.getMessage());
+        }
     }
-    
+
     /**
-     * Filter inspections by overall condition
-     * 
-     * @param condition Overall condition
+     * Filter inspections by result
+     *
+     * @param result Inspection result
      */
-    public void filterInspectionsByCondition(String condition) {
-        if (condition == null || condition.equals("Todos")) {
+    public void filterInspectionsByResult(InspectionResult result) {
+        if (result == null) {
             loadAllInspections();
             return;
         }
-        
-        List<Inspection> inspections = inspectionService.getInspectionsByCondition(condition);
-        inspectionView.updateInspectionTable(inspections);
+
+        try {
+            List<Inspection> inspections = inspectionDAO.findByResult(result);
+            inspectionView.updateInspectionTable(inspections);
+            LOGGER.log(Level.INFO, "Found {0} inspections with result: {1}",
+                    new Object[]{inspections.size(), result});
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error filtering inspections by result", ex);
+            inspectionView.showError("Error filtering inspections: " + ex.getMessage());
+        }
     }
-    
+
     /**
-     * Get all inspection conditions
-     * 
-     * @return List of inspection conditions
+     * Update inspection result
+     *
+     * @param inspectionId Inspection ID
+     * @param result New result
+     * @param notes Additional notes
+     * @return True if result was updated successfully
      */
-    public List<String> getAllInspectionConditions() {
-        return inspectionService.getAllInspectionConditions();
+    public boolean updateInspectionResult(int inspectionId, InspectionResult result, String notes) {
+        try {
+            boolean updated = inspectionDAO.updateResult(inspectionId, result, notes);
+
+            if (updated) {
+                loadAllInspections();
+                inspectionView.showSuccess("Inspection result updated successfully");
+                LOGGER.log(Level.INFO, "Updated result of inspection ID: {0} to {1}",
+                        new Object[]{inspectionId, result});
+            } else {
+                inspectionView.showError("Inspection not found with ID: " + inspectionId);
+                LOGGER.log(Level.WARNING, "Inspection not found with ID: {0}", inspectionId);
+            }
+
+            return updated;
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error updating inspection result", ex);
+            inspectionView.showError("Error updating inspection result: " + ex.getMessage());
+            return false;
+        }
     }
-    
+
     /**
-     * Get all inspection item categories
-     * 
-     * @return List of inspection item categories
+     * Get all possible inspection results
+     *
+     * @return Array of inspection results
      */
-    public List<String> getAllInspectionItemCategories() {
-        return inspectionService.getAllInspectionItemCategories();
+    public InspectionResult[] getAllInspectionResults() {
+        return InspectionResult.values();
     }
-    
-    /**
-     * Get default inspection items by vehicle type
-     * 
-     * @param vehicleType Vehicle type
-     * @return List of default inspection items
-     */
-    public List<InspectionItem> getDefaultInspectionItems(String vehicleType) {
-        return inspectionService.getDefaultInspectionItems(vehicleType);
-    }
-    
+
     /**
      * Validate inspection input
-     * 
-     * @param vehicleId Vehicle ID
-     * @param customerId Customer ID
-     * @param technicianName Technician name
+     *
+     * @param inspection The inspection to validate
      * @return Map of validation errors
      */
-    private Map<String, String> validateInspectionInput(String vehicleId, String customerId, String technicianName) {
-        Map<String, String> errors = ValidationUtil.createErrorMap();
-        
-        // Validate vehicle
-        if (vehicleId == null || vehicleId.trim().isEmpty()) {
-            errors.put("vehicleId", "El vehículo es obligatorio");
+    private Map<String, String> validateInspection(Inspection inspection) {
+        Map<String, String> errors = new HashMap<>();
+
+        // Validate vehicle ID
+        if (inspection.getVehicleId() <= 0) {
+            errors.put("vehicleId", "Vehicle is required");
         }
-        
-        // Validate customer
-        if (customerId == null || customerId.trim().isEmpty()) {
-            errors.put("customerId", "El cliente es obligatorio");
+
+        // Validate technician ID
+        if (inspection.getTechnicianId() <= 0) {
+            errors.put("technicianId", "Technician is required");
         }
-        
-        // Validate technician
-        if (technicianName == null || technicianName.trim().isEmpty()) {
-            errors.put("technicianName", "El nombre del técnico es obligatorio");
-        }
-        
+
         return errors;
     }
-    
+
     /**
      * Get inspection statistics
-     * 
+     *
      * @return Map with inspection statistics
      */
     public Map<String, Object> getInspectionStatistics() {
-        return inspectionService.getInspectionStatistics();
-    }
-    
-    /**
-     * Update inspection status
-     * 
-     * @param inspectionId Inspection ID
-     * @param status New status
-     * @return True if status was updated successfully
-     */
-    public boolean updateInspectionStatus(String inspectionId, String status) {
-        Inspection inspection = inspectionService.getInspectionById(inspectionId);
-        
-        if (inspection == null) {
-            inspectionView.showErrorMessage("Inspección no encontrada");
-            return false;
+        Map<String, Object> statistics = new HashMap<>();
+
+        try {
+            // Get total inspections
+            List<Inspection> allInspections = inspectionDAO.findAll();
+            statistics.put("totalInspections", allInspections.size());
+
+            // Get inspections by result
+            Map<InspectionResult, Integer> resultCounts = new HashMap<>();
+            for (InspectionResult result : InspectionResult.values()) {
+                List<Inspection> inspections = inspectionDAO.findByResult(result);
+                resultCounts.put(result, inspections.size());
+            }
+            statistics.put("inspectionsByResult", resultCounts);
+
+            // Get recent inspections (last 30 days)
+            Date endDate = new Date();
+            Date startDate = new Date(endDate.getTime() - 30L * 24 * 60 * 60 * 1000);
+            List<Inspection> recentInspections = inspectionDAO.findByDateRange(startDate, endDate);
+            statistics.put("recentInspections", recentInspections.size());
+
+            LOGGER.log(Level.INFO, "Generated inspection statistics");
+        } catch (SQLException ex) {
+            LOGGER.log(Level.SEVERE, "Error generating inspection statistics", ex);
+            statistics.put("error", "Error generating statistics: " + ex.getMessage());
         }
-        
-        inspection.setStatus(status);
-        inspection.setLastModifiedDate(new Date());
-        
-        boolean success = inspectionService.updateInspection(inspection);
-        
-        if (success) {
-            loadAllInspections();
-            inspectionView.showSuccessMessage("Estado de inspección actualizado exitosamente");
-        } else {
-            inspectionView.showErrorMessage("Error al actualizar el estado de la inspección");
-        }
-        
-        return success;
-    }
-    
-    /**
-     * Get vehicles for a specific customer
-     * 
-     * @param customerId Customer ID
-     * @return List of vehicles
-     */
-    public List<Vehicle> getVehiclesByCustomer(String customerId) {
-        return vehicleService.getVehiclesByCustomer(customerId);
+
+        return statistics;
     }
 }
