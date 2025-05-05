@@ -8,6 +8,6 @@ package com.carmotorsproject.services.model;
  *
  * @author camper
  */
-public class MaintenanceType {
-    
+public enum MaintenanceType {
+     Preventive, Corrective
 }

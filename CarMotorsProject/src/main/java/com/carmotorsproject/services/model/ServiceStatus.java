@@ -8,6 +8,6 @@ package com.carmotorsproject.services.model;
  *
  * @author camper
  */
-public class ServiceStatus {
-    
+public enum ServiceStatus {
+     Pending, In_progress, Completed, Delivered
 }

@@ -4,10 +4,16 @@
  */
 package com.carmotorsproject.parts.model;
 
+import java.util.List;
+
 /**
  *
  * @author camper
- */
-public class SupplierDAOInterface {
-    
+ */ 
+public interface SupplierDAOInterface {
+    void save(Supplier supplier);
+    Supplier findById(int id);
+    List<Supplier> findAll();
+    void update(Supplier supplier);
+    void delete(int id);
 }

@@ -8,6 +8,9 @@ package com.carmotorsproject.parts.model;
  *
  * @author camper
  */
-public class PartType {
-    
+public enum PartType {
+    Mechanical,
+    Electrical,
+    Body,
+    Consumable
 }

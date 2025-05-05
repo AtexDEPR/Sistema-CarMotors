@@ -8,6 +8,8 @@ package com.carmotorsproject.parts.model;
  *
  * @author camper
  */
-public class PartStatus {
-    
+public enum PartStatus {
+    Available,
+    Reserved,
+    Out_of_service
 }

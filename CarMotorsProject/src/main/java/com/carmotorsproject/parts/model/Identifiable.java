@@ -8,6 +8,6 @@ package com.carmotorsproject.parts.model;
  *
  * @author camper
  */
-public class Identifiable {
-    
+public interface Identifiable {
+    int getId();
 }
