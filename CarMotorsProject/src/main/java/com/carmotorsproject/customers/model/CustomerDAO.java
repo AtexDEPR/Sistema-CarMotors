@@ -395,7 +395,6 @@ public class CustomerDAO implements CustomerDAOInterface {
                 }
             }
         }
-
         return customers;
     }
 

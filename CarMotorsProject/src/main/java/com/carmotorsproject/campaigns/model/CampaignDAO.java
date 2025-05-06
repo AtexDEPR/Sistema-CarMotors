@@ -96,7 +96,7 @@ public class CampaignDAO implements CampaignDAOInterface {
         String sql = "UPDATE campaigns SET name = ?, description = ?, start_date = ?, end_date = ?, " +
                 "discount_percentage = ?, target_vehicle_type = ?, target_customer_segment = ?, " +
                 "status = ?, last_modified_by = ?, last_modified_date = ? " +
-                "WHERE campaign_id = ?";
+                "WHERE id = ?";
 
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -139,7 +139,7 @@ public class CampaignDAO implements CampaignDAOInterface {
      */
     @Override
     public boolean delete(int id) throws SQLException {
-        String sql = "DELETE FROM campaigns WHERE campaign_id = ?";
+        String sql = "DELETE FROM campaigns WHERE id = ?";
 
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -164,7 +164,7 @@ public class CampaignDAO implements CampaignDAOInterface {
      */
     @Override
     public Campaign findById(int id) throws SQLException {
-        String sql = "SELECT * FROM campaigns WHERE campaign_id = ?";
+        String sql = "SELECT * FROM campaigns WHERE id = ?";
 
         try (Connection conn = dbConnection.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -388,7 +388,7 @@ public class CampaignDAO implements CampaignDAOInterface {
     private Campaign mapResultSetToCampaign(ResultSet rs) throws SQLException {
         Campaign campaign = new Campaign();
 
-        campaign.setCampaignId(rs.getInt("campaign_id"));
+        campaign.setCampaignId(rs.getInt("id"));
         campaign.setName(rs.getString("name"));
         campaign.setDescription(rs.getString("description"));
 
