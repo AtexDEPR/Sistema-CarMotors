@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ddf39ed0-5e62-4279-be3f-b7f9f364d7b5" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/src/main/img/ChatGPT Image 5 may 2025, 17_37_16.png" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/invoices/views/InvoiceFrame.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/views/SupplierFrame.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/RoundedPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database.properties" beforeDir="false" afterPath="$PROJECT_DIR$/database.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/campaigns/controller/CampaignAppointmentController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/campaigns/controller/CampaignAppointmentController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/campaigns/views/CampaignAppointmentView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/campaigns/views/CampaignAppointmentView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/campaigns/views/CampaignView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/campaigns/views/CampaignView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/config/AppConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/config/AppConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/config/DatabaseConnection.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/config/DatabaseConnection.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/customers/views/CustomerView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/customers/views/CustomerView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/invoices/views/InvoicePreviewView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/invoices/views/InvoicePreviewView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/invoices/views/InvoiceView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/invoices/views/InvoiceView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/main/App.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/main/App.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/controller/PartController.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/controller/PartController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/views/PartView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/views/PartView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/views/SupplierView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/views/SupplierView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/model/ServiceStatus.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/model/ServiceStatus.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/views/ServiceView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/views/ServiceView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/views/TechnicianView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/views/TechnicianView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/views/VehicleView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/services/views/VehicleView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/animation/AnimationManager.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/animation/AnimationManager.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernButton.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernButton.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernCard.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernCard.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernSideMenu.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernSideMenu.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernTextField.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/ModernTextField.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/TransparentPanel.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/components/TransparentPanel.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/theme/AppTheme.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/com/carmotorsproject/ui/theme/AppTheme.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/controller/CampaignAppointmentController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/controller/CampaignAppointmentController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignAppointmentView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignAppointmentView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignAppointmentView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignAppointmentView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignView$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignView$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/campaigns/views/CampaignView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/config/AppConfig.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/config/AppConfig.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/config/DatabaseConnection.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/config/DatabaseConnection.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$6.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$7.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView$8.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/customers/views/CustomerView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/controller/InvoiceController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoicePreviewView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoicePreviewView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoicePreviewView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoicePreviewView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$10.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$11.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$12.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$13.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$14.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$15.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$2.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$3.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$4.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$5.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$6.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$7.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$8.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView$9.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/invoices/views/InvoiceView.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/main/App$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/main/App.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/controller/PartController.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/controller/PartController.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/controller/SupplierController.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/PartView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/PartView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/PartView$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/PartView$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/PartView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/PartView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/SupplierView$1.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/SupplierView$2.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/SupplierView$3.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/parts/views/SupplierView.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/model/ServiceStatus.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/model/ServiceStatus.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$10.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$11.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$12.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$6.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$6.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$7.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$7.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$8.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView$9.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/ServiceView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$6.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView$7.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/TechnicianView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$2.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$2.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$3.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$3.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$4.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$4.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$5.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$5.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$6.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView$7.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/services/views/VehicleView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/animation/AnimationManager.class" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernButton$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernButton$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernButton.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernButton.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernCard$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernCard$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernCard.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernCard.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu$MenuItem.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu$MenuItem.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu$MenuSection.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu$MenuSection.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernSideMenu.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernTextField$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernTextField$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernTextField.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/ModernTextField.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/TransparentPanel.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/components/TransparentPanel.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/theme/AppTheme.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/com/carmotorsproject/ui/theme/AppTheme.class" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 3
+}]]></component>
+  <component name="ProjectId" id="2wh29kTmMpkz0FlaKX7pXgJCZNW" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Application.App.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "daniel",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/camper/Descargas/Sistema-CarMotors/CarMotorsProject/src/main/java/com/carmotorsproject/invoices/views",
+    "settings.editor.selected.configurable": "reference.settings.project.maven.repository.indices"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/src/main/java/com/carmotorsproject/invoices/views" />
+      <recent name="$PROJECT_DIR$/src/main/java/com/carmotorsproject/parts/views" />
+      <recent name="$PROJECT_DIR$/src/main/img" />
+    </key>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="ddf39ed0-5e62-4279-be3f-b7f9f364d7b5" name="Changes" comment="" />
+      <created>1746479336077</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1746479336077</updated>
+    </task>
+    <servers />
+  </component>
+</project>
