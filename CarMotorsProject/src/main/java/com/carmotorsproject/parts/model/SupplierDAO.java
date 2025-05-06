@@ -124,7 +124,7 @@ public class SupplierDAO {
 
         String sql = "UPDATE suppliers SET name = ?, contact_name = ?, phone = ?, email = ?, " +
                 "address = ?, tax_id = ?, notes = ?, status = ?, updated_at = ? " +
-                "WHERE id = ?";
+                "WHERE supplier_id = ?";
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -176,7 +176,7 @@ public class SupplierDAO {
     public boolean delete(int id) throws SQLException {
         LOGGER.log(Level.INFO, "Deleting supplier with ID: {0}", id);
 
-        String sql = "DELETE FROM suppliers WHERE id = ?";
+        String sql = "DELETE FROM suppliers WHERE supplier_id= ?";
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -214,7 +214,7 @@ public class SupplierDAO {
     public Supplier findById(int id) throws SQLException {
         LOGGER.log(Level.INFO, "Finding supplier with ID: {0}", id);
 
-        String sql = "SELECT * FROM suppliers WHERE id = ?";
+        String sql = "SELECT * FROM suppliers WHERE supplier_id = ?";
 
         Connection connection = null;
         PreparedStatement statement = null;
@@ -353,6 +353,7 @@ public class SupplierDAO {
             List<Supplier> suppliers = new ArrayList<>();
 
             while (resultSet.next()) {
+                System.out.println(resultSet);
                 Supplier supplier = mapResultSetToSupplier(resultSet);
                 suppliers.add(supplier);
             }
@@ -456,7 +457,7 @@ public class SupplierDAO {
     private Supplier mapResultSetToSupplier(ResultSet resultSet) throws SQLException {
         Supplier supplier = new Supplier();
 
-        supplier.setId(resultSet.getInt("id"));
+        supplier.setId(resultSet.getInt("supplier_id"));
         supplier.setName(resultSet.getString("name"));
         supplier.setContactName(resultSet.getString("contact_name"));
         supplier.setPhone(resultSet.getString("phone"));

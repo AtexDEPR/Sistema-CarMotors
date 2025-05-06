@@ -64,7 +64,9 @@ public class PartController {
      */
     public void addPart() {
         Part part = view.getPartFromForm();
+        System.out.println(part.getPartNumber() + "Number" + part.getDescription() + "Descripcion" + part.getName() + "Name" + part.getSupplier() + " PART");
         if (part == null) {
+            view.showError("Invalid part data from form.");
             return; // Form validation failed
         }
 
@@ -76,6 +78,11 @@ public class PartController {
 
             // Save part to database
             Part savedPart = dao.save(part);
+
+            if (savedPart == null) {
+                view.showError("Failed to add part: invalid supplier or database error.");
+                return;
+            }
 
             // Update view
             view.clearForm();
@@ -159,7 +166,7 @@ public class PartController {
      * @param searchType The type of search (Name, Part Number, Type, Supplier ID)
      */
     public void searchParts(String searchText, String searchType) {
-        if (searchText.isEmpty()) {
+        if (searchText == null || searchText.trim().isEmpty()) {
             view.showError("Please enter search text.");
             return;
         }
@@ -169,22 +176,19 @@ public class PartController {
 
             switch (searchType) {
                 case "Name":
-                    results = dao.findByName(searchText);
+                    // Search parts by name (partial match)
+                    results = dao.findByName(searchText.trim());
                     break;
                 case "Part Number":
-                    // Find by exact part number
-                    Part part = dao.findById(0); // Placeholder to avoid null
-                    for (Part p : dao.findAll()) {
-                        if (p.getPartNumber().equalsIgnoreCase(searchText)) {
-                            part = p;
-                            results.add(p);
-                            break;
-                        }
+                    // Find by exact part number (reference)
+                    Part part = dao.findByReference(searchText.trim());
+                    if (part != null) {
+                        results.add(part);
                     }
                     break;
                 case "Type":
                     try {
-                        PartType type = PartType.valueOf(searchText.toUpperCase());
+                        PartType type = PartType.valueOf(searchText.trim().toUpperCase());
                         results = dao.findByType(type);
                     } catch (IllegalArgumentException e) {
                         view.showError("Invalid part type. Valid types are: " +
@@ -194,7 +198,7 @@ public class PartController {
                     break;
                 case "Supplier ID":
                     try {
-                        int supplierId = Integer.parseInt(searchText);
+                        int supplierId = Integer.parseInt(searchText.trim());
                         results = dao.findBySupplier(supplierId);
                     } catch (NumberFormatException e) {
                         view.showError("Please enter a valid supplier ID (number).");
@@ -207,8 +211,12 @@ public class PartController {
             }
 
             // Update view with search results
+            if (results.isEmpty()) {
+                view.showInfo("No parts found for the given search criteria.");
+            }
             view.updateTable(results);
-            LOGGER.log(Level.INFO, "Search completed. Found {0} results.", results.size());
+            LOGGER.log(Level.INFO, "Search completed for {0}: '{1}'. Found {2} results.",
+                    new Object[]{searchType, searchText, results.size()});
 
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error searching parts", e);

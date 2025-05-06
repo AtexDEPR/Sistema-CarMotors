@@ -20,9 +20,9 @@ public class DatabaseConnection {
     private static final Logger LOGGER = Logger.getLogger(DatabaseConnection.class.getName());
 
     // Default database connection parameters
-    private String url = "jdbc:mysql://localhost:3306/carmotors";
-    private String user = "root";
-    private String password = "kova3452";
+    private String url = "jdbc:mysql://localhost:3306/carMotors";
+    private String user = "campus2023";
+    private String password = "campus2023";
 
     // Configuration file path
     private static final String CONFIG_FILE = "database.properties";

@@ -57,6 +57,12 @@ public class PartDAO {
     public Part insert(Part part) {
         LOGGER.log(Level.INFO, "Inserting part: {0}", part.getName());
 
+        // Validate supplier_id
+        if (part.getSupplierId() <= 0 && part.getSupplier() == null) {
+            LOGGER.log(Level.WARNING, "Cannot insert part: supplier_id is required");
+            return null;
+        }
+
         String sql = "INSERT INTO parts (name, description, reference, type, price, quantity_in_stock, " +
                 "minimum_stock, location, status, supplier_id, created_at, updated_at) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -79,10 +85,11 @@ public class PartDAO {
             statement.setString(8, part.getLocation());
             statement.setString(9, part.getStatus());
 
+            // Set supplier_id
             if (part.getSupplier() != null) {
                 statement.setInt(10, part.getSupplier().getId());
             } else {
-                statement.setNull(10, java.sql.Types.INTEGER);
+                statement.setInt(10, part.getSupplierId());
             }
 
             statement.setTimestamp(11, new Timestamp(part.getCreatedAt().getTime()));
@@ -145,10 +152,11 @@ public class PartDAO {
             statement.setString(8, part.getLocation());
             statement.setString(9, part.getStatus());
 
+            // Set supplier_id
             if (part.getSupplier() != null) {
                 statement.setInt(10, part.getSupplier().getId());
             } else {
-                statement.setNull(10, java.sql.Types.INTEGER);
+                statement.setInt(10, part.getSupplierId());
             }
 
             statement.setTimestamp(11, new Timestamp(part.getUpdatedAt().getTime()));
@@ -207,6 +215,7 @@ public class PartDAO {
             closeResources(connection, statement, null);
         }
     }
+
 
     /**
      * Finds a part by its ID.
@@ -373,7 +382,7 @@ public class PartDAO {
     public List<Part> findBySupplier(int supplierId) {
         LOGGER.log(Level.INFO, "Finding parts by supplier ID: {0}", supplierId);
 
-        String sql = "SELECT * FROM parts WHERE supplier_id = ?";
+        String sql = "SELECT * FROM parts WHERE id = ?";
 
         Connection connection = null;
         PreparedStatement statement = null;

@@ -11,9 +11,9 @@ public class AppConfig {
     private static final Logger LOGGER = Logger.getLogger(AppConfig.class.getName());
 
     // Database configuration
-    private static final String DB_URL = "jdbc:mysql://localhost:3306/carmotors";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "kova3452";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/carMotors";
+    private static final String DB_USER = "campus2023";
+    private static final String DB_PASSWORD = "campus2023";
 
     // Email configuration
     private static final String EMAIL_HOST = "smtp.gmail.com";

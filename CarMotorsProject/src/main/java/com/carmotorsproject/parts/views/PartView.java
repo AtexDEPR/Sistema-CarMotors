@@ -5,18 +5,16 @@
  */
 package com.carmotorsproject.parts.views;
 
-
 import com.carmotorsproject.parts.controller.PartController;
 import com.carmotorsproject.parts.model.Part;
 import com.carmotorsproject.parts.model.PartType;
 import com.carmotorsproject.parts.model.PartStatus;
+import com.carmotorsproject.parts.model.Supplier;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -344,6 +342,11 @@ public class PartView extends JFrame {
                 int selectedRow = tblParts.getSelectedRow();
                 if (selectedRow >= 0) {
                     populateFormFromTable(selectedRow);
+                    btnDelete.setEnabled(true); // Enable Delete button
+                    btnUpdate.setEnabled(true); // Enable Update button
+                } else {
+                    btnDelete.setEnabled(false); // Disable Delete button
+                    btnUpdate.setEnabled(false); // Disable Update button
                 }
             }
         });
@@ -377,6 +380,8 @@ public class PartView extends JFrame {
      */
     public void loadAllParts() {
         controller.loadAllParts();
+        btnDelete.setEnabled(false); // Disable Delete button initially
+        btnUpdate.setEnabled(false); // Disable Update button initially
     }
 
     /**
@@ -415,21 +420,56 @@ public class PartView extends JFrame {
      * @param row The selected row index
      */
     private void populateFormFromTable(int row) {
-        txtPartId.setText(tblParts.getValueAt(row, 0).toString());
-        txtName.setText(tblParts.getValueAt(row, 1).toString());
-        txtPartNumber.setText(tblParts.getValueAt(row, 2).toString());
-        cmbType.setSelectedItem(PartType.valueOf(tblParts.getValueAt(row, 3).toString()));
-        cmbStatus.setSelectedItem(PartStatus.valueOf(tblParts.getValueAt(row, 4).toString()));
-        txtPurchasePrice.setText(tblParts.getValueAt(row, 5).toString());
-        txtSellingPrice.setText(tblParts.getValueAt(row, 6).toString());
-        txtStockQuantity.setText(tblParts.getValueAt(row, 7).toString());
-        txtMinStockLevel.setText(tblParts.getValueAt(row, 8).toString());
-        txtLocation.setText(tblParts.getValueAt(row, 9).toString());
-        txtSupplierId.setText(tblParts.getValueAt(row, 10).toString());
+        try {
+            LOGGER.log(Level.INFO, "Populating form from table row: {0}", row);
 
-        // Get description from controller (not shown in table)
-        int partId = Integer.parseInt(txtPartId.getText());
-        controller.loadPartDescription(partId);
+            // Convert view row to model row (in case of sorting)
+            int modelRow = tblParts.convertRowIndexToModel(row);
+
+            // Populate fields
+            txtPartId.setText(tblParts.getValueAt(row, 0).toString());
+            txtName.setText(tblParts.getValueAt(row, 1) != null ? tblParts.getValueAt(row, 1).toString() : "");
+            txtPartNumber.setText(tblParts.getValueAt(row, 2) != null ? tblParts.getValueAt(row, 2).toString() : "");
+
+            // Handle PartType
+            try {
+                String typeStr = tblParts.getValueAt(row, 3) != null ? tblParts.getValueAt(row, 3).toString() : "";
+                PartType type = PartType.valueOf(typeStr);
+                cmbType.setSelectedItem(type);
+            } catch (IllegalArgumentException e) {
+                LOGGER.log(Level.WARNING, "Invalid PartType in table: {0}", tblParts.getValueAt(row, 3));
+                cmbType.setSelectedIndex(0); // Default to first item
+            }
+
+            // Handle PartStatus
+            try {
+                String statusStr = tblParts.getValueAt(row, 4) != null ? tblParts.getValueAt(row, 4).toString() : "";
+                PartStatus status = PartStatus.valueOf(statusStr);
+                cmbStatus.setSelectedItem(status);
+            } catch (IllegalArgumentException e) {
+                LOGGER.log(Level.WARNING, "Invalid PartStatus in table: {0}", tblParts.getValueAt(row, 4));
+                cmbStatus.setSelectedIndex(0); // Default to first item
+            }
+
+            txtPurchasePrice.setText(tblParts.getValueAt(row, 5) != null ? tblParts.getValueAt(row, 5).toString() : "0.0");
+            txtSellingPrice.setText(tblParts.getValueAt(row, 6) != null ? tblParts.getValueAt(row, 6).toString() : "0.0");
+            txtStockQuantity.setText(tblParts.getValueAt(row, 7) != null ? tblParts.getValueAt(row, 7).toString() : "0");
+            txtMinStockLevel.setText(tblParts.getValueAt(row, 8) != null ? tblParts.getValueAt(row, 8).toString() : "0");
+            txtLocation.setText(tblParts.getValueAt(row, 9) != null ? tblParts.getValueAt(row, 9).toString() : "");
+            txtSupplierId.setText(tblParts.getValueAt(row, 10) != null ? tblParts.getValueAt(row, 10).toString() : "");
+
+            // Load description from controller
+            try {
+                int partId = Integer.parseInt(txtPartId.getText());
+                controller.loadPartDescription(partId);
+            } catch (NumberFormatException e) {
+                LOGGER.log(Level.WARNING, "Invalid Part ID for description: {0}", txtPartId.getText());
+                txtDescription.setText("");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error populating form from table", e);
+            showError("Error loading part data: " + e.getMessage());
+        }
     }
 
     /**
@@ -438,7 +478,7 @@ public class PartView extends JFrame {
      * @param description The description to set
      */
     public void setDescription(String description) {
-        txtDescription.setText(description);
+        txtDescription.setText(description != null ? description : "");
     }
 
     /**
@@ -460,53 +500,75 @@ public class PartView extends JFrame {
 
         // Clear table selection
         tblParts.clearSelection();
+        btnDelete.setEnabled(false); // Disable Delete button
+        btnUpdate.setEnabled(false); // Disable Update button
     }
 
     /**
      * Creates a Part object from the form fields.
      *
-     * @return A Part object with data from the form
+     * @return A Part object with data from the form, or null if validation fails
      */
     public Part getPartFromForm() {
         Part part = new Part();
-
-        // Set ID if it exists (for updates)
-        if (!txtPartId.getText().isEmpty()) {
-            part.setPartId(Integer.parseInt(txtPartId.getText()));
-        }
-
-        part.setName(txtName.getText());
-        part.setDescription(txtDescription.getText());
-        part.setPartNumber(txtPartNumber.getText());
-        part.setType((PartType) cmbType.getSelectedItem());
-        part.setStatus((PartStatus) cmbStatus.getSelectedItem());
-
         try {
-            part.setPurchasePrice(Double.parseDouble(txtPurchasePrice.getText()));
-            part.setSellingPrice(Double.parseDouble(txtSellingPrice.getText()));
-            part.setStockQuantity(Integer.parseInt(txtStockQuantity.getText()));
-            part.setMinStockLevel(Integer.parseInt(txtMinStockLevel.getText()));
+            String idText = txtPartId.getText().trim();
+            part.setPartId(idText.isEmpty() ? 0 : Integer.parseInt(idText));
+            part.setName(txtName.getText().trim());
+            part.setDescription(txtDescription.getText().trim());
+            part.setPartNumber(txtPartNumber.getText().trim());
+            part.setType((PartType) cmbType.getSelectedItem());
+            part.setStatus((PartStatus) cmbStatus.getSelectedItem());
+
+            // Validate numeric fields
+            String purchasePriceText = txtPurchasePrice.getText().trim();
+            if (purchasePriceText.isEmpty()) {
+                showError("Purchase price is required.");
+                return null;
+            }
+            part.setPurchasePrice(Double.parseDouble(purchasePriceText));
+
+            String sellingPriceText = txtSellingPrice.getText().trim();
+            if (sellingPriceText.isEmpty()) {
+                showError("Selling price is required.");
+                return null;
+            }
+            part.setSellingPrice(Double.parseDouble(sellingPriceText));
+
+            String stockQuantityText = txtStockQuantity.getText().trim();
+            if (stockQuantityText.isEmpty()) {
+                showError("Stock quantity is required.");
+                return null;
+            }
+            part.setStockQuantity(Integer.parseInt(stockQuantityText));
+
+            String minStockLevelText = txtMinStockLevel.getText().trim();
+            if (minStockLevelText.isEmpty()) {
+                showError("Minimum stock level is required.");
+                return null;
+            }
+            part.setMinStockLevel(Integer.parseInt(minStockLevelText));
+
+            part.setLocation(txtLocation.getText().trim());
+
+            // Validate and set supplier_id
+            String supplierIdText = txtSupplierId.getText().trim();
+            if (supplierIdText.isEmpty()) {
+                showError("Supplier ID is required.");
+                return null;
+            }
+            int supplierId = Integer.parseInt(supplierIdText);
+            if (supplierId <= 0) {
+                showError("Please enter a valid supplier ID.");
+                return null;
+            }
+            part.setSupplierId(supplierId);
+
+            return part;
         } catch (NumberFormatException e) {
-            LOGGER.log(Level.WARNING, "Invalid number format in form", e);
-            JOptionPane.showMessageDialog(this,
-                    "Please enter valid numbers for prices and quantities.",
-                    "Input Error", JOptionPane.ERROR_MESSAGE);
+            showError("Please enter valid numeric values for ID, prices, stock, minimum stock, or supplier ID.");
             return null;
         }
-
-        part.setLocation(txtLocation.getText());
-
-        try {
-            part.setSupplierId(Integer.parseInt(txtSupplierId.getText()));
-        } catch (NumberFormatException e) {
-            LOGGER.log(Level.WARNING, "Invalid supplier ID format", e);
-            JOptionPane.showMessageDialog(this,
-                    "Please enter a valid supplier ID.",
-                    "Input Error", JOptionPane.ERROR_MESSAGE);
-            return null;
-        }
-
-        return part;
     }
 
     /**

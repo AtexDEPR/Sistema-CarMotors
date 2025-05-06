@@ -78,7 +78,7 @@ public class Part implements Identifiable {
      */
     public Part(int id, String name, String description, String reference, String type,
                 double price, int quantityInStock, int minimumStock, String location,
-                String status, Supplier supplier) {
+                String status, int supplier) {
         this.id = id;
         this.name = name;
         this.description = description;
@@ -91,10 +91,10 @@ public class Part implements Identifiable {
         this.minimumStock = minimumStock;
         this.location = location;
         this.status = status;
-        this.supplier = supplier;
-        if (supplier != null) {
-            this.supplierId = supplier.getId();
-        }
+
+
+        this.supplierId = supplier;
+
         this.createdAt = new Date();
         this.updatedAt = new Date();
     }
@@ -441,6 +441,8 @@ public class Part implements Identifiable {
      *
      * @return The creation date
      */
+
+
     public Date getCreatedAt() {
         return createdAt;
     }
