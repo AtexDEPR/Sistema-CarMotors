@@ -5,10 +5,15 @@
  */
 package com.carmotorsproject.invoices.model;
 
+import java.util.List;
+
 /**
  *
  * @author ADMiN
  */
-public class InvoiceDAOInterface {
-    
+public interface InvoiceDAOInterface {
+        void save(Invoice invoice);
+    Invoice findById(int id);
+    List<Invoice> findAll();
+    void delete(int id);
 }

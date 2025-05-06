@@ -4,6 +4,7 @@
  */
 package com.carmotorsproject.parts.model;
 
+import com.carmotorsproject.customers.model.Customer;
 import java.util.List;
 
 /**
@@ -16,4 +17,5 @@ public interface SupplierDAOInterface {
     List<Supplier> findAll();
     void update(Supplier supplier);
     void delete(int id);
+     List<Supplier> searchByName(String name);
 }

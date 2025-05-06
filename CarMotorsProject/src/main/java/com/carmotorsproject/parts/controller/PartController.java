@@ -20,8 +20,13 @@ public class PartController {
     }
 
     public void addPart(Part part) {
-        dao.save(part);
-        view.refreshTable();
+        try {
+            dao.save(part);
+            view.refreshTable();
+            view.showAlert("Repuesto agregado exitosamente.");
+        } catch (Exception e) {
+            view.showAlert("Error al agregar repuesto: " + e.getMessage());
+        }
     }
 
     public List<Part> getAllParts() {
@@ -29,13 +34,27 @@ public class PartController {
     }
 
     public void updatePart(Part part) {
-        dao.update(part);
-        view.refreshTable();
+        try {
+            dao.update(part);
+            view.refreshTable();
+            view.showAlert("Repuesto actualizado exitosamente.");
+        } catch (Exception e) {
+            view.showAlert("Error al actualizar repuesto: " + e.getMessage());
+        }
     }
 
     public void deletePart(int id) {
-        dao.delete(id);
-        view.refreshTable();
+        try {
+            dao.delete(id);
+            view.refreshTable();
+            view.showAlert("Repuesto eliminado exitosamente.");
+        } catch (Exception e) {
+            view.showAlert("Error al eliminar repuesto: " + e.getMessage());
+        }
+    }
+
+    public List<Part> searchPart(String searchTerm) {
+        return dao.searchByName(searchTerm);
     }
 
     public void recordPartUsage(int serviceId, int partId, int quantityUsed, double unitPrice) {
@@ -43,7 +62,7 @@ public class PartController {
             dao.recordPartUsage(serviceId, partId, quantityUsed, unitPrice);
             view.refreshTable();
         } catch (Exception e) {
-            view.showAlert("Error recording part usage: " + e.getMessage());
+            view.showAlert("Error registering spare usage: " + e.getMessage());
         }
     }
 

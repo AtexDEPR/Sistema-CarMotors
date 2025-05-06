@@ -9,12 +9,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class PurchaseOrderDAO implements PurchaseOrderDAOInterface {
-
     private Connection db;
 
     public PurchaseOrderDAO() {
@@ -23,161 +24,185 @@ public class PurchaseOrderDAO implements PurchaseOrderDAOInterface {
 
     @Override
     public void save(PurchaseOrder order) {
-        String sql = "INSERT INTO purchase_orders (supplier_id, expected_delivery_date, status, observations) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = db.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            pstmt.setInt(1, order.getSupplierId());
-            pstmt.setDate(2, order.getExpectedDeliveryDate() != null ? new java.sql.Date(order.getExpectedDeliveryDate().getTime()) : null);
-            pstmt.setString(3, order.getStatus());
-            pstmt.setString(4, order.getObservations());
-            pstmt.executeUpdate();
+        String sqlOrder = "INSERT INTO purchase_orders (order_date, status, supplier_id, total_amount, creation_date, last_update_date) VALUES (?, ?, ?, ?, ?, ?)";
+        try (PreparedStatement pstmt = db.prepareStatement(sqlOrder, PreparedStatement.RETURN_GENERATED_KEYS)) {
+            pstmt.setDate(1, new java.sql.Date(order.getOrderDate().getTime()));
+            pstmt.setString(2, order.getStatus());
+            if (order.getSupplierId() != null) {
+                pstmt.setInt(3, order.getSupplierId());
+            } else {
+                pstmt.setNull(3, Types.INTEGER);
+            }
+            pstmt.setDouble(4, order.getTotalAmount());
+            pstmt.setTimestamp(5, new Timestamp(order.getCreationDate().getTime()));
+            pstmt.setTimestamp(6, new Timestamp(order.getLastUpdateDate().getTime()));
+            int rowsAffected = pstmt.executeUpdate();
+            System.out.println("Order saved, rows affected: " + rowsAffected); // Depuración
 
             ResultSet rs = pstmt.getGeneratedKeys();
             if (rs.next()) {
-                int orderId = rs.getInt(1);
-                order.setPurchaseOrderId(orderId);
-                saveDetails(orderId, order.getDetails());
+                order.setOrderId(rs.getInt(1));
+                System.out.println("Generated order ID: " + order.getOrderId()); // Depuración
             }
-        } catch (SQLException e) {
-            System.err.println("Error saving purchase order: " + e.getMessage());
-        }
-    }
 
-    private void saveDetails(int orderId, List<PurchaseOrderDetail> details) {
-        String sql = "INSERT INTO purchase_order_detail (purchase_order_id, part_id, quantity_ordered, estimated_unit_price) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            for (PurchaseOrderDetail detail : details) {
-                pstmt.setInt(1, orderId);
-                pstmt.setInt(2, detail.getPartId());
-                pstmt.setInt(3, detail.getQuantityOrdered());
-                pstmt.setDouble(4, detail.getEstimatedUnitPrice());
-                pstmt.addBatch();
+            // Guardar detalles
+            String sqlDetail = "INSERT INTO purchase_order_details (order_id, part_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)";
+            try (PreparedStatement pstmtDetail = db.prepareStatement(sqlDetail, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                for (PurchaseOrderDetail detail : order.getDetails()) {
+                    pstmtDetail.setInt(1, order.getOrderId());
+                    pstmtDetail.setInt(2, detail.getPartId());
+                    pstmtDetail.setInt(3, detail.getQuantity());
+                    pstmtDetail.setDouble(4, detail.getUnitPrice());
+                    pstmtDetail.setDouble(5, detail.getSubtotal());
+                    int detailRowsAffected = pstmtDetail.executeUpdate();
+                    System.out.println("Detail saved, rows affected: " + detailRowsAffected); // Depuración
+
+                    ResultSet rsDetail = pstmtDetail.getGeneratedKeys();
+                    if (rsDetail.next()) {
+                        detail.setDetailId(rsDetail.getInt(1));
+                        System.out.println("Generated detail ID:" + detail.getDetailId()); // Depuración
+                    }
+                }
             }
-            pstmt.executeBatch();
         } catch (SQLException e) {
-            System.err.println("Error saving purchase order details: " + e.getMessage());
+            System.err.println("Error saving purchase order:" + e.getMessage());
+            throw new RuntimeException("Error saving purchase order: " + e.getMessage());
         }
     }
 
     @Override
     public PurchaseOrder findById(int id) {
-        String sql = "SELECT po.*, pod.part_id, pod.quantity_ordered, pod.estimated_unit_price " +
-                     "FROM purchase_orders po " +
-                     "LEFT JOIN purchase_order_detail pod ON po.purchase_order_id = pod.purchase_order_id " +
-                     "WHERE po.purchase_order_id = ?";
-        PurchaseOrder order = null;
-        List<PurchaseOrderDetail> details = new ArrayList<>();
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
+        String sqlOrder = "SELECT * FROM purchase_orders WHERE order_id = ?";
+        try (PreparedStatement pstmt = db.prepareStatement(sqlOrder)) {
             pstmt.setInt(1, id);
             ResultSet rs = pstmt.executeQuery();
-            while (rs.next()) {
-                if (order == null) {
-                    order = new PurchaseOrder(
-                        rs.getInt("purchase_order_id"),
-                        rs.getInt("supplier_id"),
-                        rs.getTimestamp("creation_date"),
-                        rs.getDate("expected_delivery_date"),
-                        rs.getString("status"),
-                        rs.getString("observations"),
-                        new ArrayList<>()
-                    );
-                }
-                int partId = rs.getInt("part_id");
-                if (rs.wasNull()) continue;
-                details.add(new PurchaseOrderDetail(
-                    0,
-                    id,
-                    partId,
-                    rs.getInt("quantity_ordered"),
-                    rs.getDouble("estimated_unit_price")
-                ));
-            }
-            if (order != null) {
-                order.setDetails(details);
+            if (rs.next()) {
+                List<PurchaseOrderDetail> details = findDetailsByOrderId(id);
+                return new PurchaseOrder(
+                    rs.getInt("order_id"),
+                    rs.getDate("order_date"),
+                    rs.getString("status"),
+                    rs.getInt("supplier_id") != 0 ? rs.getInt("supplier_id") : null,
+                    rs.getDouble("total_amount"),
+                    rs.getTimestamp("creation_date"),
+                    rs.getTimestamp("last_update_date"),
+                    details
+                );
             }
         } catch (SQLException e) {
-            System.err.println("Error finding purchase order: " + e.getMessage());
+            System.err.println("Error searching for purchase order: " + e.getMessage());
         }
-        return order;
+        return null;
+    }
+
+    private List<PurchaseOrderDetail> findDetailsByOrderId(int orderId) {
+        List<PurchaseOrderDetail> details = new ArrayList<>();
+        String sqlDetail = "SELECT * FROM purchase_order_details WHERE order_id = ?";
+        try (PreparedStatement pstmt = db.prepareStatement(sqlDetail)) {
+            pstmt.setInt(1, orderId);
+            ResultSet rs = pstmt.executeQuery();
+            while (rs.next()) {
+                details.add(new PurchaseOrderDetail(
+                    rs.getInt("detail_id"),
+                    rs.getInt("order_id"),
+                    rs.getInt("part_id"),
+                    rs.getInt("quantity"),
+                    rs.getDouble("unit_price"),
+                    rs.getDouble("subtotal")
+                ));
+            }
+        } catch (SQLException e) {
+            System.err.println("Error searching for order details:" + e.getMessage());
+        }
+        return details;
     }
 
     @Override
     public List<PurchaseOrder> findAll() {
-        String sql = "SELECT po.*, pod.part_id, pod.quantity_ordered, pod.estimated_unit_price " +
-                     "FROM purchase_orders po " +
-                     "LEFT JOIN purchase_order_detail pod ON po.purchase_order_id = pod.purchase_order_id";
         List<PurchaseOrder> orders = new ArrayList<>();
-        try (PreparedStatement stmt = db.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            int lastOrderId = -1;
-            PurchaseOrder currentOrder = null;
+        String sql = "SELECT * FROM purchase_orders";
+        try (PreparedStatement pstmt = db.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
             while (rs.next()) {
-                int orderId = rs.getInt("purchase_order_id");
-                if (lastOrderId != orderId) {
-                    if (currentOrder != null) {
-                        orders.add(currentOrder);
-                    }
-                    currentOrder = new PurchaseOrder(
-                        orderId,
-                        rs.getInt("supplier_id"),
-                        rs.getTimestamp("creation_date"),
-                        rs.getDate("expected_delivery_date"),
-                        rs.getString("status"),
-                        rs.getString("observations"),
-                        new ArrayList<>()
-                    );
-                    lastOrderId = orderId;
-                }
-                int partId = rs.getInt("part_id");
-                if (!rs.wasNull()) {
-                    currentOrder.getDetails().add(new PurchaseOrderDetail(
-                        0,
-                        orderId,
-                        partId,
-                        rs.getInt("quantity_ordered"),
-                        rs.getDouble("estimated_unit_price")
-                    ));
-                }
-            }
-            if (currentOrder != null) {
-                orders.add(currentOrder);
+                int orderId = rs.getInt("order_id");
+                List<PurchaseOrderDetail> details = findDetailsByOrderId(orderId);
+                orders.add(new PurchaseOrder(
+                    orderId,
+                    rs.getDate("order_date"),
+                    rs.getString("status"),
+                    rs.getInt("supplier_id") != 0 ? rs.getInt("supplier_id") : null,
+                    rs.getDouble("total_amount"),
+                    rs.getTimestamp("creation_date"),
+                    rs.getTimestamp("last_update_date"),
+                    details
+                ));
             }
         } catch (SQLException e) {
-            System.err.println("Error fetching purchase orders: " + e.getMessage());
+            System.err.println("Error getting purchase orders: " + e.getMessage());
         }
         return orders;
     }
 
     @Override
     public void update(PurchaseOrder order) {
-        String sql = "UPDATE purchase_orders SET supplier_id = ?, expected_delivery_date = ?, status = ?, observations = ? WHERE purchase_order_id = ?";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            pstmt.setInt(1, order.getSupplierId());
-            pstmt.setDate(2, order.getExpectedDeliveryDate() != null ? new java.sql.Date(order.getExpectedDeliveryDate().getTime()) : null);
-            pstmt.setString(3, order.getStatus());
-            pstmt.setString(4, order.getObservations());
-            pstmt.setInt(5, order.getPurchaseOrderId());
+        String sqlOrder = "UPDATE purchase_orders SET order_date = ?, status = ?, supplier_id = ?, total_amount = ?, last_update_date = ? WHERE order_id = ?";
+        try (PreparedStatement pstmt = db.prepareStatement(sqlOrder)) {
+            pstmt.setDate(1, new java.sql.Date(order.getOrderDate().getTime()));
+            pstmt.setString(2, order.getStatus());
+            if (order.getSupplierId() != null) {
+                pstmt.setInt(3, order.getSupplierId());
+            } else {
+                pstmt.setNull(3, Types.INTEGER);
+            }
+            pstmt.setDouble(4, order.getTotalAmount());
+            pstmt.setTimestamp(5, new Timestamp(order.getLastUpdateDate().getTime()));
+            pstmt.setInt(6, order.getOrderId());
             pstmt.executeUpdate();
 
-            String deleteSql = "DELETE FROM purchase_order_detail WHERE purchase_order_id = ?";
-            try (PreparedStatement deleteStmt = db.prepareStatement(deleteSql)) {
-                deleteStmt.setInt(1, order.getPurchaseOrderId());
-                deleteStmt.executeUpdate();
+            // Actualizar detalles
+            String sqlDeleteDetails = "DELETE FROM purchase_order_details WHERE order_id = ?";
+            try (PreparedStatement pstmtDelete = db.prepareStatement(sqlDeleteDetails)) {
+                pstmtDelete.setInt(1, order.getOrderId());
+                pstmtDelete.executeUpdate();
             }
+            String sqlInsertDetail = "INSERT INTO purchase_order_details (order_id, part_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)";
+            try (PreparedStatement pstmtInsert = db.prepareStatement(sqlInsertDetail, PreparedStatement.RETURN_GENERATED_KEYS)) {
+                for (PurchaseOrderDetail detail : order.getDetails()) {
+                    pstmtInsert.setInt(1, order.getOrderId());
+                    pstmtInsert.setInt(2, detail.getPartId());
+                    pstmtInsert.setInt(3, detail.getQuantity());
+                    pstmtInsert.setDouble(4, detail.getUnitPrice());
+                    pstmtInsert.setDouble(5, detail.getSubtotal());
+                    pstmtInsert.executeUpdate();
 
-            saveDetails(order.getPurchaseOrderId(), order.getDetails());
+                    ResultSet rsDetail = pstmtInsert.getGeneratedKeys();
+                    if (rsDetail.next()) {
+                        detail.setDetailId(rsDetail.getInt(1));
+                    }
+                }
+            }
         } catch (SQLException e) {
-            System.err.println("Error updating purchase order: " + e.getMessage());
+            throw new RuntimeException("Error updating purchase order: " + e.getMessage());
         }
     }
 
     @Override
     public void delete(int id) {
-        String sql = "DELETE FROM purchase_orders WHERE purchase_order_id = ?";
-        try (PreparedStatement pstmt = db.prepareStatement(sql)) {
-            pstmt.setInt(1, id);
-            pstmt.executeUpdate();
+        String sqlDetail = "DELETE FROM purchase_order_details WHERE order_id = ?";
+        String sqlOrder = "DELETE FROM purchase_orders WHERE order_id = ?";
+        try {
+            // Eliminar detalles primero
+            try (PreparedStatement pstmtDetail = db.prepareStatement(sqlDetail)) {
+                pstmtDetail.setInt(1, id);
+                pstmtDetail.executeUpdate();
+            }
+            // Eliminar orden
+            try (PreparedStatement pstmtOrder = db.prepareStatement(sqlOrder)) {
+                pstmtOrder.setInt(1, id);
+                pstmtOrder.executeUpdate();
+            }
         } catch (SQLException e) {
-            System.err.println("Error deleting purchase order: " + e.getMessage());
+            throw new RuntimeException("Error deleting purchase order: " + e.getMessage());
         }
     }
 }

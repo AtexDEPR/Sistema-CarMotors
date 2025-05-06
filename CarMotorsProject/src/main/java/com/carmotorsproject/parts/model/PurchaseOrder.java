@@ -9,38 +9,89 @@ import java.util.Date;
 import java.util.List;
 
 public class PurchaseOrder {
-    private int purchaseOrderId;
-    private int supplierId; // Cambiado a int porque es NOT NULL
+    private int orderId;
+    private Date orderDate;
+    private String status; // "Pending", "Completed", "Cancelled"
+    private Integer supplierId; // Puede ser null si no se asigna proveedor inicialmente
+    private double totalAmount;
     private Date creationDate;
-    private Date expectedDeliveryDate;
-    private String status;
-    private String observations;
+    private Date lastUpdateDate;
     private List<PurchaseOrderDetail> details;
 
-    public PurchaseOrder(int purchaseOrderId, int supplierId, Date creationDate, Date expectedDeliveryDate,
-                         String status, String observations, List<PurchaseOrderDetail> details) {
-        this.purchaseOrderId = purchaseOrderId;
-        this.supplierId = supplierId;
-        this.creationDate = creationDate;
-        this.expectedDeliveryDate = expectedDeliveryDate;
+    public PurchaseOrder(int orderId, Date orderDate, String status, Integer supplierId, double totalAmount,
+                        Date creationDate, Date lastUpdateDate, List<PurchaseOrderDetail> details) {
+        this.orderId = orderId;
+        this.orderDate = orderDate;
         this.status = status;
-        this.observations = observations;
+        this.supplierId = supplierId;
+        this.totalAmount = totalAmount;
+        this.creationDate = creationDate;
+        this.lastUpdateDate = lastUpdateDate;
         this.details = details;
     }
 
-    public int getPurchaseOrderId() { return purchaseOrderId; }
-    public int getSupplierId() { return supplierId; }
-    public Date getCreationDate() { return creationDate; }
-    public Date getExpectedDeliveryDate() { return expectedDeliveryDate; }
-    public String getStatus() { return status; }
-    public String getObservations() { return observations; }
-    public List<PurchaseOrderDetail> getDetails() { return details; }
+    // Getters y setters
+    public int getOrderId() {
+        return orderId;
+    }
 
-    public void setPurchaseOrderId(int purchaseOrderId) { this.purchaseOrderId = purchaseOrderId; }
-    public void setSupplierId(int supplierId) { this.supplierId = supplierId; }
-    public void setCreationDate(Date creationDate) { this.creationDate = creationDate; }
-    public void setExpectedDeliveryDate(Date expectedDeliveryDate) { this.expectedDeliveryDate = expectedDeliveryDate; }
-    public void setStatus(String status) { this.status = status; }
-    public void setObservations(String observations) { this.observations = observations; }
-    public void setDetails(List<PurchaseOrderDetail> details) { this.details = details; }
+    public void setOrderId(int orderId) {
+        this.orderId = orderId;
+    }
+
+    public Date getOrderDate() {
+        return orderDate;
+    }
+
+    public void setOrderDate(Date orderDate) {
+        this.orderDate = orderDate;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public Integer getSupplierId() {
+        return supplierId;
+    }
+
+    public void setSupplierId(Integer supplierId) {
+        this.supplierId = supplierId;
+    }
+
+    public double getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(double totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
+    public Date getCreationDate() {
+        return creationDate;
+    }
+
+    public void setCreationDate(Date creationDate) {
+        this.creationDate = creationDate;
+    }
+
+    public Date getLastUpdateDate() {
+        return lastUpdateDate;
+    }
+
+    public void setLastUpdateDate(Date lastUpdateDate) {
+        this.lastUpdateDate = lastUpdateDate;
+    }
+
+    public List<PurchaseOrderDetail> getDetails() {
+        return details;
+    }
+
+    public void setDetails(List<PurchaseOrderDetail> details) {
+        this.details = details;
+    }
 }

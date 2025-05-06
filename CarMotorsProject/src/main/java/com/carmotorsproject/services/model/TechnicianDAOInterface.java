@@ -4,10 +4,16 @@
  */
 package com.carmotorsproject.services.model;
 
+import java.util.List;
+
 /**
  *
  * @author camper
  */
-public class TechnicianDAOInterface {
-    
+public interface TechnicianDAOInterface {
+  void save(Technician technician);
+    Technician findById(int id);
+    List<Technician> findAll();
+    void update(Technician technician);
+    void delete(int id);
 }

@@ -5,10 +5,34 @@
  */
 package com.carmotorsproject.services.controller;
 
-/**
- *
- * @author ADMiN
- */
+import com.carmotorsproject.services.model.Technician;
+import com.carmotorsproject.services.model.TechnicianDAO;
+import java.util.List;
+
 public class TechnicianController {
-    
+    private TechnicianDAO technicianDAO;
+
+    public TechnicianController() {
+        this.technicianDAO = new TechnicianDAO();
+    }
+
+    public void addTechnician(Technician technician) {
+        technicianDAO.save(technician);
+    }
+
+    public void updateTechnician(Technician technician) {
+        technicianDAO.update(technician);
+    }
+
+    public void deleteTechnician(int technicianId) {
+        technicianDAO.delete(technicianId);
+    }
+
+    public Technician findById(int technicianId) {
+        return technicianDAO.findById(technicianId);
+    }
+
+    public List<Technician> getAllTechnicians() {
+        return technicianDAO.findAll();
+    }
 }

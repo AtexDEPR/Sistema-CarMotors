@@ -9,12 +9,11 @@ import java.util.List;
  * @author camper
  */
  public interface PartDAOInterface {
-    void save(Part part);
+      void save(Part part);
     Part findById(int id);
     List<Part> findAll();
     void update(Part part);
     void delete(int id);
-    boolean checkExpiration(int id);
-    void updateStock(int id, int quantity);
     void recordPartUsage(int serviceId, int partId, int quantityUsed, double unitPrice);
-}
+    void updateStock(int partId, int quantity);
+    List<Part> searchByName(String name);}

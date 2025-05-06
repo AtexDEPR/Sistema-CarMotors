@@ -5,30 +5,68 @@
 package com.carmotorsproject.parts.model;
 
 public class PurchaseOrderDetail {
-    private int orderDetailId;
-    private int purchaseOrderId;
+    private int detailId;
+    private int orderId;
     private int partId;
-    private int quantityOrdered;
-    private double estimatedUnitPrice;
+    private int quantity;
+    private double unitPrice;
+    private double subtotal;
 
-    public PurchaseOrderDetail(int orderDetailId, int purchaseOrderId, int partId, int quantityOrdered,
-                               double estimatedUnitPrice) {
-        this.orderDetailId = orderDetailId;
-        this.purchaseOrderId = purchaseOrderId;
+    public PurchaseOrderDetail(int detailId, int orderId, int partId, int quantity, double unitPrice, double subtotal) {
+        this.detailId = detailId;
+        this.orderId = orderId;
         this.partId = partId;
-        this.quantityOrdered = quantityOrdered;
-        this.estimatedUnitPrice = estimatedUnitPrice;
+        this.quantity = quantity;
+        this.unitPrice = unitPrice;
+        this.subtotal = subtotal;
     }
 
-    public int getOrderDetailId() { return orderDetailId; }
-    public int getPurchaseOrderId() { return purchaseOrderId; }
-    public int getPartId() { return partId; }
-    public int getQuantityOrdered() { return quantityOrdered; }
-    public double getEstimatedUnitPrice() { return estimatedUnitPrice; }
+    // Getters y setters
+    public int getDetailId() {
+        return detailId;
+    }
 
-    public void setOrderDetailId(int orderDetailId) { this.orderDetailId = orderDetailId; }
-    public void setPurchaseOrderId(int purchaseOrderId) { this.purchaseOrderId = purchaseOrderId; }
-    public void setPartId(int partId) { this.partId = partId; }
-    public void setQuantityOrdered(int quantityOrdered) { this.quantityOrdered = quantityOrdered; }
-    public void setEstimatedUnitPrice(double estimatedUnitPrice) { this.estimatedUnitPrice = estimatedUnitPrice; }
+    public void setDetailId(int detailId) {
+        this.detailId = detailId;
+    }
+
+    public int getOrderId() {
+        return orderId;
+    }
+
+    public void setOrderId(int orderId) {
+        this.orderId = orderId;
+    }
+
+    public int getPartId() {
+        return partId;
+    }
+
+    public void setPartId(int partId) {
+        this.partId = partId;
+    }
+
+    public int getQuantity() {
+        return quantity;
+    }
+
+    public void setQuantity(int quantity) {
+        this.quantity = quantity;
+    }
+
+    public double getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(double unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public double getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(double subtotal) {
+        this.subtotal = subtotal;
+    }
 }

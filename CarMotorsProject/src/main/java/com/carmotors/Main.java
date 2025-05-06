@@ -2,14 +2,18 @@ package com.carmotors;
 
 
 import com.carmotorsproject.campaigns.views.CampaignReportView;
+import com.carmotorsproject.customers.controller.CustomerController;
 import com.carmotorsproject.customers.views.CustomerView;
 import com.carmotorsproject.customers.views.LoyaltyProgramView;
+import com.carmotorsproject.invoices.controller.InvoiceController;
 import com.carmotorsproject.invoices.views.InvoicePreviewView;
 import com.carmotorsproject.invoices.views.InvoiceView;
 import com.carmotorsproject.parts.views.PartView;
 import com.carmotorsproject.parts.views.PurchaseOrderView;
 import com.carmotorsproject.parts.views.SupplierEvaluationView;
 import com.carmotorsproject.parts.views.SupplierView;
+import com.carmotorsproject.services.controller.TechnicianController;
+import com.carmotorsproject.services.controller.VehicleController;
 import com.carmotorsproject.services.views.DeliveryOrderView;
 import com.carmotorsproject.services.views.ServiceReportView;
 import com.carmotorsproject.services.views.ServiceView;
@@ -17,7 +21,6 @@ import com.carmotorsproject.services.views.TechnicianView;
 import com.carmotorsproject.services.views.VehicleView;
 
 import javax.swing.*;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 public class Main extends JFrame {
@@ -86,13 +89,25 @@ public class Main extends JFrame {
         purchaseItem.addActionListener(e -> new PurchaseOrderView().setVisible(true));
         evalItem.addActionListener(e -> new SupplierEvaluationView().setVisible(true));
         serviceItem.addActionListener(e -> new ServiceView().setVisible(true));
-        vehicleItem.addActionListener(e -> new VehicleView().setVisible(true));
-        technicianItem.addActionListener(e -> new TechnicianView().setVisible(true));
+        vehicleItem.addActionListener(e -> {
+            VehicleController controller = new VehicleController();
+            new VehicleView(controller).setVisible(true);
+        });
+        technicianItem.addActionListener(e -> {
+            TechnicianController controller = new TechnicianController();
+            new TechnicianView(controller).setVisible(true);
+        });
         deliveryItem.addActionListener(e -> new DeliveryOrderView().setVisible(true));
         serviceReportItem.addActionListener(e -> new ServiceReportView().setVisible(true));
-        customerItem.addActionListener(e -> new CustomerView().setVisible(true));
+        customerItem.addActionListener(e -> {
+            CustomerController controller = new CustomerController();
+            new CustomerView(controller).setVisible(true);
+        });
         loyaltyItem.addActionListener(e -> new LoyaltyProgramView().setVisible(true));
-        invoiceItem.addActionListener(e -> new InvoiceView().setVisible(true));
+        invoiceItem.addActionListener(e -> {
+            InvoiceController controller = new InvoiceController();
+            new InvoiceView(controller).setVisible(true);
+        });
         previewItem.addActionListener(e -> new InvoicePreviewView().setVisible(true));
         campaignReportItem.addActionListener(e -> new CampaignReportView().setVisible(true));
     }

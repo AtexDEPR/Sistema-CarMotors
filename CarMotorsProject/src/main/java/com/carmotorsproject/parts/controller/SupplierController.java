@@ -20,8 +20,15 @@ public class SupplierController {
     }
 
     public void addSupplier(Supplier supplier) {
-        supplierDAO.save(supplier);
-        view.refreshTable();
+        try {
+            supplierDAO.save(supplier);
+            view.showAlert("Supplier added successfully.");
+            view.refreshTable();
+        } catch (IllegalArgumentException e) {
+            view.showAlert(e.getMessage());
+        } catch (Exception e) {
+            view.showAlert("Error adding supplier: " + e.getMessage());
+        }
     }
 
     public List<Supplier> getAllSupplier() {
@@ -29,12 +36,26 @@ public class SupplierController {
     }
 
     public void updateSupplier(Supplier supplier) {
-        supplierDAO.update(supplier);
-        view.refreshTable();
+        try {
+            supplierDAO.update(supplier);
+            view.showAlert("Supplier updated successfully.");
+            view.refreshTable();
+        } catch (Exception e) {
+            view.showAlert("Error updating supplier: " + e.getMessage());
+        }
     }
 
     public void deleteSupplier(int id) {
-        supplierDAO.delete(id);
-        view.refreshTable();
+        try {
+            supplierDAO.delete(id);
+            view.showAlert("Supplier deleted successfully.");
+            view.refreshTable();
+        } catch (Exception e) {
+            view.showAlert("Error deleting supplier: " + e.getMessage());
+        }
+    }
+
+    public List<Supplier> searchSupplier(String searchTerm) {
+        return supplierDAO.searchByName(searchTerm);
     }
 }

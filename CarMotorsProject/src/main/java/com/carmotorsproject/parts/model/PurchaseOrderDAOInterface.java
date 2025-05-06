@@ -11,7 +11,7 @@ import java.util.List;
  * @author camper
  */
 public interface  PurchaseOrderDAOInterface {
-    void save(PurchaseOrder order);
+   void save(PurchaseOrder order);
     PurchaseOrder findById(int id);
     List<PurchaseOrder> findAll();
     void update(PurchaseOrder order);

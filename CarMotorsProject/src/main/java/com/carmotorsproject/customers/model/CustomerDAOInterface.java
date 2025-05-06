@@ -5,10 +5,16 @@
  */
 package com.carmotorsproject.customers.model;
 
+import java.util.List;
+
 /**
  *
  * @author ADMiN
  */
-public class CustomerDAOInterface {
-    
+public interface CustomerDAOInterface {
+        void save(Customer customer);
+    Customer findById(int id);
+    List<Customer> findAll();
+    void update(Customer customer);
+    void delete(int id);
 }

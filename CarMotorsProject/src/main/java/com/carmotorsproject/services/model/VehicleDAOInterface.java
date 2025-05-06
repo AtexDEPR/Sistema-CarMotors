@@ -4,10 +4,16 @@
  */
 package com.carmotorsproject.services.model;
 
+import java.util.List;
+
 /**
  *
  * @author camper
  */
-public class VehicleDAOInterface {
-    
+public interface VehicleDAOInterface {
+        void save(Vehicle vehicle);
+    Vehicle findById(int id);
+    List<Vehicle> findAll();
+    void update(Vehicle vehicle);
+    void delete(int id);
 }
