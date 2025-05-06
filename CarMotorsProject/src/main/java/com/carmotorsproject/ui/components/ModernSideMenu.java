@@ -1,40 +1,63 @@
 package com.carmotorsproject.ui.components;
 
-import com.carmotorsproject.ui.animation.AnimationManager;
 import com.carmotorsproject.ui.theme.AppTheme;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
- * Menú lateral moderno con animaciones y efectos visuales.
+ * Menú lateral moderno para la aplicación.
  */
 public class ModernSideMenu extends JPanel {
 
-    private final int MENU_WIDTH = 250;
-    private final int ITEM_HEIGHT = 45;
-    private final int SUBMENU_INDENT = 20;
-
     private List<MenuSection> sections = new ArrayList<>();
-    private Map<String, JPanel> subMenuPanels = new HashMap<>();
-    private String activeSection = null;
-    private String activeItem = null;
+    private JPanel menuPanel;
+    private int menuWidth = 250;
+    private boolean isCollapsed = false;
 
     /**
-     * Constructor del menú lateral moderno.
+     * Constructor del menú lateral.
      */
     public ModernSideMenu() {
-        setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+        setLayout(new BorderLayout());
         setBackground(AppTheme.PRIMARY_BLACK);
-        setPreferredSize(new Dimension(MENU_WIDTH, 0));
-        setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        setPreferredSize(new Dimension(menuWidth, 0));
+        setBorder(BorderFactory.createMatteBorder(0, 0, 0, 2, AppTheme.PRIMARY_RED));
+
+        // Panel de contenido del menú
+        menuPanel = new JPanel();
+        menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
+        menuPanel.setBackground(AppTheme.PRIMARY_BLACK);
+        menuPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        // Scroll pane para el menú
+        JScrollPane scrollPane = new JScrollPane(menuPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        // Botón para cerrar sesión en la parte inferior
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.setBackground(AppTheme.SECONDARY_BLACK);
+        bottomPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        ModernButton logoutButton = new ModernButton("Cerrar Sesión");
+        logoutButton.setColors(AppTheme.PRIMARY_RED, AppTheme.SECONDARY_RED,
+                AppTheme.SECONDARY_RED.darker(), Color.WHITE);
+        logoutButton.addActionListener(e -> {
+            firePropertyChange("exitApplication", false, true);
+        });
+
+        bottomPanel.add(logoutButton, BorderLayout.CENTER);
+
+        // Añadir componentes al panel principal
+        add(scrollPane, BorderLayout.CENTER);
+        add(bottomPanel, BorderLayout.SOUTH);
     }
 
     /**
@@ -50,193 +73,88 @@ public class ModernSideMenu extends JPanel {
     }
 
     /**
-     * Construye y muestra el menú completo.
+     * Construye el menú con todas las secciones y elementos añadidos.
      */
     public void buildMenu() {
-        removeAll();
+        menuPanel.removeAll();
 
-        // Añadir logo y título
-        JPanel logoPanel = createLogoPanel();
-        add(logoPanel);
-        add(Box.createRigidArea(new Dimension(0, 20)));
-
-        // Añadir secciones y elementos del menú
         for (MenuSection section : sections) {
-            // Añadir título de sección
-            if (section.getTitle() != null && !section.getTitle().isEmpty()) {
-                JLabel sectionLabel = new JLabel(section.getTitle().toUpperCase());
-                sectionLabel.setForeground(AppTheme.PRIMARY_RED);
-                sectionLabel.setFont(AppTheme.SMALL_FONT);
-                sectionLabel.setBorder(BorderFactory.createEmptyBorder(10, 15, 5, 0));
-                add(sectionLabel);
+            if (!section.getTitle().isEmpty()) {
+                JLabel titleLabel = new JLabel(section.getTitle().toUpperCase());
+                titleLabel.setFont(AppTheme.SMALL_FONT);
+                titleLabel.setForeground(AppTheme.ACCENT_LIGHT);
+                titleLabel.setBorder(new EmptyBorder(10, 5, 5, 5));
+                titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+                menuPanel.add(titleLabel);
             }
 
-            // Añadir elementos de menú
             for (MenuItem item : section.getItems()) {
-                JPanel menuItemPanel = createMenuItemPanel(item, false);
-                add(menuItemPanel);
+                JPanel itemPanel = new JPanel(new BorderLayout());
+                itemPanel.setBackground(AppTheme.PRIMARY_BLACK);
+                itemPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+                itemPanel.setMaximumSize(new Dimension(menuWidth - 20, 40));
 
-                // Crear panel de submenú si hay subelementos
-                if (!item.getSubItems().isEmpty()) {
-                    JPanel subMenuPanel = new JPanel();
-                    subMenuPanel.setLayout(new BoxLayout(subMenuPanel, BoxLayout.Y_AXIS));
-                    subMenuPanel.setBackground(AppTheme.SECONDARY_BLACK);
-                    subMenuPanel.setVisible(false);
+                JLabel itemLabel = new JLabel(item.getText());
+                itemLabel.setFont(AppTheme.REGULAR_FONT);
+                itemLabel.setForeground(Color.WHITE);
+                itemLabel.setBorder(new EmptyBorder(8, 10, 8, 10));
 
-                    // Añadir subelementos
-                    for (MenuItem subItem : item.getSubItems()) {
-                        JPanel subItemPanel = createMenuItemPanel(subItem, true);
-                        subMenuPanel.add(subItemPanel);
+                itemPanel.add(itemLabel, BorderLayout.CENTER);
+
+                // Añadir efecto hover
+                itemPanel.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        itemPanel.setBackground(AppTheme.PRIMARY_RED);
+                        itemLabel.setForeground(Color.WHITE);
                     }
 
-                    add(subMenuPanel);
-                    subMenuPanels.put(item.getId(), subMenuPanel);
-                }
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        itemPanel.setBackground(AppTheme.PRIMARY_BLACK);
+                        itemLabel.setForeground(Color.WHITE);
+                    }
+
+                    @Override
+                    public void mouseClicked(MouseEvent e) {
+                        firePropertyChange("menuItemSelected", null, item);
+                    }
+                });
+
+                menuPanel.add(itemPanel);
+            }
+
+            // Añadir separador después de cada sección excepto la última
+            if (sections.indexOf(section) < sections.size() - 1) {
+                JSeparator separator = new JSeparator();
+                separator.setForeground(AppTheme.ACCENT_LIGHT);
+                separator.setBackground(AppTheme.PRIMARY_BLACK);
+                separator.setMaximumSize(new Dimension(menuWidth - 20, 1));
+                separator.setAlignmentX(Component.LEFT_ALIGNMENT);
+                menuPanel.add(separator);
             }
         }
-
-        // Añadir espacio flexible al final
-        add(Box.createVerticalGlue());
-
-        // Añadir botón de salida
-        ModernButton exitButton = new ModernButton("Salir", true);
-        exitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-        exitButton.setMaximumSize(new Dimension(MENU_WIDTH - 30, ITEM_HEIGHT));
-        exitButton.setColors(AppTheme.PRIMARY_RED, AppTheme.SECONDARY_RED,
-                AppTheme.SECONDARY_RED.darker(), AppTheme.PRIMARY_WHITE);
-        exitButton.addActionListener(e -> {
-            // La acción de salir se manejará en la clase App
-            firePropertyChange("exitApplication", false, true);
-        });
-
-        JPanel exitPanel = new JPanel();
-        exitPanel.setLayout(new BoxLayout(exitPanel, BoxLayout.X_AXIS));
-        exitPanel.setOpaque(false);
-        exitPanel.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
-        exitPanel.add(exitButton);
-
-        add(exitPanel);
 
         revalidate();
         repaint();
     }
 
     /**
-     * Crea el panel del logo y título.
+     * Colapsa o expande el menú.
      *
-     * @return Panel con logo y título
+     * @param collapsed true para colapsar, false para expandir
      */
-    private JPanel createLogoPanel() {
-        JPanel logoPanel = new JPanel();
-        logoPanel.setLayout(new BoxLayout(logoPanel, BoxLayout.Y_AXIS));
-        logoPanel.setOpaque(false);
-        logoPanel.setBorder(BorderFactory.createEmptyBorder(5, 0, 10, 0));
+    public void setCollapsed(boolean collapsed) {
+        this.isCollapsed = collapsed;
 
-        JLabel logoLabel = new JLabel("CM");
-        logoLabel.setFont(new Font("Arial", Font.BOLD, 32));
-        logoLabel.setForeground(AppTheme.PRIMARY_RED);
-        logoLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        logoPanel.add(logoLabel);
-
-        JLabel titleLabel = new JLabel("Car Motors");
-        titleLabel.setFont(AppTheme.SUBTITLE_FONT);
-        titleLabel.setForeground(AppTheme.PRIMARY_WHITE);
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        logoPanel.add(titleLabel);
-
-        JLabel subtitleLabel = new JLabel("Workshop");
-        subtitleLabel.setFont(AppTheme.REGULAR_FONT);
-        subtitleLabel.setForeground(AppTheme.ACCENT_LIGHT);
-        subtitleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        logoPanel.add(subtitleLabel);
-
-        return logoPanel;
-    }
-
-    /**
-     * Crea un panel para un elemento de menú.
-     *
-     * @param item Elemento de menú
-     * @param isSubItem Si es un subelemento
-     * @return Panel del elemento de menú
-     */
-    private JPanel createMenuItemPanel(MenuItem item, boolean isSubItem) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setOpaque(false);
-        panel.setMaximumSize(new Dimension(MENU_WIDTH, ITEM_HEIGHT));
-
-        int leftPadding = isSubItem ? SUBMENU_INDENT : 15;
-        panel.setBorder(BorderFactory.createEmptyBorder(0, leftPadding, 0, 15));
-
-        // Crear etiqueta para el texto del elemento
-        JLabel label = new JLabel(item.getText());
-        label.setForeground(AppTheme.PRIMARY_WHITE);
-        label.setFont(AppTheme.REGULAR_FONT);
-        panel.add(label, BorderLayout.CENTER);
-
-        // Añadir icono de flecha si tiene subelementos
-        if (!item.getSubItems().isEmpty()) {
-            JLabel arrowLabel = new JLabel("▼");
-            arrowLabel.setForeground(AppTheme.PRIMARY_WHITE);
-            arrowLabel.setFont(new Font("Arial", Font.PLAIN, 10));
-            panel.add(arrowLabel, BorderLayout.EAST);
-        }
-
-        // Añadir efectos de hover y clic
-        panel.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                panel.setBackground(AppTheme.PRIMARY_RED);
-                panel.setOpaque(true);
-                repaint();
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (!item.getId().equals(activeItem)) {
-                    panel.setOpaque(false);
-                    repaint();
-                }
-            }
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                // Manejar clic en elemento de menú
-                handleMenuItemClick(item);
-            }
-        });
-
-        return panel;
-    }
-
-    /**
-     * Maneja el clic en un elemento de menú.
-     *
-     * @param item Elemento de menú clicado
-     */
-    private void handleMenuItemClick(MenuItem item) {
-        // Si tiene subelementos, mostrar/ocultar submenú
-        if (!item.getSubItems().isEmpty()) {
-            JPanel subMenuPanel = subMenuPanels.get(item.getId());
-            if (subMenuPanel != null) {
-                boolean isVisible = subMenuPanel.isVisible();
-
-                // Animar la apertura/cierre del submenú
-                if (isVisible) {
-                    AnimationManager.fadeOut(subMenuPanel, 200, false);
-                } else {
-                    subMenuPanel.setVisible(true);
-                    AnimationManager.fadeIn(subMenuPanel, 200);
-                }
-            }
+        if (collapsed) {
+            setPreferredSize(new Dimension(60, 0));
         } else {
-            // Actualizar elemento activo
-            String oldActiveItem = activeItem;
-            activeItem = item.getId();
-
-            // Notificar a los listeners sobre el cambio de elemento
-            firePropertyChange("menuItemSelected", oldActiveItem, item);
+            setPreferredSize(new Dimension(menuWidth, 0));
         }
+
+        revalidate();
+        repaint();
     }
 
     /**
@@ -246,6 +164,11 @@ public class ModernSideMenu extends JPanel {
         private String title;
         private List<MenuItem> items = new ArrayList<>();
 
+        /**
+         * Constructor de la sección.
+         *
+         * @param title Título de la sección
+         */
         public MenuSection(String title) {
             this.title = title;
         }
@@ -254,68 +177,68 @@ public class ModernSideMenu extends JPanel {
          * Añade un elemento a la sección.
          *
          * @param text Texto del elemento
-         * @param action Acción a ejecutar
+         * @param action Acción a ejecutar al hacer clic
          * @return El elemento creado
          */
         public MenuItem addItem(String text, Runnable action) {
-            String id = "item_" + System.currentTimeMillis();
-            MenuItem item = new MenuItem(id, text, action);
+            MenuItem item = new MenuItem(text, action);
             items.add(item);
             return item;
         }
 
+        /**
+         * Obtiene el título de la sección.
+         *
+         * @return Título de la sección
+         */
         public String getTitle() {
             return title;
         }
 
+        /**
+         * Obtiene los elementos de la sección.
+         *
+         * @return Lista de elementos
+         */
         public List<MenuItem> getItems() {
             return items;
         }
     }
 
     /**
-     * Clase interna para representar un elemento de menú.
+     * Clase interna para representar un elemento del menú.
      */
     public class MenuItem {
-        private String id;
         private String text;
         private Runnable action;
-        private List<MenuItem> subItems = new ArrayList<>();
 
-        public MenuItem(String id, String text, Runnable action) {
-            this.id = id;
+        /**
+         * Constructor del elemento.
+         *
+         * @param text Texto del elemento
+         * @param action Acción a ejecutar al hacer clic
+         */
+        public MenuItem(String text, Runnable action) {
             this.text = text;
             this.action = action;
         }
 
         /**
-         * Añade un subelemento al elemento.
+         * Obtiene el texto del elemento.
          *
-         * @param text Texto del subelemento
-         * @param action Acción a ejecutar
-         * @return El subelemento creado
+         * @return Texto del elemento
          */
-        public MenuItem addSubItem(String text, Runnable action) {
-            String subId = id + "_sub_" + System.currentTimeMillis();
-            MenuItem subItem = new MenuItem(subId, text, action);
-            subItems.add(subItem);
-            return subItem;
-        }
-
-        public String getId() {
-            return id;
-        }
-
         public String getText() {
             return text;
         }
 
+        /**
+         * Obtiene la acción del elemento.
+         *
+         * @return Acción del elemento
+         */
         public Runnable getAction() {
             return action;
-        }
-
-        public List<MenuItem> getSubItems() {
-            return subItems;
         }
     }
 }

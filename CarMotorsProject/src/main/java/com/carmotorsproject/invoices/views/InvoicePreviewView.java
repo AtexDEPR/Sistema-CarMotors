@@ -1,20 +1,14 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.carmotorsproject.invoices.views;
-
-/**
- *
- * @author ADMiN
- */
 
 import com.carmotorsproject.customers.model.Customer;
 import com.carmotorsproject.invoices.controller.InvoiceController;
 import com.carmotorsproject.invoices.model.Invoice;
 import com.carmotorsproject.services.model.Service;
 import com.carmotorsproject.utils.PDFGenerator;
+import com.carmotorsproject.ui.theme.AppTheme;
+import com.carmotorsproject.ui.components.ModernButton;
+import com.carmotorsproject.ui.components.RoundedPanel;
+import com.carmotorsproject.ui.components.TransparentPanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -23,7 +17,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.logging.Level;
@@ -50,9 +43,9 @@ public class InvoicePreviewView extends JFrame {
     private JPanel detailsPanel;
     private JPanel previewPanel;
     private JLabel pdfPreviewLabel;
-    private JButton saveButton;
-    private JButton sendButton;
-    private JButton closeButton;
+    private ModernButton saveButton;
+    private ModernButton sendButton;
+    private ModernButton closeButton;
 
     // Utilities
     private final PDFGenerator pdfGenerator;
@@ -78,34 +71,42 @@ public class InvoicePreviewView extends JFrame {
         setupListeners();
         generatePreview();
 
-        setTitle("Invoice Preview - " + invoice.getInvoiceNumber());
+        setTitle("Vista Previa de Factura - " + invoice.getInvoiceNumber());
         setSize(900, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
-        LOGGER.log(Level.INFO, "Invoice preview initialized for invoice: {0}", invoice.getInvoiceNumber());
+        LOGGER.log(Level.INFO, "Vista previa de factura inicializada para factura: {0}", invoice.getInvoiceNumber());
     }
 
     /**
      * Initializes the UI components.
      */
     private void initComponents() {
-        contentPane = new JPanel();
+        // Apply theme
+        AppTheme.applyTheme();
+
+        contentPane = new RoundedPanel(AppTheme.PRIMARY_WHITE, 1.0f, 0);
         contentPane.setBorder(new EmptyBorder(10, 10, 10, 10));
         setContentPane(contentPane);
 
-        detailsPanel = new JPanel();
-        detailsPanel.setBorder(BorderFactory.createTitledBorder("Invoice Details"));
+        detailsPanel = new RoundedPanel(Color.WHITE, 1.0f, AppTheme.BORDER_RADIUS);
+        detailsPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.MEDIUM_GRAY),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)));
 
-        previewPanel = new JPanel();
-        previewPanel.setBorder(BorderFactory.createTitledBorder("PDF Preview"));
+        previewPanel = new RoundedPanel(Color.WHITE, 1.0f, AppTheme.BORDER_RADIUS);
+        previewPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.MEDIUM_GRAY),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)));
 
-        pdfPreviewLabel = new JLabel("Generating preview...");
+        pdfPreviewLabel = new JLabel("Generando vista previa...");
         pdfPreviewLabel.setHorizontalAlignment(JLabel.CENTER);
+        pdfPreviewLabel.setFont(AppTheme.REGULAR_FONT);
 
-        saveButton = new JButton("Save PDF");
-        sendButton = new JButton("Send by Email");
-        closeButton = new JButton("Close");
+        saveButton = new ModernButton("Guardar PDF", "primary");
+        sendButton = new ModernButton("Enviar por Email", "success");
+        closeButton = new ModernButton("Cerrar", "light");
     }
 
     /**
@@ -119,24 +120,24 @@ public class InvoicePreviewView extends JFrame {
         detailsPanel.setPreferredSize(new Dimension(400, 200));
 
         // Add invoice details
-        addDetailField("Invoice Number:", invoice.getInvoiceNumber());
-        addDetailField("Date:", new SimpleDateFormat("yyyy-MM-dd").format(invoice.getInvoiceDate()));
-        addDetailField("Customer:", customer.getFirstName() + " " + customer.getLastName());
+        addDetailField("Número de Factura:", invoice.getInvoiceNumber());
+        addDetailField("Fecha:", new SimpleDateFormat("yyyy-MM-dd").format(invoice.getInvoiceDate()));
+        addDetailField("Cliente:", customer.getFirstName() + " " + customer.getLastName());
         addDetailField("Email:", customer.getEmail());
-        addDetailField("Phone:", customer.getPhone());
-        addDetailField("Service:", service.getDescription());
+        addDetailField("Teléfono:", customer.getPhone());
+        addDetailField("Servicio:", service.getDescription());
         addDetailField("Subtotal:", new DecimalFormat("$#,##0.00").format(invoice.getSubtotal()));
-        addDetailField("Tax:", new DecimalFormat("$#,##0.00").format(invoice.getTax()));
+        addDetailField("Impuesto:", new DecimalFormat("$#,##0.00").format(invoice.getTax()));
         addDetailField("Total:", new DecimalFormat("$#,##0.00").format(invoice.getTotal()));
-        addDetailField("Status:", invoice.getPaymentStatus());
+        addDetailField("Estado:", invoice.getPaymentStatus());
 
         // Preview Panel
         previewPanel.setLayout(new BorderLayout());
         previewPanel.add(new JScrollPane(pdfPreviewLabel), BorderLayout.CENTER);
 
         // Button Panel
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT));
+        TransparentPanel buttonPanel = new TransparentPanel(AppTheme.LIGHT_GRAY, 0.3f);
+        buttonPanel.setLayout(new FlowLayout(FlowLayout.RIGHT, 10, 10));
         buttonPanel.add(saveButton);
         buttonPanel.add(sendButton);
         buttonPanel.add(closeButton);
@@ -155,10 +156,12 @@ public class InvoicePreviewView extends JFrame {
      */
     private void addDetailField(String label, String value) {
         JLabel labelComponent = new JLabel(label);
-        labelComponent.setFont(labelComponent.getFont().deriveFont(Font.BOLD));
+        labelComponent.setFont(AppTheme.SUBTITLE_FONT);
+        labelComponent.setForeground(AppTheme.PRIMARY_BLACK);
         detailsPanel.add(labelComponent);
 
         JLabel valueComponent = new JLabel(value);
+        valueComponent.setFont(AppTheme.REGULAR_FONT);
         detailsPanel.add(valueComponent);
     }
 
@@ -204,15 +207,15 @@ public class InvoicePreviewView extends JFrame {
                 pdfPreviewLabel.setIcon(previewIcon);
                 pdfPreviewLabel.setText("");
             } else {
-                pdfPreviewLabel.setText("Preview not available. PDF generated successfully.");
+                pdfPreviewLabel.setText("Vista previa no disponible. PDF generado correctamente.");
             }
 
-            LOGGER.log(Level.INFO, "Generated PDF preview for invoice: {0}", invoice.getInvoiceNumber());
+            LOGGER.log(Level.INFO, "Vista previa de PDF generada para factura: {0}", invoice.getInvoiceNumber());
         } catch (Exception ex) {
-            LOGGER.log(Level.SEVERE, "Error generating PDF preview", ex);
-            pdfPreviewLabel.setText("Error generating preview: " + ex.getMessage());
+            LOGGER.log(Level.SEVERE, "Error generando vista previa de PDF", ex);
+            pdfPreviewLabel.setText("Error generando vista previa: " + ex.getMessage());
             JOptionPane.showMessageDialog(this,
-                    "Error generating PDF preview: " + ex.getMessage(),
+                    "Error generando vista previa de PDF: " + ex.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
@@ -235,7 +238,7 @@ public class InvoicePreviewView extends JFrame {
             // Alternatively, you could use Desktop to open the PDF in the default viewer
             // Desktop.getDesktop().open(pdfFile);
         } catch (Exception ex) {
-            LOGGER.log(Level.SEVERE, "Error creating PDF preview image", ex);
+            LOGGER.log(Level.SEVERE, "Error creando imagen de vista previa de PDF", ex);
             return null;
         }
     }
@@ -245,8 +248,8 @@ public class InvoicePreviewView extends JFrame {
      */
     private void savePdf() {
         JFileChooser fileChooser = new JFileChooser();
-        fileChooser.setDialogTitle("Save Invoice PDF");
-        fileChooser.setSelectedFile(new File("invoice_" + invoice.getInvoiceNumber().replace("-", "_") + ".pdf"));
+        fileChooser.setDialogTitle("Guardar PDF de Factura");
+        fileChooser.setSelectedFile(new File("factura_" + invoice.getInvoiceNumber().replace("-", "_") + ".pdf"));
 
         int userSelection = fileChooser.showSaveDialog(this);
 
@@ -258,15 +261,15 @@ public class InvoicePreviewView extends JFrame {
                 pdfGenerator.generateInvoicePdf(invoice, customer, service, fileToSave.getAbsolutePath());
 
                 JOptionPane.showMessageDialog(this,
-                        "PDF saved successfully: " + fileToSave.getAbsolutePath(),
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
+                        "PDF guardado correctamente: " + fileToSave.getAbsolutePath(),
+                        "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
-                LOGGER.log(Level.INFO, "Saved PDF for invoice: {0} to: {1}",
+                LOGGER.log(Level.INFO, "PDF guardado para factura: {0} en: {1}",
                         new Object[]{invoice.getInvoiceNumber(), fileToSave.getAbsolutePath()});
             } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "Error saving PDF", ex);
+                LOGGER.log(Level.SEVERE, "Error guardando PDF", ex);
                 JOptionPane.showMessageDialog(this,
-                        "Error saving PDF: " + ex.getMessage(),
+                        "Error guardando PDF: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -277,26 +280,26 @@ public class InvoicePreviewView extends JFrame {
      */
     private void sendEmail() {
         int option = JOptionPane.showConfirmDialog(this,
-                "Send invoice to " + customer.getEmail() + "?",
-                "Confirm Email", JOptionPane.YES_NO_OPTION);
+                "¿Enviar factura a " + customer.getEmail() + "?",
+                "Confirmar Email", JOptionPane.YES_NO_OPTION);
 
         if (option == JOptionPane.YES_OPTION) {
             try {
                 controller.sendEmail(invoice.getInvoiceId());
 
                 JOptionPane.showMessageDialog(this,
-                        "Email sent successfully to: " + customer.getEmail(),
-                        "Success", JOptionPane.INFORMATION_MESSAGE);
+                        "Email enviado correctamente a: " + customer.getEmail(),
+                        "Éxito", JOptionPane.INFORMATION_MESSAGE);
 
-                LOGGER.log(Level.INFO, "Sent email for invoice: {0} to: {1}",
+                LOGGER.log(Level.INFO, "Email enviado para factura: {0} a: {1}",
                         new Object[]{invoice.getInvoiceNumber(), customer.getEmail()});
 
                 // Close the preview window
                 dispose();
             } catch (Exception ex) {
-                LOGGER.log(Level.SEVERE, "Error sending email", ex);
+                LOGGER.log(Level.SEVERE, "Error enviando email", ex);
                 JOptionPane.showMessageDialog(this,
-                        "Error sending email: " + ex.getMessage(),
+                        "Error enviando email: " + ex.getMessage(),
                         "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
@@ -309,9 +312,9 @@ public class InvoicePreviewView extends JFrame {
         if (tempPdfFile != null && tempPdfFile.exists()) {
             try {
                 tempPdfFile.delete();
-                LOGGER.log(Level.INFO, "Deleted temporary PDF file: {0}", tempPdfFile.getAbsolutePath());
+                LOGGER.log(Level.INFO, "Archivo PDF temporal eliminado: {0}", tempPdfFile.getAbsolutePath());
             } catch (Exception ex) {
-                LOGGER.log(Level.WARNING, "Error deleting temporary PDF file", ex);
+                LOGGER.log(Level.WARNING, "Error eliminando archivo PDF temporal", ex);
             }
         }
     }

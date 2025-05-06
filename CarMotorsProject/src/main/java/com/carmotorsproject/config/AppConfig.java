@@ -12,14 +12,14 @@ public class AppConfig {
 
     // Database configuration
     private static final String DB_URL = "jdbc:mysql://localhost:3306/carmotors";
-    private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = "kova3452";
+    private static final String DB_USER = "campus2023";
+    private static final String DB_PASSWORD = "campus2023";
 
     // Email configuration
     private static final String EMAIL_HOST = "smtp.gmail.com";
     private static final int EMAIL_PORT = 587;
-    private static final String EMAIL_USERNAME = "workshop@carmotors.com";
-    private static final String EMAIL_PASSWORD = "your_app_password"; // Use app password for Gmail
+    private static final String EMAIL_USERNAME = "carmotors888@gmail.com";
+    private static final String EMAIL_PASSWORD = "$Car/motors888"; // Use app password for Gmail
     private static final boolean EMAIL_AUTH = true;
     private static final boolean EMAIL_TLS = true;
 

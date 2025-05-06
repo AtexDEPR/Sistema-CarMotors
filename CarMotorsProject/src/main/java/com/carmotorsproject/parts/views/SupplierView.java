@@ -11,11 +11,14 @@ import com.carmotorsproject.utils.SwingUtils;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
@@ -23,7 +26,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Vista moderna para la gestión de proveedores.
+ * Vista moderna y responsiva para la gestión de proveedores.
  */
 public class SupplierView extends JPanel {
 
@@ -51,6 +54,9 @@ public class SupplierView extends JPanel {
     private ModernButton btnSearch;
     private JPanel cardPanel;
     private CardLayout cardLayout;
+    private JSplitPane mainSplitPane;
+    private JLabel statusLabel;
+    private JLabel totalSuppliersLabel;
 
     /**
      * Constructor de la vista.
@@ -90,19 +96,23 @@ public class SupplierView extends JPanel {
 
         // Panel de contenido principal
         JPanel contentPanel = new TransparentPanel(AppTheme.PRIMARY_WHITE, 1.0f);
-        contentPanel.setLayout(new BorderLayout(0, 20));
-        contentPanel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        contentPanel.setLayout(new BorderLayout(0, 0));
 
-        // Panel de título
-        JPanel titlePanel = new TransparentPanel(AppTheme.PRIMARY_BLACK, 0.9f);
-        titlePanel.setLayout(new BorderLayout());
-        titlePanel.setBorder(new EmptyBorder(15, 20, 15, 20));
-        titlePanel.setPreferredSize(new Dimension(0, 60));
+        // Panel de título/header
+        JPanel headerPanel = createHeaderPanel();
 
-        JLabel titleLabel = new JLabel("Gestión de Proveedores");
-        titleLabel.setFont(AppTheme.TITLE_FONT);
-        titleLabel.setForeground(AppTheme.PRIMARY_WHITE);
-        titlePanel.add(titleLabel, BorderLayout.WEST);
+        // Panel principal con SplitPane para responsividad
+        mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        mainSplitPane.setDividerLocation(350);
+        mainSplitPane.setOneTouchExpandable(true);
+        mainSplitPane.setContinuousLayout(true);
+        mainSplitPane.setDividerSize(8);
+        mainSplitPane.setBorder(null);
+
+        // Panel superior (formulario y búsqueda)
+        JPanel topPanel = new JPanel(new BorderLayout(0, 10));
+        topPanel.setOpaque(false);
+        topPanel.setBorder(new EmptyBorder(15, 15, 5, 15));
 
         // Panel de formulario
         JPanel formPanel = createFormPanel();
@@ -110,27 +120,87 @@ public class SupplierView extends JPanel {
         // Panel de búsqueda
         JPanel searchPanel = createSearchPanel();
 
+        topPanel.add(formPanel, BorderLayout.CENTER);
+        topPanel.add(searchPanel, BorderLayout.SOUTH);
+
+        // Panel inferior (tabla)
+        JPanel bottomPanel = new JPanel(new BorderLayout(0, 0));
+        bottomPanel.setOpaque(false);
+        bottomPanel.setBorder(new EmptyBorder(5, 15, 15, 15));
+
         // Panel de tabla
         JPanel tablePanel = createTablePanel();
 
+        // Panel de estado
+        JPanel statusPanel = createStatusPanel();
+
+        bottomPanel.add(tablePanel, BorderLayout.CENTER);
+        bottomPanel.add(statusPanel, BorderLayout.SOUTH);
+
+        // Añadir paneles al SplitPane
+        mainSplitPane.setTopComponent(topPanel);
+        mainSplitPane.setBottomComponent(bottomPanel);
+
         // Añadir componentes al panel de contenido
-        contentPanel.add(titlePanel, BorderLayout.NORTH);
-
-        // Panel central que contiene formulario y búsqueda
-        JPanel centerPanel = new JPanel(new BorderLayout(0, 15));
-        centerPanel.setOpaque(false);
-        centerPanel.add(formPanel, BorderLayout.NORTH);
-        centerPanel.add(searchPanel, BorderLayout.CENTER);
-
-        contentPanel.add(centerPanel, BorderLayout.CENTER);
-        contentPanel.add(tablePanel, BorderLayout.SOUTH);
+        contentPanel.add(headerPanel, BorderLayout.NORTH);
+        contentPanel.add(mainSplitPane, BorderLayout.CENTER);
 
         // Añadir al panel con CardLayout
         cardPanel.add(contentPanel, "main");
         add(cardPanel, BorderLayout.CENTER);
 
+        // Ajustar el divisor del SplitPane cuando se redimensiona la ventana
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                mainSplitPane.setDividerLocation(0.4);
+            }
+        });
+
         // Aplicar animación de entrada
         SwingUtilities.invokeLater(() -> AnimationManager.fadeIn(this, 300));
+    }
+
+    /**
+     * Crea el panel de encabezado.
+     *
+     * @return Panel de encabezado
+     */
+    private JPanel createHeaderPanel() {
+        JPanel headerPanel = new TransparentPanel(AppTheme.PRIMARY_BLACK, 1.0f);
+        headerPanel.setLayout(new BorderLayout());
+        headerPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
+        headerPanel.setPreferredSize(new Dimension(0, 70));
+
+        // Icono y título
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        titlePanel.setOpaque(false);
+
+        // Icono (simulado con un panel redondeado)
+        JPanel iconPanel = new TransparentPanel(AppTheme.PRIMARY_RED, 1.0f, 20);
+        iconPanel.setPreferredSize(new Dimension(40, 40));
+        titlePanel.add(iconPanel);
+
+        // Título
+        JLabel titleLabel = new JLabel("Gestión de Proveedores");
+        titleLabel.setFont(AppTheme.TITLE_FONT);
+        titleLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        titlePanel.add(titleLabel);
+
+        headerPanel.add(titlePanel, BorderLayout.WEST);
+
+        // Panel de información
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        infoPanel.setOpaque(false);
+
+        JLabel infoLabel = new JLabel("Sistema de Gestión CarMotors");
+        infoLabel.setFont(AppTheme.SMALL_FONT);
+        infoLabel.setForeground(AppTheme.ACCENT_LIGHT);
+        infoPanel.add(infoLabel);
+
+        headerPanel.add(infoPanel, BorderLayout.EAST);
+
+        return headerPanel;
     }
 
     /**
@@ -141,15 +211,25 @@ public class SupplierView extends JPanel {
     private JPanel createFormPanel() {
         JPanel formWrapper = new TransparentPanel(AppTheme.PRIMARY_WHITE, 0.95f, AppTheme.BORDER_RADIUS);
         formWrapper.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 1),
-                new EmptyBorder(15, 15, 15, 15)));
-        formWrapper.setLayout(new BorderLayout(0, 10));
+                BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 2),
+                new EmptyBorder(20, 20, 20, 20)));
+        formWrapper.setLayout(new BorderLayout(0, 15));
 
-        // Título del formulario
+        // Título del formulario con icono
+        JPanel formTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        formTitlePanel.setOpaque(false);
+
+        JLabel formIcon = new JLabel("\uD83D\uDCDD"); // Emoji de formulario
+        formIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
+        formIcon.setForeground(AppTheme.PRIMARY_BLACK);
+        formTitlePanel.add(formIcon);
+
         JLabel formTitle = new JLabel("Datos del Proveedor");
         formTitle.setFont(AppTheme.SUBTITLE_FONT);
         formTitle.setForeground(AppTheme.PRIMARY_BLACK);
-        formWrapper.add(formTitle, BorderLayout.NORTH);
+        formTitlePanel.add(formTitle);
+
+        formWrapper.add(formTitlePanel, BorderLayout.NORTH);
 
         // Panel de campos del formulario
         JPanel formPanel = new JPanel(new GridBagLayout());
@@ -157,36 +237,41 @@ public class SupplierView extends JPanel {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.insets = new Insets(8, 8, 8, 15);
+        gbc.anchor = GridBagConstraints.WEST;
 
         // ID
         gbc.gridx = 0;
         gbc.gridy = 0;
+        gbc.weightx = 0.1;
         JLabel lblId = new JLabel("ID:");
         lblId.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblId, gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 0;
+        gbc.weightx = 0.4;
         txtId = new JTextField();
         txtId.setEditable(false);
         txtId.setFont(AppTheme.REGULAR_FONT);
         txtId.setBackground(AppTheme.SECONDARY_WHITE);
         txtId.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY),
-                BorderFactory.createEmptyBorder(5, 8, 5, 8)));
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
         formPanel.add(txtId, gbc);
         txtId.setColumns(5);
 
         // Nombre
         gbc.gridx = 0;
         gbc.gridy = 1;
+        gbc.weightx = 0.1;
         JLabel lblName = new JLabel("Nombre:");
         lblName.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblName, gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 1;
+        gbc.weightx = 0.4;
         txtName = new ModernTextField();
         txtName.setPlaceholder("Nombre del proveedor");
         formPanel.add(txtName, gbc);
@@ -195,12 +280,14 @@ public class SupplierView extends JPanel {
         // Contacto
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.weightx = 0.1;
         JLabel lblContact = new JLabel("Contacto:");
         lblContact.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblContact, gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 2;
+        gbc.weightx = 0.4;
         txtContactName = new ModernTextField();
         txtContactName.setPlaceholder("Nombre de la persona de contacto");
         formPanel.add(txtContactName, gbc);
@@ -209,12 +296,14 @@ public class SupplierView extends JPanel {
         // Teléfono
         gbc.gridx = 0;
         gbc.gridy = 3;
+        gbc.weightx = 0.1;
         JLabel lblPhone = new JLabel("Teléfono:");
         lblPhone.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblPhone, gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 3;
+        gbc.weightx = 0.4;
         txtPhone = new ModernTextField();
         txtPhone.setPlaceholder("Número de teléfono");
         formPanel.add(txtPhone, gbc);
@@ -223,12 +312,14 @@ public class SupplierView extends JPanel {
         // Email
         gbc.gridx = 2;
         gbc.gridy = 1;
+        gbc.weightx = 0.1;
         JLabel lblEmail = new JLabel("Email:");
         lblEmail.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblEmail, gbc);
 
         gbc.gridx = 3;
         gbc.gridy = 1;
+        gbc.weightx = 0.4;
         txtEmail = new ModernTextField();
         txtEmail.setPlaceholder("Correo electrónico");
         formPanel.add(txtEmail, gbc);
@@ -237,12 +328,14 @@ public class SupplierView extends JPanel {
         // Dirección
         gbc.gridx = 2;
         gbc.gridy = 2;
+        gbc.weightx = 0.1;
         JLabel lblAddress = new JLabel("Dirección:");
         lblAddress.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblAddress, gbc);
 
         gbc.gridx = 3;
         gbc.gridy = 2;
+        gbc.weightx = 0.4;
         txtAddress = new ModernTextField();
         txtAddress.setPlaceholder("Dirección completa");
         formPanel.add(txtAddress, gbc);
@@ -251,12 +344,14 @@ public class SupplierView extends JPanel {
         // NIF/CIF
         gbc.gridx = 2;
         gbc.gridy = 3;
+        gbc.weightx = 0.1;
         JLabel lblTaxId = new JLabel("NIF/CIF:");
         lblTaxId.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblTaxId, gbc);
 
         gbc.gridx = 3;
         gbc.gridy = 3;
+        gbc.weightx = 0.4;
         txtTaxId = new ModernTextField();
         txtTaxId.setPlaceholder("Identificación fiscal");
         formPanel.add(txtTaxId, gbc);
@@ -265,45 +360,46 @@ public class SupplierView extends JPanel {
         // Estado
         gbc.gridx = 0;
         gbc.gridy = 4;
+        gbc.weightx = 0.1;
         JLabel lblStatus = new JLabel("Estado:");
         lblStatus.setFont(AppTheme.REGULAR_FONT);
         formPanel.add(lblStatus, gbc);
 
         gbc.gridx = 1;
         gbc.gridy = 4;
+        gbc.weightx = 0.4;
         cmbStatus = new JComboBox<>(new String[]{"ACTIVO", "INACTIVO"});
         cmbStatus.setFont(AppTheme.REGULAR_FONT);
         cmbStatus.setBackground(AppTheme.PRIMARY_WHITE);
-        cmbStatus.setBorder(BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY));
+        cmbStatus.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY),
+                BorderFactory.createEmptyBorder(8, 10, 8, 10)));
         formPanel.add(cmbStatus, gbc);
 
         formWrapper.add(formPanel, BorderLayout.CENTER);
 
         // Panel de botones
-        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
         buttonsPanel.setOpaque(false);
+        buttonsPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        btnAdd = new ModernButton("Agregar");
-        btnAdd.setColors(AppTheme.PRIMARY_RED, AppTheme.SECONDARY_RED,
-                AppTheme.SECONDARY_RED.darker(), AppTheme.PRIMARY_WHITE);
+        btnAdd = new ModernButton("Agregar", "success");
+        btnAdd.setCornerRadius(20);
         btnAdd.addActionListener(this::btnAddActionPerformed);
         buttonsPanel.add(btnAdd);
 
-        btnUpdate = new ModernButton("Actualizar");
-        btnUpdate.setColors(AppTheme.PRIMARY_BLACK, AppTheme.SECONDARY_BLACK,
-                AppTheme.SECONDARY_BLACK.darker(), AppTheme.PRIMARY_WHITE);
+        btnUpdate = new ModernButton("Actualizar", "primary");
+        btnUpdate.setCornerRadius(20);
         btnUpdate.addActionListener(this::btnUpdateActionPerformed);
         buttonsPanel.add(btnUpdate);
 
-        btnDelete = new ModernButton("Eliminar");
-        btnDelete.setColors(AppTheme.ERROR_COLOR, AppTheme.ERROR_COLOR.darker(),
-                AppTheme.ERROR_COLOR.darker().darker(), AppTheme.PRIMARY_WHITE);
+        btnDelete = new ModernButton("Eliminar", "danger");
+        btnDelete.setCornerRadius(20);
         btnDelete.addActionListener(this::btnDeleteActionPerformed);
         buttonsPanel.add(btnDelete);
 
-        btnClear = new ModernButton("Limpiar");
-        btnClear.setColors(AppTheme.ACCENT_GRAY, AppTheme.ACCENT_GRAY.darker(),
-                AppTheme.ACCENT_GRAY.darker().darker(), AppTheme.PRIMARY_WHITE);
+        btnClear = new ModernButton("Limpiar", "light");
+        btnClear.setCornerRadius(20);
         btnClear.addActionListener(this::btnClearActionPerformed);
         buttonsPanel.add(btnClear);
 
@@ -320,24 +416,48 @@ public class SupplierView extends JPanel {
     private JPanel createSearchPanel() {
         JPanel searchWrapper = new TransparentPanel(AppTheme.PRIMARY_WHITE, 0.95f, AppTheme.BORDER_RADIUS);
         searchWrapper.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY, 1),
-                new EmptyBorder(10, 15, 10, 15)));
-        searchWrapper.setLayout(new FlowLayout(FlowLayout.LEFT, 10, 0));
+                BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY, 2),
+                new EmptyBorder(15, 15, 15, 15)));
 
+        // Usar GridBagLayout para mejor responsividad
+        searchWrapper.setLayout(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(0, 5, 0, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Icono de búsqueda
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.weightx = 0.0;
+        JLabel searchIcon = new JLabel("\uD83D\uDD0D"); // Emoji de lupa
+        searchIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
+        searchWrapper.add(searchIcon, gbc);
+
+        // Etiqueta de búsqueda
+        gbc.gridx = 1;
+        gbc.gridy = 0;
+        gbc.weightx = 0.1;
         JLabel searchLabel = new JLabel("Buscar:");
         searchLabel.setFont(AppTheme.REGULAR_FONT);
-        searchWrapper.add(searchLabel);
+        searchWrapper.add(searchLabel, gbc);
 
+        // Campo de búsqueda
+        gbc.gridx = 2;
+        gbc.gridy = 0;
+        gbc.weightx = 0.7;
         txtSearch = new ModernTextField();
         txtSearch.setPlaceholder("Buscar por nombre, contacto, teléfono o email");
         txtSearch.setColumns(30);
-        searchWrapper.add(txtSearch);
+        searchWrapper.add(txtSearch, gbc);
 
-        btnSearch = new ModernButton("Buscar");
-        btnSearch.setColors(AppTheme.PRIMARY_BLACK, AppTheme.SECONDARY_BLACK,
-                AppTheme.SECONDARY_BLACK.darker(), AppTheme.PRIMARY_WHITE);
+        // Botón de búsqueda
+        gbc.gridx = 3;
+        gbc.gridy = 0;
+        gbc.weightx = 0.2;
+        btnSearch = new ModernButton("Buscar", "secondary");
+        btnSearch.setCornerRadius(20);
         btnSearch.addActionListener(this::btnSearchActionPerformed);
-        searchWrapper.add(btnSearch);
+        searchWrapper.add(btnSearch, gbc);
 
         return searchWrapper;
     }
@@ -350,15 +470,25 @@ public class SupplierView extends JPanel {
     private JPanel createTablePanel() {
         JPanel tableWrapper = new TransparentPanel(AppTheme.PRIMARY_WHITE, 0.95f, AppTheme.BORDER_RADIUS);
         tableWrapper.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 1),
-                new EmptyBorder(15, 15, 15, 15)));
-        tableWrapper.setLayout(new BorderLayout(0, 10));
+                BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 2),
+                new EmptyBorder(20, 20, 20, 20)));
+        tableWrapper.setLayout(new BorderLayout(0, 15));
 
-        // Título de la tabla
+        // Título de la tabla con icono
+        JPanel tableTitlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        tableTitlePanel.setOpaque(false);
+
+        JLabel tableIcon = new JLabel("\uD83D\uDCC3"); // Emoji de lista
+        tableIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 20));
+        tableIcon.setForeground(AppTheme.PRIMARY_BLACK);
+        tableTitlePanel.add(tableIcon);
+
         JLabel tableTitle = new JLabel("Lista de Proveedores");
         tableTitle.setFont(AppTheme.SUBTITLE_FONT);
         tableTitle.setForeground(AppTheme.PRIMARY_BLACK);
-        tableWrapper.add(tableTitle, BorderLayout.NORTH);
+        tableTitlePanel.add(tableTitle);
+
+        tableWrapper.add(tableTitlePanel, BorderLayout.NORTH);
 
         // Modelo de tabla
         String[] columnNames = {"ID", "Nombre", "Contacto", "Teléfono", "Email", "Dirección", "NIF/CIF", "Estado"};
@@ -372,19 +502,24 @@ public class SupplierView extends JPanel {
         // Tabla
         tblSuppliers = new JTable(tableModel);
         tblSuppliers.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        tblSuppliers.setRowHeight(30);
+        tblSuppliers.setRowHeight(35);
         tblSuppliers.setFont(AppTheme.REGULAR_FONT);
         tblSuppliers.setGridColor(AppTheme.ACCENT_LIGHT);
         tblSuppliers.setShowVerticalLines(true);
         tblSuppliers.setShowHorizontalLines(true);
+        tblSuppliers.setRowMargin(5);
+        tblSuppliers.setIntercellSpacing(new Dimension(10, 5));
+        tblSuppliers.setFillsViewportHeight(true);
+        tblSuppliers.setSelectionBackground(new Color(231, 76, 60, 50));
+        tblSuppliers.setSelectionForeground(AppTheme.PRIMARY_BLACK);
 
         // Personalizar encabezado de tabla
         JTableHeader header = tblSuppliers.getTableHeader();
         header.setBackground(AppTheme.PRIMARY_BLACK);
-        header.setForeground(AppTheme.PRIMARY_WHITE);
+        header.setForeground(AppTheme.SECONDARY_BLACK);
         header.setFont(AppTheme.HEADER_FONT);
-        header.setBorder(BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 1));
-        header.setPreferredSize(new Dimension(0, 35));
+        header.setBorder(BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 2));
+        header.setPreferredSize(new Dimension(0, 40));
 
         // Personalizar renderizador de celdas
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
@@ -406,13 +541,16 @@ public class SupplierView extends JPanel {
                 if (value != null) {
                     String status = value.toString();
                     if ("ACTIVO".equals(status)) {
-                        c.setForeground(AppTheme.SUCCESS_COLOR);
+                        setBackground(isSelected ? new Color(46, 204, 113, 100) : new Color(46, 204, 113, 50));
+                        setForeground(AppTheme.SUCCESS_COLOR);
                     } else if ("INACTIVO".equals(status)) {
-                        c.setForeground(AppTheme.ERROR_COLOR);
+                        setBackground(isSelected ? new Color(231, 76, 60, 100) : new Color(231, 76, 60, 50));
+                        setForeground(AppTheme.ERROR_COLOR);
                     }
                 }
 
                 setHorizontalAlignment(JLabel.CENTER);
+                setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
                 return c;
             }
         });
@@ -440,12 +578,73 @@ public class SupplierView extends JPanel {
             }
         });
 
-        // Scroll pane
+        // Scroll pane con bordes redondeados
         JScrollPane scrollPane = new JScrollPane(tblSuppliers);
         scrollPane.setBorder(BorderFactory.createLineBorder(AppTheme.ACCENT_LIGHT));
+        scrollPane.getViewport().setBackground(AppTheme.PRIMARY_WHITE);
+
+        // Personalizar barras de desplazamiento
+        scrollPane.getVerticalScrollBar().setUI(new BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                this.thumbColor = AppTheme.PRIMARY_RED;
+                this.trackColor = AppTheme.ACCENT_LIGHT;
+            }
+
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                JButton button = super.createDecreaseButton(orientation);
+                button.setBackground(AppTheme.PRIMARY_BLACK);
+                button.setBorder(BorderFactory.createLineBorder(AppTheme.PRIMARY_RED));
+                return button;
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                JButton button = super.createIncreaseButton(orientation);
+                button.setBackground(AppTheme.PRIMARY_BLACK);
+                button.setBorder(BorderFactory.createLineBorder(AppTheme.PRIMARY_RED));
+                return button;
+            }
+        });
+
         tableWrapper.add(scrollPane, BorderLayout.CENTER);
 
         return tableWrapper;
+    }
+
+    /**
+     * Crea el panel de estado.
+     *
+     * @return Panel de estado
+     */
+    private JPanel createStatusPanel() {
+        JPanel statusWrapper = new TransparentPanel(AppTheme.PRIMARY_BLACK, 0.9f, AppTheme.BORDER_RADIUS);
+        statusWrapper.setBorder(new EmptyBorder(10, 15, 10, 15));
+        statusWrapper.setLayout(new BorderLayout());
+
+        // Panel izquierdo para información de estado
+        JPanel leftPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 0));
+        leftPanel.setOpaque(false);
+
+        statusLabel = new JLabel("Estado: Listo");
+        statusLabel.setFont(AppTheme.REGULAR_FONT);
+        statusLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        leftPanel.add(statusLabel);
+
+        // Panel derecho para contadores
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
+        rightPanel.setOpaque(false);
+
+        totalSuppliersLabel = new JLabel("Total proveedores: 0");
+        totalSuppliersLabel.setFont(AppTheme.REGULAR_FONT);
+        totalSuppliersLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        rightPanel.add(totalSuppliersLabel);
+
+        statusWrapper.add(leftPanel, BorderLayout.WEST);
+        statusWrapper.add(rightPanel, BorderLayout.EAST);
+
+        return statusWrapper;
     }
 
     /**
@@ -454,6 +653,7 @@ public class SupplierView extends JPanel {
     public void loadSuppliers() {
         try {
             controller.loadAllSuppliers();
+            statusLabel.setText("Estado: Datos cargados correctamente");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al cargar proveedores: " + e.getMessage(), e);
 
@@ -462,6 +662,7 @@ public class SupplierView extends JPanel {
 
             // Añadir una fila con mensaje de error
             tableModel.addRow(new Object[]{"", "Error al cargar datos", "", "", "", "", "", ""});
+            statusLabel.setText("Estado: Error al cargar datos");
         }
     }
 
@@ -488,6 +689,12 @@ public class SupplierView extends JPanel {
         }
 
         LOGGER.log(Level.INFO, "Tabla de proveedores actualizada con {0} registros", suppliers.size());
+
+        // Actualizar contador de proveedores
+        totalSuppliersLabel.setText("Total proveedores: " + suppliers.size());
+
+        // Actualizar estado
+        statusLabel.setText("Estado: Datos actualizados correctamente");
     }
 
     /**
@@ -507,8 +714,12 @@ public class SupplierView extends JPanel {
 
         LOGGER.log(Level.INFO, "Proveedor seleccionado con ID: {0}", txtId.getText());
 
-        // Resaltar visualmente la selección
+        // Actualizar estado
+        statusLabel.setText("Estado: Proveedor seleccionado (ID: " + txtId.getText() + ")");
+
+        // Resaltar visualmente la selección y hacer scroll al formulario
         txtName.requestFocus();
+        mainSplitPane.setDividerLocation(0.4);
     }
 
     /**
@@ -526,6 +737,9 @@ public class SupplierView extends JPanel {
         txtSearch.setText("");
 
         LOGGER.log(Level.INFO, "Formulario limpiado");
+
+        // Actualizar estado
+        statusLabel.setText("Estado: Formulario limpiado");
     }
 
     /**
@@ -606,6 +820,7 @@ public class SupplierView extends JPanel {
      */
     public void showError(String message) {
         JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+        statusLabel.setText("Estado: Error - Acción no completada");
     }
 
     /**
@@ -615,6 +830,7 @@ public class SupplierView extends JPanel {
      */
     public void showInfo(String message) {
         JOptionPane.showMessageDialog(this, message, "Información", JOptionPane.INFORMATION_MESSAGE);
+        statusLabel.setText("Estado: Operación completada con éxito");
     }
 
     /**
@@ -709,6 +925,7 @@ public class SupplierView extends JPanel {
             // Llamar a searchSuppliers con dos parámetros como se requiere
             // Añadiendo una cadena vacía como segundo parámetro
             controller.searchSuppliers(searchTerm, "");
+            statusLabel.setText("Estado: Búsqueda realizada");
         }
     }
 }

@@ -19,6 +19,8 @@ import com.carmotorsproject.ui.components.ModernSideMenu;
 import com.carmotorsproject.ui.components.TransparentPanel;
 import com.carmotorsproject.ui.theme.AppTheme;
 import com.carmotorsproject.config.DatabaseConfigDialog;
+import com.carmotorsproject.invoices.views.InvoiceFrame;
+import com.carmotorsproject.parts.views.SupplierFrame;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -67,6 +69,7 @@ public class App implements PropertyChangeListener {
      */
     public App() {
         //initialize();
+        initComponents();
     }
 
     /**
@@ -189,10 +192,12 @@ public class App implements PropertyChangeListener {
      * Actualiza el indicador de estado de la base de datos en la interfaz.
      */
     private void updateDatabaseStatus() {
-        if (databaseConnected) {
-            header.setDatabaseStatus(true, "Conectado a la base de datos");
-        } else {
-            header.setDatabaseStatus(false, "Modo Offline - Sin conexión a la base de datos");
+        if (header != null) {
+            if (databaseConnected) {
+                header.setDatabaseStatus(true, "Conectado a la base de datos");
+            } else {
+                header.setDatabaseStatus(false, "Modo Offline - Sin conexión a la base de datos");
+            }
         }
     }
 
@@ -221,9 +226,27 @@ public class App implements PropertyChangeListener {
         mainPanel = new JPanel(new BorderLayout());
         mainPanel.setBackground(AppTheme.PRIMARY_BLACK);
 
-        // Crear header
-        header = new ModernHeader(APP_TITLE);
-        header.addPropertyChangeListener(this);
+        // Crear header con manejo de excepciones
+        try {
+            header = new ModernHeader(APP_TITLE);
+            header.addPropertyChangeListener(this);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al crear el encabezado: " + e.getMessage(), e);
+            // Crear un encabezado alternativo simple
+            JPanel simpleHeader = new JPanel(new BorderLayout());
+            simpleHeader.setBackground(AppTheme.PRIMARY_BLACK);
+            simpleHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, AppTheme.PRIMARY_RED));
+            simpleHeader.setPreferredSize(new Dimension(0, 60));
+
+            JLabel titleLabel = new JLabel(APP_TITLE);
+            titleLabel.setForeground(AppTheme.PRIMARY_WHITE);
+            titleLabel.setFont(AppTheme.TITLE_FONT);
+            titleLabel.setBorder(new EmptyBorder(0, 20, 0, 0));
+            simpleHeader.add(titleLabel, BorderLayout.WEST);
+
+            header = null; // Asegurarse de que header sea null para evitar NullPointerException más adelante
+            mainPanel.add(simpleHeader, BorderLayout.NORTH);
+        }
 
         // Actualizar estado de la base de datos
         updateDatabaseStatus();
@@ -267,7 +290,17 @@ public class App implements PropertyChangeListener {
         // Sección de inventario
         ModernSideMenu.MenuSection inventorySection = sideMenu.addSection("Inventario");
         inventorySection.addItem("Repuestos", () -> openView(new PartView()));
-        inventorySection.addItem("Proveedores", () -> openView(new SupplierView()));
+        inventorySection.addItem("Proveedores", () -> {
+            try {
+                SupplierFrame supplierFrame = new SupplierFrame();
+                supplierFrame.setVisible(true);
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Error al abrir la ventana de proveedores", ex);
+                JOptionPane.showMessageDialog(mainFrame,
+                        "Error al abrir la ventana de proveedores: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
         inventorySection.addItem("Órdenes de Compra", () -> openView(new PurchaseOrderView()));
 
         // Sección de servicios
@@ -282,7 +315,17 @@ public class App implements PropertyChangeListener {
 
         // Sección de facturación
         ModernSideMenu.MenuSection billingSection = sideMenu.addSection("Facturación");
-        billingSection.addItem("Facturas", () -> openView(new InvoiceView()));
+        billingSection.addItem("Facturas", () -> {
+            try {
+                InvoiceFrame invoiceFrame = new InvoiceFrame();
+                invoiceFrame.setVisible(true);
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Error al abrir la ventana de facturas", ex);
+                JOptionPane.showMessageDialog(mainFrame,
+                        "Error al abrir la ventana de facturas: " + ex.getMessage(),
+                        "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
 
         // Sección de campañas
         ModernSideMenu.MenuSection campaignsSection = sideMenu.addSection("Campañas");
@@ -295,6 +338,43 @@ public class App implements PropertyChangeListener {
         // Construir el menú
         sideMenu.buildMenu();
     }
+
+    /**
+     * Inicializa los componentes de la UI.
+     */
+    private void initComponents() {
+        // Código existente para inicializar componentes...
+
+        // Asegurarse de que el menú lateral incluya opciones para Facturas y Proveedores
+        sideMenu = new ModernSideMenu();
+
+        // Añadir opciones al menú
+        /*sideMenu.addMenuItem("dashboard", "Dashboard", "dashboard-icon.png");
+        sideMenu.addMenuItem("customers", "Clientes", "customers-icon.png");
+        sideMenu.addMenuItem("vehicles", "Vehículos", "vehicles-icon.png");
+        sideMenu.addMenuItem("services", "Servicios", "services-icon.png");
+        sideMenu.addMenuItem("invoices", "Facturas", "invoices-icon.png");
+        sideMenu.addMenuItem("suppliers", "Proveedores", "suppliers-icon.png");
+        sideMenu.addMenuItem("parts", "Repuestos", "parts-icon.png");
+        sideMenu.addMenuItem("campaigns", "Campañas", "campaigns-icon.png");
+        sideMenu.addMenuItem("reports", "Informes", "reports-icon.png");
+        sideMenu.addMenuItem("settings", "Configuración", "settings-icon.png");*/
+
+        // Resto del código existente...
+    }
+
+    /**
+     * Configura los manejadores de eventos.
+     */
+    private void setupEventHandlers() {
+        // Código existente para configurar eventos...
+
+        // Añadir manejadores para las nuevas opciones de menú
+
+        // Resto del código existente...
+    }
+
+
 
     /**
      * Muestra el diálogo de configuración de la base de datos.
@@ -605,8 +685,10 @@ public class App implements PropertyChangeListener {
             // Cerrar cualquier frame de vista abierto
             closeCurrentViewFrame();
 
-            // Detener el reloj del encabezado
-            header.stopClock();
+            // Detener el reloj del encabezado si existe
+            if (header != null) {
+                header.stopClock();
+            }
 
             // Disponer el frame principal
             mainFrame.dispose();
@@ -623,13 +705,11 @@ public class App implements PropertyChangeListener {
         menuCollapsed = !menuCollapsed;
 
         if (menuCollapsed) {
-            // Ocultar menú con animación
-            AnimationManager.slideOutToRight(sideMenu, 300, false);
+            // Ocultar menú
             sideMenu.setVisible(false);
         } else {
-            // Mostrar menú con animación
+            // Mostrar menú
             sideMenu.setVisible(true);
-            AnimationManager.slideInFromLeft(sideMenu, 300);
         }
     }
 

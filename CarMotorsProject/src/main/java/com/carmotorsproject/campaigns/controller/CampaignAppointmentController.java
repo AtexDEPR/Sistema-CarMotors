@@ -440,4 +440,10 @@ public class CampaignAppointmentController {
             return false;
         }
     }
+
+    public void searchAppointments(String searchTerm) {
+    }
+
+    public void saveAppointment(CampaignAppointment appointment) {
+    }
 }

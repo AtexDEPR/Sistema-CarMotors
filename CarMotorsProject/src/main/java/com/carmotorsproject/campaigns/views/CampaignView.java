@@ -1,16 +1,21 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.carmotorsproject.campaigns.views;
 
 import com.carmotorsproject.campaigns.controller.CampaignController;
 import com.carmotorsproject.campaigns.model.Campaign;
+import com.carmotorsproject.ui.theme.AppTheme;
+import com.carmotorsproject.ui.components.ModernButton;
+import com.carmotorsproject.ui.components.ModernTextField;
+import com.carmotorsproject.ui.components.TransparentPanel;
+import com.carmotorsproject.ui.components.RoundedPanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.border.MatteBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.plaf.basic.BasicSplitPaneUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
@@ -23,8 +28,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * View for managing campaigns.
- * Provides a UI to create, read, update, and delete campaigns.
+ * Vista mejorada para la gestión de campañas con diseño moderno y responsivo.
  */
 public class CampaignView extends JFrame {
 
@@ -37,7 +41,12 @@ public class CampaignView extends JFrame {
     private JPanel contentPane;
     private JTable campaignTable;
     private DefaultTableModel tableModel;
-    private JTextField nameField;
+    private JSplitPane mainSplitPane;
+    private JLabel statusLabel;
+    private JProgressBar progressBar;
+
+    // Form Components
+    private ModernTextField nameField;
     private JTextArea descriptionArea;
     private JFormattedTextField startDateField;
     private JFormattedTextField endDateField;
@@ -45,31 +54,34 @@ public class CampaignView extends JFrame {
     private JComboBox<String> vehicleTypeComboBox;
     private JComboBox<String> customerSegmentComboBox;
     private JComboBox<String> statusComboBox;
-    private JTextField searchField;
-    private JButton searchButton;
-    private JButton clearSearchButton;
-    private JButton addButton;
-    private JButton updateButton;
-    private JButton deleteButton;
-    private JButton clearButton;
-    private JButton reportButton;
+    private ModernTextField searchField;
+
+    // Buttons
+    private ModernButton searchButton;
+    private ModernButton clearSearchButton;
+    private ModernButton addButton;
+    private ModernButton updateButton;
+    private ModernButton deleteButton;
+    private ModernButton clearButton;
+    private ModernButton reportButton;
 
     // Current campaign ID
     private int currentCampaignId = -1;
+    private int campaignCount = 0;
 
     // Date format
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     /**
-     * Constructor that initializes the view.
+     * Constructor que inicializa la vista.
      */
     public CampaignView() {
         initComponents();
         setupLayout();
         setupListeners();
 
-        setTitle("Campaign Management");
-        setSize(1000, 600);
+        setTitle("Gestión de Campañas");
+        setSize(1200, 700);
         setLocationRelativeTo(null);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
 
@@ -89,201 +101,502 @@ public class CampaignView extends JFrame {
      * Initializes the UI components.
      */
     private void initComponents() {
-        contentPane = new JPanel();
-        contentPane.setBorder(new EmptyBorder(10, 10, 10, 10));
+        // Apply theme
+        AppTheme.applyTheme();
+
+        contentPane = new JPanel(new BorderLayout(15, 15));
+        contentPane.setBackground(AppTheme.PRIMARY_WHITE);
+        contentPane.setBorder(new EmptyBorder(0, 0, 0, 0));
         setContentPane(contentPane);
 
-        // Table
-        String[] columnNames = {"ID", "Name", "Start Date", "End Date", "Discount %", "Status"};
+        // Header panel
+        JPanel headerPanel = createHeaderPanel();
+        contentPane.add(headerPanel, BorderLayout.NORTH);
+
+        // SplitPane for responsive layout
+        mainSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
+        mainSplitPane.setDividerLocation(400);
+        mainSplitPane.setResizeWeight(0.3);
+        mainSplitPane.setBorder(null);
+        mainSplitPane.setDividerSize(5);
+        mainSplitPane.setContinuousLayout(true);
+        setDividerColor(mainSplitPane, AppTheme.PRIMARY_RED);
+
+        // Form panel
+        JPanel formPanel = createFormPanel();
+        JScrollPane formScrollPane = new JScrollPane(formPanel);
+        formScrollPane.setBorder(null);
+        formScrollPane.getVerticalScrollBar().setUI(createModernScrollBarUI());
+        formScrollPane.getHorizontalScrollBar().setUI(createModernScrollBarUI());
+        formScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        mainSplitPane.setLeftComponent(formScrollPane);
+
+        // Table panel
+        JPanel tablePanel = createTablePanel();
+        mainSplitPane.setRightComponent(tablePanel);
+
+        contentPane.add(mainSplitPane, BorderLayout.CENTER);
+
+        // Status panel
+        JPanel statusPanel = createStatusPanel();
+        contentPane.add(statusPanel, BorderLayout.SOUTH);
+    }
+
+    /**
+     * Creates the header panel.
+     *
+     * @return The header panel
+     */
+    private JPanel createHeaderPanel() {
+        JPanel panel = new TransparentPanel(AppTheme.PRIMARY_RED, 0.9f);
+        panel.setLayout(new BorderLayout());
+        panel.setBorder(new EmptyBorder(15, 20, 15, 20));
+        panel.setPreferredSize(new Dimension(0, 70));
+
+        // Title with icon
+        JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        titlePanel.setOpaque(false);
+
+        JLabel iconLabel = new JLabel("🏷️");
+        iconLabel.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 28));
+        iconLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        titlePanel.add(iconLabel);
+
+        JLabel titleLabel = new JLabel("Gestión de Campañas");
+        titleLabel.setFont(AppTheme.TITLE_FONT);
+        titleLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        titlePanel.add(titleLabel);
+
+        panel.add(titlePanel, BorderLayout.WEST);
+
+        // Search panel
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 5));
+        searchPanel.setOpaque(false);
+
+        searchField = new ModernTextField("20", "Buscar por nombre...");
+        searchPanel.add(searchField);
+
+        searchButton = new ModernButton("Buscar", "primary");
+        searchPanel.add(searchButton);
+
+        clearSearchButton = new ModernButton("Limpiar", "light");
+        searchPanel.add(clearSearchButton);
+
+        panel.add(searchPanel, BorderLayout.EAST);
+
+        // Counter panel
+        JPanel counterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        counterPanel.setOpaque(false);
+
+        JLabel countLabel = new JLabel("Total de campañas: ");
+        countLabel.setFont(AppTheme.REGULAR_FONT);
+        countLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        counterPanel.add(countLabel);
+
+        JLabel countValueLabel = new JLabel("0");
+        countValueLabel.setFont(AppTheme.SUBTITLE_FONT);
+        countValueLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        counterPanel.add(countValueLabel);
+
+        // Update counter when campaigns are loaded
+        new Timer(1000, e -> {
+            countValueLabel.setText(String.valueOf(campaignCount));
+        }).start();
+
+        panel.add(counterPanel, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    /**
+     * Creates the form panel.
+     *
+     * @return The form panel
+     */
+    private JPanel createFormPanel() {
+        RoundedPanel formPanel = new RoundedPanel(AppTheme.PRIMARY_WHITE, 15, true);
+        formPanel.setLayout(new GridBagLayout());
+        formPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(15, 15, 15, 15),
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 1, true),
+                        "Detalles de la Campaña",
+                        0,
+                        0,
+                        AppTheme.SUBTITLE_FONT,
+                        AppTheme.PRIMARY_RED
+                )
+        ));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.insets = new Insets(8, 8, 8, 8);
+        gbc.weightx = 1.0;
+
+        // Name
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        nameField = new ModernTextField("25", "Nombre de la campaña");
+        addFormField(formPanel, "Nombre:", nameField, gbc);
+
+        // Description
+        gbc.gridy = 1;
+        JPanel descPanel = new JPanel(new BorderLayout(5, 5));
+        descPanel.setOpaque(false);
+        JLabel lblDesc = new JLabel("Descripción:");
+        lblDesc.setFont(AppTheme.REGULAR_FONT);
+        descPanel.add(lblDesc, BorderLayout.NORTH);
+
+        descriptionArea = new JTextArea(5, 20);
+        descriptionArea.setFont(AppTheme.REGULAR_FONT);
+        descriptionArea.setLineWrap(true);
+        descriptionArea.setWrapStyleWord(true);
+        descriptionArea.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY, 1),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+
+        JScrollPane descScrollPane = new JScrollPane(descriptionArea);
+        descScrollPane.setBorder(BorderFactory.createEmptyBorder());
+        descScrollPane.getVerticalScrollBar().setUI(createModernScrollBarUI());
+        descScrollPane.getHorizontalScrollBar().setUI(createModernScrollBarUI());
+
+        descPanel.add(descScrollPane, BorderLayout.CENTER);
+
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+        formPanel.add(descPanel, gbc);
+
+        gbc.weighty = 0.0;
+        gbc.gridwidth = 1;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Start Date
+        gbc.gridy = 2;
+        JPanel startDatePanel = new JPanel(new BorderLayout(5, 0));
+        startDatePanel.setOpaque(false);
+
+        startDateField = new JFormattedTextField(dateFormat);
+        startDateField.setColumns(15);
+        startDateField.setFont(AppTheme.REGULAR_FONT);
+        startDateField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY, 1),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+
+        addFormField(formPanel, "Fecha Inicio (yyyy-MM-dd):", startDateField, gbc);
+
+        // End Date
+        gbc.gridy = 3;
+        JPanel endDatePanel = new JPanel(new BorderLayout(5, 0));
+        endDatePanel.setOpaque(false);
+
+        endDateField = new JFormattedTextField(dateFormat);
+        endDateField.setColumns(15);
+        endDateField.setFont(AppTheme.REGULAR_FONT);
+        endDateField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.ACCENT_GRAY, 1),
+                BorderFactory.createEmptyBorder(5, 5, 5, 5)
+        ));
+
+        addFormField(formPanel, "Fecha Fin (yyyy-MM-dd):", endDateField, gbc);
+
+        // Discount
+        gbc.gridy = 4;
+        SpinnerNumberModel spinnerModel = new SpinnerNumberModel(0.0, 0.0, 100.0, 1.0);
+        discountSpinner = new JSpinner(spinnerModel);
+        discountSpinner.setFont(AppTheme.REGULAR_FONT);
+        JComponent editor = discountSpinner.getEditor();
+        if (editor instanceof JSpinner.DefaultEditor) {
+            ((JSpinner.DefaultEditor) editor).getTextField().setFont(AppTheme.REGULAR_FONT);
+        }
+
+        addFormField(formPanel, "Descuento %:", discountSpinner, gbc);
+
+        // Vehicle Type
+        gbc.gridy = 5;
+        vehicleTypeComboBox = new JComboBox<>(new String[]{"TODOS", "SEDAN", "SUV", "CAMIONETA", "VAN", "DEPORTIVO"});
+        vehicleTypeComboBox.setFont(AppTheme.REGULAR_FONT);
+        vehicleTypeComboBox.setBackground(AppTheme.PRIMARY_WHITE);
+
+        addFormField(formPanel, "Tipo de Vehículo:", vehicleTypeComboBox, gbc);
+
+        // Customer Segment
+        gbc.gridy = 6;
+        customerSegmentComboBox = new JComboBox<>(new String[]{"TODOS", "REGULAR", "PREMIUM", "VIP"});
+        customerSegmentComboBox.setFont(AppTheme.REGULAR_FONT);
+        customerSegmentComboBox.setBackground(AppTheme.PRIMARY_WHITE);
+
+        addFormField(formPanel, "Segmento de Cliente:", customerSegmentComboBox, gbc);
+
+        // Status
+        gbc.gridy = 7;
+        statusComboBox = new JComboBox<>(new String[]{"ACTIVA", "INACTIVA", "PLANIFICADA", "COMPLETADA"});
+        statusComboBox.setFont(AppTheme.REGULAR_FONT);
+        statusComboBox.setBackground(AppTheme.PRIMARY_WHITE);
+
+        addFormField(formPanel, "Estado:", statusComboBox, gbc);
+
+        // Button panel
+        gbc.gridy = 8;
+        gbc.gridx = 0;
+        gbc.gridwidth = 2;
+        JPanel buttonPanel = createFormButtonPanel();
+        formPanel.add(buttonPanel, gbc);
+
+        return formPanel;
+    }
+
+    /**
+     * Helper method to add a form field with label.
+     */
+    private void addFormField(JPanel panel, String labelText, JComponent field, GridBagConstraints gbc) {
+        JLabel label = new JLabel(labelText);
+        label.setFont(AppTheme.REGULAR_FONT);
+
+        gbc.gridx = 0;
+        gbc.gridwidth = 1;
+        panel.add(label, gbc);
+
+        gbc.gridx = 1;
+        panel.add(field, gbc);
+    }
+
+    /**
+     * Creates the form button panel.
+     *
+     * @return The button panel
+     */
+    private JPanel createFormButtonPanel() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 10));
+        panel.setOpaque(false);
+        panel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        addButton = new ModernButton("Agregar Campaña", "success");
+        panel.add(addButton);
+
+        updateButton = new ModernButton("Actualizar", "primary");
+        updateButton.setEnabled(false);
+        panel.add(updateButton);
+
+        deleteButton = new ModernButton("Eliminar", "danger");
+        deleteButton.setEnabled(false);
+        panel.add(deleteButton);
+
+        clearButton = new ModernButton("Limpiar", "light");
+        panel.add(clearButton);
+
+        reportButton = new ModernButton("Reportes", "secondary");
+        panel.add(reportButton);
+
+        return panel;
+    }
+
+    /**
+     * Creates the table panel.
+     *
+     * @return The table panel
+     */
+    private JPanel createTablePanel() {
+        RoundedPanel tablePanel = new RoundedPanel(AppTheme.PRIMARY_WHITE, 15, true);
+        tablePanel.setLayout(new BorderLayout(10, 10));
+        tablePanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createEmptyBorder(15, 15, 15, 15),
+                BorderFactory.createTitledBorder(
+                        BorderFactory.createLineBorder(AppTheme.PRIMARY_RED, 1, true),
+                        "Lista de Campañas",
+                        0,
+                        0,
+                        AppTheme.SUBTITLE_FONT,
+                        AppTheme.PRIMARY_RED
+                )
+        ));
+
+        // Create table model
+        String[] columnNames = {"ID", "Nombre", "Fecha Inicio", "Fecha Fin", "Descuento %", "Estado"};
         tableModel = new DefaultTableModel(columnNames, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false;
+                return false; // Make table non-editable
             }
         };
+
+        // Create table
         campaignTable = new JTable(tableModel);
         campaignTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        campaignTable.getTableHeader().setReorderingAllowed(false);
+        campaignTable.setRowHeight(30);
+        campaignTable.setFont(AppTheme.REGULAR_FONT);
+        campaignTable.setIntercellSpacing(new Dimension(10, 5));
+        campaignTable.setShowGrid(false);
+        campaignTable.setFillsViewportHeight(true);
 
-        // Form fields
-        nameField = new JTextField(20);
-        descriptionArea = new JTextArea(3, 20);
-        descriptionArea.setLineWrap(true);
-        descriptionArea.setWrapStyleWord(true);
+        // Table header style
+        JTableHeader header = campaignTable.getTableHeader();
+        header.setBackground(AppTheme.PRIMARY_RED);
+        header.setForeground(AppTheme.PRIMARY_WHITE);
+        header.setFont(AppTheme.TABLE_HEADER_FONT);
+        header.setBorder(new MatteBorder(0, 0, 2, 0, AppTheme.PRIMARY_RED));
 
-        startDateField = new JFormattedTextField(dateFormat);
-        startDateField.setColumns(10);
+        // Cell style
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 
-        endDateField = new JFormattedTextField(dateFormat);
-        endDateField.setColumns(10);
+        for (int i = 0; i < campaignTable.getColumnCount(); i++) {
+            campaignTable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        }
 
-        SpinnerNumberModel spinnerModel = new SpinnerNumberModel(0.0, 0.0, 100.0, 1.0);
-        discountSpinner = new JSpinner(spinnerModel);
+        // Add zebra style
+        campaignTable.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component comp = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-        vehicleTypeComboBox = new JComboBox<>(new String[]{"ALL", "SEDAN", "SUV", "TRUCK", "VAN", "SPORTS"});
-        customerSegmentComboBox = new JComboBox<>(new String[]{"ALL", "REGULAR", "PREMIUM", "VIP"});
-        statusComboBox = new JComboBox<>(new String[]{"ACTIVE", "INACTIVE", "PLANNED", "COMPLETED"});
+                if (isSelected) {
+                    comp.setBackground(AppTheme.PRIMARY_RED);
+                    comp.setForeground(AppTheme.PRIMARY_WHITE);
+                } else {
+                    comp.setBackground(row % 2 == 0 ? AppTheme.PRIMARY_WHITE : new Color(255, 245, 245));
+                    comp.setForeground(AppTheme.PRIMARY_BLACK);
+                }
 
-        // Search components
-        searchField = new JTextField(20);
-        searchButton = new JButton("Search");
-        clearSearchButton = new JButton("Clear");
+                setHorizontalAlignment(JLabel.CENTER);
+                setBorder(new EmptyBorder(0, 5, 0, 5));
+                return comp;
+            }
+        });
 
-        // Action buttons
-        addButton = new JButton("Add");
-        updateButton = new JButton("Update");
-        deleteButton = new JButton("Delete");
-        clearButton = new JButton("Clear Form");
-        reportButton = new JButton("Reports");
+        // Add table to scroll pane with custom scrollbars
+        JScrollPane scrollPane = new JScrollPane(campaignTable);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(AppTheme.PRIMARY_WHITE);
 
-        // Initially disable update and delete buttons
-        updateButton.setEnabled(false);
-        deleteButton.setEnabled(false);
+        // Customize scrollbars
+        scrollPane.getVerticalScrollBar().setUI(createModernScrollBarUI());
+        scrollPane.getHorizontalScrollBar().setUI(createModernScrollBarUI());
+
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+
+        return tablePanel;
+    }
+
+    /**
+     * Creates the status panel.
+     *
+     * @return The status panel
+     */
+    private JPanel createStatusPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(AppTheme.PRIMARY_RED);
+        panel.setBorder(new EmptyBorder(5, 15, 5, 15));
+        panel.setPreferredSize(new Dimension(0, 30));
+
+        statusLabel = new JLabel("Listo");
+        statusLabel.setFont(AppTheme.SMALL_FONT);
+        statusLabel.setForeground(AppTheme.PRIMARY_WHITE);
+        panel.add(statusLabel, BorderLayout.WEST);
+
+        progressBar = new JProgressBar(0, 100);
+        progressBar.setPreferredSize(new Dimension(150, 15));
+        progressBar.setVisible(false);
+        progressBar.setForeground(AppTheme.ACCENT_GREEN);
+        progressBar.setBackground(AppTheme.PRIMARY_WHITE);
+        progressBar.setBorderPainted(false);
+
+        JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        rightPanel.setOpaque(false);
+        rightPanel.add(progressBar);
+
+        panel.add(rightPanel, BorderLayout.EAST);
+
+        return panel;
+    }
+
+    /**
+     * Updates the status message.
+     */
+    private void updateStatus(String message, boolean showProgress) {
+        statusLabel.setText(message);
+
+        if (showProgress) {
+            progressBar.setVisible(true);
+            progressBar.setIndeterminate(true);
+
+            // Hide progress after 2 seconds
+            Timer timer = new Timer(2000, e -> {
+                progressBar.setVisible(false);
+                progressBar.setIndeterminate(false);
+                statusLabel.setText("Listo");
+            });
+            timer.setRepeats(false);
+            timer.start();
+        } else {
+            progressBar.setVisible(false);
+        }
+    }
+
+    /**
+     * Creates a modern scrollbar UI.
+     */
+    private BasicScrollBarUI createModernScrollBarUI() {
+        return new BasicScrollBarUI() {
+            private final int THUMB_SIZE = 8;
+
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return createZeroButton();
+            }
+
+            @Override
+            protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+                g.setColor(AppTheme.PRIMARY_WHITE);
+                g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+            }
+
+            @Override
+            protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
+                if (thumbBounds.isEmpty() || !scrollbar.isEnabled()) {
+                    return;
+                }
+
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+                // Fill thumb with color
+                g2.setColor(AppTheme.PRIMARY_RED);
+                g2.fillRoundRect(thumbBounds.x, thumbBounds.y, thumbBounds.width, thumbBounds.height, 5, 5);
+
+                g2.dispose();
+            }
+
+            private JButton createZeroButton() {
+                JButton button = new JButton();
+                button.setPreferredSize(new Dimension(0, 0));
+                button.setMinimumSize(new Dimension(0, 0));
+                button.setMaximumSize(new Dimension(0, 0));
+                return button;
+            }
+
+            @Override
+            protected void setThumbBounds(int x, int y, int width, int height) {
+                super.setThumbBounds(x, y, width, height);
+                scrollbar.repaint();
+            }
+        };
     }
 
     /**
      * Sets up the layout of the UI components.
      */
     private void setupLayout() {
-        contentPane.setLayout(new BorderLayout(10, 10));
-
-        // Search panel
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        searchPanel.add(new JLabel("Search by Name:"));
-        searchPanel.add(searchField);
-        searchPanel.add(searchButton);
-        searchPanel.add(clearSearchButton);
-
-        // Table panel
-        JScrollPane tableScrollPane = new JScrollPane(campaignTable);
-        tableScrollPane.setPreferredSize(new Dimension(600, 200));
-
-        // Form panel
-        JPanel formPanel = new JPanel(new GridBagLayout());
-        formPanel.setBorder(BorderFactory.createTitledBorder("Campaign Details"));
-
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.anchor = GridBagConstraints.WEST;
-
-        // Name
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        formPanel.add(new JLabel("Name:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 0;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        formPanel.add(nameField, gbc);
-
-        // Description
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Description:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        JScrollPane descriptionScrollPane = new JScrollPane(descriptionArea);
-        formPanel.add(descriptionScrollPane, gbc);
-
-        // Start Date
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Start Date (yyyy-MM-dd):"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 2;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        formPanel.add(startDateField, gbc);
-
-        // End Date
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("End Date (yyyy-MM-dd):"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 3;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        formPanel.add(endDateField, gbc);
-
-        // Discount
-        gbc.gridx = 0;
-        gbc.gridy = 4;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Discount %:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 4;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        formPanel.add(discountSpinner, gbc);
-
-        // Vehicle Type
-        gbc.gridx = 0;
-        gbc.gridy = 5;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Vehicle Type:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 5;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        formPanel.add(vehicleTypeComboBox, gbc);
-
-        // Customer Segment
-        gbc.gridx = 0;
-        gbc.gridy = 6;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Customer Segment:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 6;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        formPanel.add(customerSegmentComboBox, gbc);
-
-        // Status
-        gbc.gridx = 0;
-        gbc.gridy = 7;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        formPanel.add(new JLabel("Status:"), gbc);
-
-        gbc.gridx = 1;
-        gbc.gridy = 7;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        formPanel.add(statusComboBox, gbc);
-
-        // Button panel
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-        buttonPanel.add(addButton);
-        buttonPanel.add(updateButton);
-        buttonPanel.add(deleteButton);
-        buttonPanel.add(clearButton);
-        buttonPanel.add(reportButton);
-
-        // Main layout
-        JPanel topPanel = new JPanel(new BorderLayout());
-        topPanel.add(searchPanel, BorderLayout.NORTH);
-        topPanel.add(tableScrollPane, BorderLayout.CENTER);
-
-        contentPane.add(topPanel, BorderLayout.CENTER);
-        contentPane.add(formPanel, BorderLayout.EAST);
-        contentPane.add(buttonPanel, BorderLayout.SOUTH);
+        // Layout is already set up in the component creation methods
     }
 
     /**
@@ -300,6 +613,9 @@ public class CampaignView extends JFrame {
                     controller.loadCampaignDetails(campaignId);
                     updateButton.setEnabled(true);
                     deleteButton.setEnabled(true);
+
+                    // Update status
+                    updateStatus("Campaña seleccionada: ID " + campaignId, false);
                 }
             }
         });
@@ -308,6 +624,7 @@ public class CampaignView extends JFrame {
         searchButton.addActionListener((ActionEvent e) -> {
             String searchTerm = searchField.getText().trim();
             if (!searchTerm.isEmpty()) {
+                updateStatus("Buscando campañas...", true);
                 controller.searchByName(searchTerm);
             } else {
                 controller.loadCampaigns();
@@ -323,24 +640,30 @@ public class CampaignView extends JFrame {
         // Add button
         addButton.addActionListener((ActionEvent e) -> {
             try {
+                updateStatus("Agregando campaña...", true);
                 Campaign campaign = getCampaignFromForm();
                 controller.addCampaign(campaign);
                 clearForm();
+                showSuccess("Campaña agregada exitosamente");
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "Error adding campaign", ex);
-                showError("Error adding campaign: " + ex.getMessage());
+                showError("Error al agregar campaña: " + ex.getMessage());
+                updateStatus("Error al agregar campaña", false);
             }
         });
 
         // Update button
         updateButton.addActionListener((ActionEvent e) -> {
             try {
+                updateStatus("Actualizando campaña...", true);
                 Campaign campaign = getCampaignFromForm();
                 campaign.setCampaignId(currentCampaignId);
                 controller.updateCampaign(campaign);
+                showSuccess("Campaña actualizada exitosamente");
             } catch (Exception ex) {
                 LOGGER.log(Level.SEVERE, "Error updating campaign", ex);
-                showError("Error updating campaign: " + ex.getMessage());
+                showError("Error al actualizar campaña: " + ex.getMessage());
+                updateStatus("Error al actualizar campaña", false);
             }
         });
 
@@ -348,12 +671,14 @@ public class CampaignView extends JFrame {
         deleteButton.addActionListener((ActionEvent e) -> {
             if (currentCampaignId >= 0) {
                 int option = JOptionPane.showConfirmDialog(this,
-                        "Are you sure you want to delete this campaign?",
-                        "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                        "¿Está seguro que desea eliminar esta campaña?",
+                        "Confirmar Eliminación", JOptionPane.YES_NO_OPTION);
 
                 if (option == JOptionPane.YES_OPTION) {
+                    updateStatus("Eliminando campaña...", true);
                     controller.deleteCampaign(currentCampaignId);
                     clearForm();
+                    showSuccess("Campaña eliminada exitosamente");
                 }
             }
         });
@@ -365,6 +690,7 @@ public class CampaignView extends JFrame {
 
         // Report button
         reportButton.addActionListener((ActionEvent e) -> {
+            updateStatus("Abriendo reportes...", true);
             controller.openReportView();
         });
     }
@@ -377,6 +703,9 @@ public class CampaignView extends JFrame {
     public void updateCampaignTable(List<Campaign> campaigns) {
         tableModel.setRowCount(0);
 
+        // Update campaign count
+        campaignCount = campaigns.size();
+
         for (Campaign campaign : campaigns) {
             Object[] row = {
                     campaign.getCampaignId(),
@@ -388,6 +717,8 @@ public class CampaignView extends JFrame {
             };
             tableModel.addRow(row);
         }
+
+        updateStatus("Se encontraron " + campaigns.size() + " campañas", false);
     }
 
     /**
@@ -431,6 +762,8 @@ public class CampaignView extends JFrame {
 
         updateButton.setEnabled(true);
         deleteButton.setEnabled(true);
+
+        updateStatus("Campaña cargada: " + campaign.getName(), false);
     }
 
     /**
@@ -450,6 +783,8 @@ public class CampaignView extends JFrame {
 
         updateButton.setEnabled(false);
         deleteButton.setEnabled(false);
+
+        updateStatus("Formulario limpiado", false);
     }
 
     /**
@@ -508,7 +843,7 @@ public class CampaignView extends JFrame {
      * @param message The information message
      */
     public void showInfo(String message) {
-        JOptionPane.showMessageDialog(this, message, "Information", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, message, "Información", JOptionPane.INFORMATION_MESSAGE);
     }
 
     /**
@@ -517,6 +852,25 @@ public class CampaignView extends JFrame {
      * @param message The success message
      */
     public void showSuccess(String message) {
-        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+        JOptionPane.showMessageDialog(this, message, "Éxito", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    /**
+     * Helper method to set the divider color of a JSplitPane.
+     */
+    private static void setDividerColor(JSplitPane splitPane, Color color) {
+        splitPane.setBorder(null);
+        splitPane.setUI(new BasicSplitPaneUI() {
+            public javax.swing.plaf.basic.BasicSplitPaneDivider createDefaultDivider() {
+                return new javax.swing.plaf.basic.BasicSplitPaneDivider(this) {
+                    @Override
+                    public void paint(Graphics g) {
+                        g.setColor(color);
+                        g.fillRect(0, 0, getSize().width, getSize().height);
+                        super.paint(g);
+                    }
+                };
+            }
+        });
     }
 }

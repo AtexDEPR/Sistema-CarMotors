@@ -5,110 +5,125 @@ import com.carmotorsproject.ui.theme.AppTheme;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
-import java.awt.geom.RoundRectangle2D;
+import java.awt.event.FocusListener;
 
 /**
- * Campo de texto moderno con efectos visuales.
+ * Campo de texto moderno con soporte para placeholder y estilo mejorado.
  */
 public class ModernTextField extends JTextField {
 
     private String placeholder;
+    private String label;
+    private Icon icon;
     private Color placeholderColor = AppTheme.ACCENT_GRAY;
-    private Color borderColor = AppTheme.ACCENT_GRAY;
-    private Color focusBorderColor = AppTheme.PRIMARY_RED;
-    private int borderRadius = 5;
-    private boolean showPlaceholder = true;
+    private Color focusColor = AppTheme.PRIMARY_BLUE;
+    private Color borderColor = AppTheme.MEDIUM_GRAY;
+    private boolean isFocused = false;
+    private int columns = 20;
 
     /**
-     * Constructor por defecto.
+     * Constructor sin argumentos para compatibilidad con código existente.
      */
     public ModernTextField() {
+        this("", "");
+    }
+
+    /**
+     * Constructor con etiqueta.
+     *
+     * @param label Etiqueta del campo
+     */
+    public ModernTextField(String label) {
+        this(label, "");
+    }
+
+    /**
+     * Constructor con etiqueta y placeholder.
+     *
+     * @param label Etiqueta del campo
+     * @param placeholder Texto de placeholder
+     */
+    public ModernTextField(String label, String placeholder) {
+        this(label, placeholder, null);
+    }
+
+    /**
+     * Constructor completo.
+     *
+     * @param label Etiqueta del campo
+     * @param placeholder Texto de placeholder
+     * @param icon Icono del campo
+     */
+    public ModernTextField(String label, String placeholder, Icon icon) {
         super();
-        setupTextField();
+        this.label = label;
+        this.placeholder = placeholder;
+        this.icon = icon;
+
+        setupUI();
     }
 
     /**
-     * Constructor con texto inicial.
-     *
-     * @param text Texto inicial
+     * Configura la interfaz del campo.
      */
-    public ModernTextField(String text) {
-        super(text);
-        setupTextField();
-    }
-
-    /**
-     * Constructor con número de columnas.
-     *
-     * @param columns Número de columnas
-     */
-    public ModernTextField(int columns) {
-        super(columns);
-        setupTextField();
-    }
-
-    /**
-     * Constructor con texto inicial y número de columnas.
-     *
-     * @param text Texto inicial
-     * @param columns Número de columnas
-     */
-    public ModernTextField(String text, int columns) {
-        super(text, columns);
-        setupTextField();
-    }
-
-    /**
-     * Configura el campo de texto.
-     */
-    private void setupTextField() {
-        setOpaque(false);
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor),
-                new EmptyBorder(8, 10, 8, 10)));
+    private void setupUI() {
         setFont(AppTheme.REGULAR_FONT);
-        setForeground(AppTheme.PRIMARY_BLACK);
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                new EmptyBorder(8, 10, 8, 10)));
 
-        // Añadir listener para efectos de foco
-        addFocusListener(new FocusAdapter() {
+        if (icon != null) {
+            setMargin(new Insets(2, icon.getIconWidth() + 10, 2, 2));
+        }
+
+        addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
+                isFocused = true;
                 setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(focusBorderColor, 2),
+                        BorderFactory.createLineBorder(focusColor, 2),
                         new EmptyBorder(7, 9, 7, 9)));
+                repaint();
             }
 
             @Override
             public void focusLost(FocusEvent e) {
+                isFocused = false;
                 setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(borderColor),
+                        BorderFactory.createLineBorder(borderColor, 1),
                         new EmptyBorder(8, 10, 8, 10)));
+                repaint();
             }
         });
     }
 
     @Override
     protected void paintComponent(Graphics g) {
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Dibujar fondo
-        g2.setColor(getBackground());
-        g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), borderRadius, borderRadius));
-
         super.paintComponent(g);
 
-        // Dibujar placeholder si está vacío y no tiene foco
-        if (showPlaceholder && getText().isEmpty() && !hasFocus() && placeholder != null) {
+        // Dibujar placeholder si el campo está vacío y no tiene foco
+        if (getText().isEmpty() && !isFocused && placeholder != null && !placeholder.isEmpty()) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setColor(placeholderColor);
             g2.setFont(getFont());
-            int padding = (getHeight() - g2.getFontMetrics().getHeight()) / 2;
-            g2.drawString(placeholder, 10, getHeight() - padding - g2.getFontMetrics().getDescent());
+
+            int padding = 10;
+            if (icon != null) {
+                padding += icon.getIconWidth();
+            }
+
+            g2.drawString(placeholder, padding, (getHeight() / 2) + (g2.getFontMetrics().getAscent() / 2) - 2);
+            g2.dispose();
         }
 
-        g2.dispose();
+        // Dibujar icono si existe
+        if (icon != null) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            icon.paintIcon(this, g2, 5, (getHeight() - icon.getIconHeight()) / 2);
+            g2.dispose();
+        }
     }
 
     /**
@@ -131,6 +146,43 @@ public class ModernTextField extends JTextField {
     }
 
     /**
+     * Establece la etiqueta del campo.
+     *
+     * @param label Etiqueta del campo
+     */
+    public void setLabel(String label) {
+        this.label = label;
+    }
+
+    /**
+     * Obtiene la etiqueta del campo.
+     *
+     * @return Etiqueta del campo
+     */
+    public String getLabel() {
+        return label;
+    }
+
+    /**
+     * Establece el icono del campo.
+     *
+     * @param icon Icono del campo
+     */
+    public void setIcon(Icon icon) {
+        this.icon = icon;
+        repaint();
+    }
+
+    /**
+     * Obtiene el icono del campo.
+     *
+     * @return Icono del campo
+     */
+    public Icon getIcon() {
+        return icon;
+    }
+
+    /**
      * Establece el color del placeholder.
      *
      * @param color Color del placeholder
@@ -141,35 +193,36 @@ public class ModernTextField extends JTextField {
     }
 
     /**
+     * Establece el color de foco.
+     *
+     * @param color Color de foco
+     */
+    public void setFocusColor(Color color) {
+        this.focusColor = color;
+    }
+
+    /**
      * Establece el color del borde.
      *
      * @param color Color del borde
      */
     public void setBorderColor(Color color) {
         this.borderColor = color;
-        setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(borderColor),
-                new EmptyBorder(8, 10, 8, 10)));
-        repaint();
+        if (!isFocused) {
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(borderColor, 1),
+                    new EmptyBorder(8, 10, 8, 10)));
+        }
     }
 
     /**
-     * Establece el color del borde cuando tiene foco.
+     * Establece el número de columnas.
      *
-     * @param color Color del borde con foco
+     * @param columns Número de columnas
      */
-    public void setFocusBorderColor(Color color) {
-        this.focusBorderColor = color;
-        repaint();
-    }
-
-    /**
-     * Establece el radio del borde.
-     *
-     * @param radius Radio del borde
-     */
-    public void setBorderRadius(int radius) {
-        this.borderRadius = radius;
-        repaint();
+    @Override
+    public void setColumns(int columns) {
+        this.columns = columns;
+        super.setColumns(columns);
     }
 }

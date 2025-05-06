@@ -2,157 +2,102 @@ package com.carmotorsproject.ui.animation;
 
 import javax.swing.*;
 import java.awt.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 /**
- * Clase para manejar animaciones en la interfaz de usuario.
+ * Clase para gestionar animaciones en la interfaz de usuario.
  */
 public class AnimationManager {
 
     /**
-     * Realiza una animación de fade-in para un componente.
+     * Aplica una animación de fade-in a un componente.
      *
-     * @param component Componente a animar
-     * @param duration Duración en milisegundos
+     * @param component El componente a animar
+     * @param duration La duración de la animación en milisegundos
      */
     public static void fadeIn(JComponent component, int duration) {
-        component.setVisible(true);
         component.setOpaque(false);
+        float[] animationValues = new float[]{0.0f, 1.0f};
 
-        // Establecer opacidad inicial
-        float[] opacity = new float[]{0.0f};
+        Timer timer = new Timer(duration / 10, new ActionListener() {
+            private int index = 0;
 
-        // Crear timer para la animación
-        Timer timer = new Timer(20, e -> {
-            opacity[0] += 0.05f;
-            if (opacity[0] >= 1.0f) {
-                opacity[0] = 1.0f;
-                ((Timer) e.getSource()).stop();
-                component.setOpaque(true);
-                component.repaint();
-            }
-
-            component.putClientProperty("opacity", opacity[0]);
-            component.repaint();
-        });
-
-        timer.setInitialDelay(0);
-        timer.start();
-    }
-
-    /**
-     * Realiza una animación de fade-out para un componente.
-     *
-     * @param component Componente a animar
-     * @param duration Duración en milisegundos
-     * @param removeAfter Si se debe eliminar el componente después de la animación
-     */
-    public static void fadeOut(JComponent component, int duration, boolean removeAfter) {
-        component.setOpaque(false);
-
-        // Establecer opacidad inicial
-        float[] opacity = new float[]{1.0f};
-
-        // Crear timer para la animación
-        Timer timer = new Timer(20, e -> {
-            opacity[0] -= 0.05f;
-            if (opacity[0] <= 0.0f) {
-                opacity[0] = 0.0f;
-                ((Timer) e.getSource()).stop();
-
-                if (removeAfter && component.getParent() != null) {
-                    component.getParent().remove(component);
-                    component.getParent().revalidate();
-                    component.getParent().repaint();
-                } else {
-                    component.setVisible(false);
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (index < animationValues.length) {
+                    float alpha = animationValues[index++];
+                    component.setBackground(new Color(
+                            component.getBackground().getRed(),
+                            component.getBackground().getGreen(),
+                            component.getBackground().getBlue(),
+                            (int) (alpha * 255)
+                    ));
                     component.repaint();
-                }
-            }
-
-            component.putClientProperty("opacity", opacity[0]);
-            component.repaint();
-        });
-
-        timer.setInitialDelay(0);
-        timer.start();
-    }
-
-    /**
-     * Realiza una animación de slide-in desde la izquierda.
-     *
-     * @param component Componente a animar
-     * @param duration Duración en milisegundos
-     */
-    public static void slideInFromLeft(JComponent component, int duration) {
-        Container parent = component.getParent();
-        int targetX = component.getX();
-
-        // Posición inicial fuera de la pantalla
-        component.setLocation(-component.getWidth(), component.getY());
-        component.setVisible(true);
-
-        // Calcular incremento por paso
-        int distance = targetX + component.getWidth();
-        int steps = duration / 20; // 20ms por paso
-        final int increment = distance / steps;
-
-        AtomicInteger currentX = new AtomicInteger(-component.getWidth());
-
-        Timer timer = new Timer(20, e -> {
-            currentX.addAndGet(increment);
-            if (currentX.get() >= targetX) {
-                component.setLocation(targetX, component.getY());
-                ((Timer) e.getSource()).stop();
-            } else {
-                component.setLocation(currentX.get(), component.getY());
-            }
-            parent.repaint();
-        });
-
-        timer.setInitialDelay(0);
-        timer.start();
-    }
-
-    /**
-     * Realiza una animación de slide-out hacia la derecha.
-     *
-     * @param component Componente a animar
-     * @param duration Duración en milisegundos
-     * @param removeAfter Si se debe eliminar el componente después de la animación
-     */
-    public static void slideOutToRight(JComponent component, int duration, boolean removeAfter) {
-        Container parent = component.getParent();
-        int startX = component.getX();
-        int targetX = parent.getWidth();
-
-        // Calcular incremento por paso
-        int distance = targetX - startX;
-        int steps = duration / 20; // 20ms por paso
-        final int increment = distance / steps;
-
-        AtomicInteger currentX = new AtomicInteger(startX);
-
-        Timer timer = new Timer(20, e -> {
-            currentX.addAndGet(increment);
-            if (currentX.get() >= targetX) {
-                ((Timer) e.getSource()).stop();
-
-                if (removeAfter && component.getParent() != null) {
-                    component.getParent().remove(component);
-                    component.getParent().revalidate();
-                    component.getParent().repaint();
                 } else {
-                    component.setVisible(false);
-                    component.setLocation(startX, component.getY());
+                    ((Timer) e.getSource()).stop();
                 }
-            } else {
-                component.setLocation(currentX.get(), component.getY());
             }
-            parent.repaint();
         });
 
-        timer.setInitialDelay(0);
+        timer.start();
+    }
+
+    /**
+     * Aplica una animación de fade-in a un JFrame.
+     *
+     * @param frame El frame a animar
+     * @param duration La duración de la animación en milisegundos
+     */
+    public static void fadeInFrame(JFrame frame, int duration) {
+        frame.setOpacity(0.0f);
+
+        Timer timer = new Timer(duration / 20, new ActionListener() {
+            private float opacity = 0.0f;
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                opacity += 0.05f;
+                if (opacity <= 1.0f) {
+                    frame.setOpacity(opacity);
+                } else {
+                    frame.setOpacity(1.0f);
+                    ((Timer) e.getSource()).stop();
+                }
+            }
+        });
+
+        timer.start();
+    }
+
+    /**
+     * Aplica una animación de slide-in desde la derecha a un componente.
+     *
+     * @param component El componente a animar
+     * @param duration La duración de la animación en milisegundos
+     */
+    public static void slideInRight(JComponent component, int duration) {
+        Dimension size = component.getPreferredSize();
+        int targetX = component.getX();
+        int startX = targetX + size.width;
+
+        component.setLocation(startX, component.getY());
+
+        Timer timer = new Timer(duration / 20, new ActionListener() {
+            private int currentX = startX;
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                currentX -= (startX - targetX) / 20;
+                if (currentX > targetX) {
+                    component.setLocation(currentX, component.getY());
+                } else {
+                    component.setLocation(targetX, component.getY());
+                    ((Timer) e.getSource()).stop();
+                }
+            }
+        });
+
         timer.start();
     }
 }

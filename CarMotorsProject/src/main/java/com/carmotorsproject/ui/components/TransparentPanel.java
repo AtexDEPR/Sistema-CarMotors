@@ -5,81 +5,96 @@ import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 
 /**
- * Panel con fondo semitransparente y esquinas redondeadas.
+ * Panel con soporte para transparencia y color de fondo personalizable.
+ * Útil para crear interfaces con efectos visuales modernos.
  */
 public class TransparentPanel extends JPanel {
-
     private Color backgroundColor;
-    private float opacity = 0.9f;
-    private int radius = 10;
+    private float alpha;
+    private int cornerRadius = 0;
+    private boolean hasRoundedCorners = false;
 
     /**
-     * Constructor con color de fondo.
+     * Constructor por defecto.
+     * Crea un panel completamente transparente.
+     */
+    public TransparentPanel() {
+        this(new Color(255, 255, 255), 0.0f);
+    }
+
+    /**
+     * Constructor con color de fondo y nivel de transparencia.
      *
      * @param backgroundColor Color de fondo
+     * @param alpha Nivel de transparencia (0.0f - 1.0f)
      */
-    public TransparentPanel(Color backgroundColor) {
+    public TransparentPanel(Color backgroundColor, float alpha) {
         this.backgroundColor = backgroundColor;
+        this.alpha = alpha;
+        this.hasRoundedCorners = false;
         setOpaque(false);
-        setLayout(new BorderLayout());
     }
 
     /**
-     * Constructor con color de fondo y opacidad.
+     * Constructor con color de fondo, nivel de transparencia y radio de esquinas.
      *
      * @param backgroundColor Color de fondo
-     * @param opacity Opacidad (0.0f - 1.0f)
+     * @param alpha Nivel de transparencia (0.0f - 1.0f)
+     * @param cornerRadius Radio de las esquinas
      */
-    public TransparentPanel(Color backgroundColor, float opacity) {
-        this(backgroundColor);
-        this.opacity = opacity;
+    public TransparentPanel(Color backgroundColor, float alpha, int cornerRadius) {
+        this.backgroundColor = backgroundColor;
+        this.alpha = alpha;
+        this.cornerRadius = cornerRadius;
+        this.hasRoundedCorners = true;
+        setOpaque(false);
     }
 
     /**
-     * Constructor con color de fondo, opacidad y radio de esquinas.
+     * Establece el color de fondo.
      *
-     * @param backgroundColor Color de fondo
-     * @param opacity Opacidad (0.0f - 1.0f)
-     * @param radius Radio de las esquinas
+     * @param backgroundColor Nuevo color de fondo
      */
-    public TransparentPanel(Color backgroundColor, float opacity, int radius) {
-        this(backgroundColor, opacity);
-        this.radius = radius;
-    }
-
-    @Override
-    protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
-        Graphics2D g2 = (Graphics2D) g.create();
-        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
-        // Aplicar opacidad
-        g2.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
-
-        // Dibujar fondo redondeado
-        g2.setColor(backgroundColor);
-        g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), radius, radius));
-
-        g2.dispose();
+    public void setBackgroundColor(Color backgroundColor) {
+        this.backgroundColor = backgroundColor;
+        repaint();
     }
 
     /**
-     * Establece la opacidad del panel.
+     * Establece el nivel de transparencia.
      *
-     * @param opacity Opacidad (0.0f - 1.0f)
+     * @param alpha Nivel de transparencia (0.0f - 1.0f)
      */
-    public void setOpacity(float opacity) {
-        this.opacity = opacity;
+    public void setAlpha(float alpha) {
+        this.alpha = alpha;
         repaint();
     }
 
     /**
      * Establece el radio de las esquinas.
      *
-     * @param radius Radio en píxeles
+     * @param cornerRadius Radio de las esquinas
      */
-    public void setRadius(int radius) {
-        this.radius = radius;
+    public void setCornerRadius(int cornerRadius) {
+        this.cornerRadius = cornerRadius;
+        this.hasRoundedCorners = cornerRadius > 0;
         repaint();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g.create();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+        g2d.setColor(backgroundColor);
+
+        if (hasRoundedCorners) {
+            g2d.fill(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), cornerRadius, cornerRadius));
+        } else {
+            g2d.fillRect(0, 0, getWidth(), getHeight());
+        }
+
+        g2d.dispose();
+        super.paintComponent(g);
     }
 }

@@ -80,7 +80,7 @@ public class PartController {
             // Update view
             view.clearForm();
             loadAllParts();
-            view.showInfo("Part added successfully: " + savedPart.getName());
+            view.showConfirm("Part added successfully: " + savedPart.getName());
             LOGGER.log(Level.INFO, "Part added: {0}", savedPart.getName());
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error adding part", e);
@@ -115,7 +115,7 @@ public class PartController {
             // Update view
             view.clearForm();
             loadAllParts();
-            view.showInfo("Part updated successfully: " + updatedPart.getName());
+            view.showConfirm("Part updated successfully: " + updatedPart.getName());
             LOGGER.log(Level.INFO, "Part updated: {0}", updatedPart.getName());
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error updating part", e);
@@ -145,7 +145,7 @@ public class PartController {
             // Update view
             view.clearForm();
             loadAllParts();
-            view.showInfo("Part deleted successfully.");
+            view.showConfirm("Part deleted successfully.");
             LOGGER.log(Level.INFO, "Part deleted: ID {0}", part.getPartId());
         } else {
             view.showError("Part could not be deleted. It may be referenced by other records.");

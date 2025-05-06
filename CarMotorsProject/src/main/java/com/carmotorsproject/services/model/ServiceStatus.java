@@ -27,7 +27,7 @@ public enum ServiceStatus {
     /**
      * Vehicle has been delivered to the customer
      */
-    DELIVERED;
+    DELIVERED, CANCELLED;
 
     /**
      * Converts a string to the corresponding ServiceStatus enum value.

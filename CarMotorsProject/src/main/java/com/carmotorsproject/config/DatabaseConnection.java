@@ -21,8 +21,8 @@ public class DatabaseConnection {
 
     // Default database connection parameters
     private String url = "jdbc:mysql://localhost:3306/carmotors";
-    private String user = "root";
-    private String password = "kova3452";
+    private String user = "campus2023";
+    private String password = "campus2023";
 
     // Configuration file path
     private static final String CONFIG_FILE = "database.properties";

@@ -3,73 +3,98 @@ package com.carmotorsproject.ui.components;
 import com.carmotorsproject.ui.theme.AppTheme;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.geom.RoundRectangle2D;
 
 /**
- * Tarjeta moderna para el menú principal con efectos de hover.
+ * Tarjeta moderna para mostrar módulos en el panel de bienvenida.
  */
 public class ModernCard extends JPanel {
 
-    private String title;
-    private String description;
-    private ImageIcon icon;
-    private Color backgroundColor = AppTheme.PRIMARY_BLACK;
-    private Color hoverColor = AppTheme.SECONDARY_BLACK;
-    private Color textColor = AppTheme.PRIMARY_WHITE;
+    private final Runnable action;
+    private Color backgroundColor = AppTheme.PRIMARY_WHITE;
+    private Color hoverColor = new Color(245, 245, 245);
     private boolean isHovered = false;
-    private Runnable clickAction;
 
     /**
-     * Constructor para tarjeta de menú.
+     * Constructor de la tarjeta moderna.
      *
      * @param title Título de la tarjeta
-     * @param description Descripción corta
+     * @param description Descripción de la tarjeta
      * @param iconPath Ruta al icono
-     * @param clickAction Acción al hacer clic
+     * @param action Acción a ejecutar al hacer clic
      */
-    public ModernCard(String title, String description, String iconPath, Runnable clickAction) {
-        this.title = title;
-        this.description = description;
-        this.clickAction = clickAction;
+    public ModernCard(String title, String description, String iconPath, Runnable action) {
+        this.action = action;
 
-        // Cargar icono si se proporciona una ruta
-        if (iconPath != null && !iconPath.isEmpty()) {
-            try {
-                this.icon = new ImageIcon(getClass().getResource(iconPath));
-            } catch (Exception e) {
-                System.err.println("Error cargando icono: " + e.getMessage());
-            }
+        setLayout(new BorderLayout(10, 10));
+        setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(AppTheme.ACCENT_LIGHT, 1),
+                BorderFactory.createEmptyBorder(15, 15, 15, 15)));
+        setBackground(backgroundColor);
+
+        // Panel de icono
+        JPanel iconPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        iconPanel.setOpaque(false);
+
+        // Cargar icono de forma segura
+        Icon icon = loadIconSafely(iconPath);
+        if (icon != null) {
+            JLabel iconLabel = new JLabel(icon);
+            iconPanel.add(iconLabel);
+        } else {
+            // Icono alternativo si no se puede cargar
+            JLabel altIconLabel = new JLabel("📦");
+            altIconLabel.setFont(new Font("Dialog", Font.BOLD, 36));
+            altIconLabel.setForeground(AppTheme.PRIMARY_RED);
+            iconPanel.add(altIconLabel);
         }
 
-        setup();
-    }
+        // Panel de texto
+        JPanel textPanel = new JPanel();
+        textPanel.setLayout(new BoxLayout(textPanel, BoxLayout.Y_AXIS));
+        textPanel.setOpaque(false);
 
-    private void setup() {
-        setOpaque(false);
-        setCursor(new Cursor(Cursor.HAND_CURSOR));
-        setPreferredSize(new Dimension(200, 150));
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(AppTheme.SUBTITLE_FONT);
+        titleLabel.setForeground(AppTheme.PRIMARY_BLACK);
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        // Añadir listeners para efectos de hover y clic
+        JLabel descLabel = new JLabel(description);
+        descLabel.setFont(AppTheme.SMALL_FONT);
+        descLabel.setForeground(AppTheme.ACCENT_GRAY);
+        descLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        textPanel.add(titleLabel);
+        textPanel.add(Box.createRigidArea(new Dimension(0, 5)));
+        textPanel.add(descLabel);
+
+        // Añadir componentes
+        add(iconPanel, BorderLayout.WEST);
+        add(textPanel, BorderLayout.CENTER);
+
+        // Añadir efectos de hover y clic
         addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
                 isHovered = true;
-                repaint();
+                setBackground(hoverColor);
+                setCursor(new Cursor(Cursor.HAND_CURSOR));
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
                 isHovered = false;
-                repaint();
+                setBackground(backgroundColor);
+                setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
             }
 
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (clickAction != null) {
-                    clickAction.run();
+                if (action != null) {
+                    action.run();
                 }
             }
         });
@@ -77,89 +102,38 @@ public class ModernCard extends JPanel {
 
     @Override
     protected void paintComponent(Graphics g) {
-        super.paintComponent(g);
         Graphics2D g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Dibujar fondo redondeado
-        g2.setColor(isHovered ? hoverColor : backgroundColor);
-        g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(),
-                AppTheme.BORDER_RADIUS, AppTheme.BORDER_RADIUS));
+        // Dibujar fondo con esquinas redondeadas
+        g2.setColor(getBackground());
+        g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
 
-        // Dibujar borde rojo cuando está hover
+        // Dibujar borde si está hover
         if (isHovered) {
             g2.setColor(AppTheme.PRIMARY_RED);
-            g2.setStroke(new BasicStroke(2f));
-            g2.draw(new RoundRectangle2D.Float(1, 1, getWidth() - 2, getHeight() - 2,
-                    AppTheme.BORDER_RADIUS, AppTheme.BORDER_RADIUS));
-        }
-
-        // Dibujar icono si existe
-        if (icon != null) {
-            int iconSize = 48;
-            int iconX = (getWidth() - iconSize) / 2;
-            int iconY = 20;
-            g2.drawImage(icon.getImage(), iconX, iconY, iconSize, iconSize, null);
-        }
-
-        // Dibujar título
-        g2.setColor(textColor);
-        g2.setFont(AppTheme.HEADER_FONT);
-        FontMetrics fmTitle = g2.getFontMetrics();
-        int titleX = (getWidth() - fmTitle.stringWidth(title)) / 2;
-        int titleY = icon != null ? 85 : 50;
-        g2.drawString(title, titleX, titleY);
-
-        // Dibujar descripción
-        g2.setFont(AppTheme.SMALL_FONT);
-        FontMetrics fmDesc = g2.getFontMetrics();
-        int descX = AppTheme.PADDING_MEDIUM;
-        int descY = titleY + fmTitle.getHeight() + 5;
-
-        // Dividir descripción en múltiples líneas si es necesario
-        if (description != null && !description.isEmpty()) {
-            int maxWidth = getWidth() - (2 * AppTheme.PADDING_MEDIUM);
-            drawMultilineString(g2, description, descX, descY, maxWidth);
+            g2.setStroke(new BasicStroke(2));
+            g2.drawRoundRect(1, 1, getWidth() - 2, getHeight() - 2, 10, 10);
         }
 
         g2.dispose();
+
+        super.paintComponent(g);
     }
 
     /**
-     * Dibuja texto en múltiples líneas si es necesario.
-     */
-    private void drawMultilineString(Graphics2D g2, String text, int x, int y, int maxWidth) {
-        FontMetrics fm = g2.getFontMetrics();
-        String[] words = text.split(" ");
-        StringBuilder currentLine = new StringBuilder();
-
-        for (String word : words) {
-            if (fm.stringWidth(currentLine + " " + word) < maxWidth) {
-                if (currentLine.length() > 0) currentLine.append(" ");
-                currentLine.append(word);
-            } else {
-                g2.drawString(currentLine.toString(), x, y);
-                y += fm.getHeight();
-                currentLine = new StringBuilder(word);
-            }
-        }
-
-        if (currentLine.length() > 0) {
-            g2.drawString(currentLine.toString(), x, y);
-        }
-    }
-
-    /**
-     * Establece los colores personalizados para la tarjeta.
+     * Carga un icono de forma segura, devolviendo null si no se encuentra.
      *
-     * @param background Color de fondo
-     * @param hover Color al pasar el mouse
-     * @param text Color del texto
+     * @param path Ruta al icono
+     * @return El icono cargado o null si no se encuentra
      */
-    public void setColors(Color background, Color hover, Color text) {
-        this.backgroundColor = background;
-        this.hoverColor = hover;
-        this.textColor = text;
-        repaint();
+    private Icon loadIconSafely(String path) {
+        java.net.URL iconURL = getClass().getResource(path);
+        if (iconURL != null) {
+            return new ImageIcon(iconURL);
+        } else {
+            System.out.println("Advertencia: No se pudo cargar el icono: " + path);
+            return null;
+        }
     }
 }
