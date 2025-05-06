@@ -1,14 +1,45 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.carmotorsproject.campaigns.model;
 
 /**
- *
- * @author ADMiN
+ * Enum representing the possible statuses of a campaign appointment.
  */
-public class CampaignStatus {
-    
+public enum CampaignStatus {
+    /**
+     * The appointment is pending confirmation.
+     */
+    PENDING,
+
+    /**
+     * The appointment has been confirmed.
+     */
+    CONFIRMED,
+
+    /**
+     * The appointment has been completed.
+     */
+    COMPLETED,
+
+    DRAFT,
+    ACTIVE,
+    SCHEDULED,
+    EXPIRED,
+
+    /**
+     * The appointment has been cancelled.
+     */
+    CANCELLED;
+
+    /**
+     * Converts a string to a CampaignStatus enum value.
+     *
+     * @param status The status string
+     * @return The corresponding CampaignStatus enum value
+     */
+    public static CampaignStatus fromString(String status) {
+        try {
+            return CampaignStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return PENDING; // Default value
+        }
+    }
 }

@@ -5,17 +5,116 @@
  */
 package com.carmotorsproject.campaigns.views;
 
+import com.carmotorsproject.campaigns.controller.CampaignAppointmentController;
+import com.carmotorsproject.campaigns.model.CampaignAppointment;
+
+import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 /**
  *
  * @author ADMiN
  */
 public class CampaignAppointmentView extends javax.swing.JFrame {
 
+    private static final Logger LOGGER = Logger.getLogger(CampaignAppointmentView.class.getName());
+    private CampaignAppointmentController controller;
+    private DefaultTableModel appointmentTableModel;
+
     /**
      * Creates new form CampaignAppointmentView
      */
     public CampaignAppointmentView() {
         initComponents();
+        setupTable();
+    }
+
+    /**
+     * Sets up the appointment table
+     */
+    private void setupTable() {
+        // This would be implemented with actual table setup code
+        // For now, we'll just create a basic model
+        String[] columnNames = {"ID", "Campaign", "Customer", "Vehicle", "Date", "Status", "Notes"};
+        appointmentTableModel = new DefaultTableModel(columnNames, 0);
+        // Assuming there's a JTable component named tblAppointments
+        // tblAppointments.setModel(appointmentTableModel);
+    }
+
+    /**
+     * Sets the controller for this view
+     *
+     * @param controller The campaign appointment controller
+     */
+    public void setController(CampaignAppointmentController controller) {
+        this.controller = controller;
+        LOGGER.log(Level.INFO, "Controller set for CampaignAppointmentView");
+    }
+
+    /**
+     * Updates the appointment table with the provided list of appointments
+     *
+     * @param appointments List of appointments to display
+     */
+    public void updateAppointmentTable(List<CampaignAppointment> appointments) {
+        // Clear existing data
+        appointmentTableModel.setRowCount(0);
+
+        // Add new data
+        for (CampaignAppointment appointment : appointments) {
+            Object[] row = {
+                    appointment.getCampaignAppointmentId(),
+                    appointment.getCampaignId(), // Would typically show campaign name
+                    appointment.getCustomerId(), // Would typically show customer name
+                    appointment.getVehicleId(), // Would typically show vehicle info
+                    appointment.getAppointmentDate(),
+                    appointment.getStatus(),
+                    appointment.getNotes()
+            };
+            appointmentTableModel.addRow(row);
+        }
+
+        LOGGER.log(Level.INFO, "Updated appointment table with {0} appointments", appointments.size());
+    }
+
+    /**
+     * Shows an error message
+     *
+     * @param message The error message to display
+     */
+    public void showError(String message) {
+        JOptionPane.showMessageDialog(this, message, "Error", JOptionPane.ERROR_MESSAGE);
+        LOGGER.log(Level.WARNING, "Error shown: {0}", message);
+    }
+
+    /**
+     * Shows validation errors
+     *
+     * @param errors Map of field names to error messages
+     */
+    public void showValidationErrors(Map<String, String> errors) {
+        StringBuilder errorMessage = new StringBuilder("Please correct the following errors:\n");
+
+        for (Map.Entry<String, String> entry : errors.entrySet()) {
+            errorMessage.append("- ").append(entry.getValue()).append("\n");
+        }
+
+        JOptionPane.showMessageDialog(this, errorMessage.toString(), "Validation Errors", JOptionPane.WARNING_MESSAGE);
+        LOGGER.log(Level.WARNING, "Validation errors shown: {0}", errors.size());
+    }
+
+    /**
+     * Shows a success message
+     *
+     * @param message The success message to display
+     */
+    public void showSuccess(String message) {
+        JOptionPane.showMessageDialog(this, message, "Success", JOptionPane.INFORMATION_MESSAGE);
+        LOGGER.log(Level.INFO, "Success message shown: {0}", message);
     }
 
     /**
@@ -32,12 +131,12 @@ public class CampaignAppointmentView extends javax.swing.JFrame {
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 400, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGap(0, 300, Short.MAX_VALUE)
         );
 
         pack();
@@ -50,7 +149,7 @@ public class CampaignAppointmentView extends javax.swing.JFrame {
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html
          */
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {

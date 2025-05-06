@@ -1,14 +1,35 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.carmotorsproject.campaigns.model;
 
 /**
- *
- * @author ADMiN
+ * Enum representing the possible results of a vehicle inspection.
  */
-public class InspectionResult {
-    
+public enum InspectionResult {
+    /**
+     * The vehicle passed the inspection.
+     */
+    APPROVED,
+
+    /**
+     * The vehicle needs repairs before it can be approved.
+     */
+    REPAIRS_NEEDED,
+
+    /**
+     * The vehicle failed the inspection.
+     */
+    REJECTED;
+
+    /**
+     * Converts a string to an InspectionResult enum value.
+     *
+     * @param result The result string
+     * @return The corresponding InspectionResult enum value
+     */
+    public static InspectionResult fromString(String result) {
+        try {
+            return InspectionResult.valueOf(result.toUpperCase());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            return REPAIRS_NEEDED; // Default value
+        }
+    }
 }

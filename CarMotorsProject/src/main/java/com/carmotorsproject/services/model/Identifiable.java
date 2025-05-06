@@ -3,11 +3,16 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package com.carmotorsproject.services.model;
-
 /**
- *
- * @author camper
+ * Interface for service-related models with unique identifiers.
+ * Provides a standard way to access the ID of an entity.
  */
-public class Identifiable {
-    
+public interface Identifiable {
+
+    /**
+     * Gets the unique identifier of the entity.
+     *
+     * @return The entity's unique identifier
+     */
+    int getId();
 }

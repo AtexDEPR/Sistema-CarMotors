@@ -6,9 +6,15 @@
 package com.carmotorsproject.invoices.model;
 
 /**
- *
- * @author ADMiN
+ * Interface for invoice-related models that have an ID.
+ * Provides a standard way to access the ID of an entity.
  */
-public class Identifiable {
-    
+public interface Identifiable {
+
+    /**
+     * Gets the ID of the entity.
+     *
+     * @return The ID of the entity
+     */
+    int getId();
 }
